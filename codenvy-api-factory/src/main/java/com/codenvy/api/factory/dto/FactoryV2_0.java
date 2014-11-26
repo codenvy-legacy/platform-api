@@ -27,7 +27,18 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface FactoryV2_0 extends FactoryV1_2 {
+public interface FactoryV2_0 {
+
+    /**
+     * @return Version for Codenvy Factory API.
+     */
+    @FactoryParameter(obligation = MANDATORY, queryParameterName = "v")
+    String getV();
+
+    void setV(String v);
+
+    FactoryV2_0 withV(String v);
+
     /**
      * Describes source where project's files can be retrieved
      */
@@ -100,5 +111,16 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     void setButton(Button button);
 
     FactoryV2_0 withButton(Button button);
+
+
+    /**
+     * @return - id of stored factory object
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "id", format = ENCODED, setByServer = true)
+    String getId();
+
+    void setId(String id);
+
+    FactoryV2_0 withId(String id);
 
 }

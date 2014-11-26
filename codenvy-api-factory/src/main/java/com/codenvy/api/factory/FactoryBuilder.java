@@ -10,18 +10,26 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation;
+import static com.codenvy.api.core.factory.FactoryParameter.Version;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_VERSION_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.MISSING_MANDATORY_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
+import static java.lang.String.format;
+
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.factory.converter.IdCommitConverter;
 import com.codenvy.api.factory.converter.LegacyConverter;
-import com.codenvy.api.factory.converter.ProjectNameConverter;
-import com.codenvy.api.factory.converter.ProjectTypeConverter;
-import com.codenvy.api.factory.converter.WorkspaceNameConverter;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryV1_0;
-import com.codenvy.api.factory.dto.FactoryV1_1;
-import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.factory.dto.FactoryV2_1;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
@@ -56,21 +64,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.Obligation;
-import static com.codenvy.api.core.factory.FactoryParameter.Version;
-import static com.codenvy.api.factory.FactoryConstants.INVALID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.INVALID_VERSION_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.MISSING_MANDATORY_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
-import static java.lang.String.format;
-
 /**
  * Tool to easy convert Factory object to nonencoded version or
  * to json version and vise versa.
@@ -87,11 +80,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
     static {
-        List<LegacyConverter> l = new ArrayList<>(4);
-        l.add(new IdCommitConverter());
-        l.add(new ProjectNameConverter());
-        l.add(new ProjectTypeConverter());
-        l.add(new WorkspaceNameConverter());
+        List<LegacyConverter> l = new ArrayList<>(0);
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
@@ -199,17 +188,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
 
         Class usedFactoryVersionMethodProvider;
         switch (v) {
-            case V1_0:
-                usedFactoryVersionMethodProvider = FactoryV1_0.class;
-                break;
-            case V1_1:
-                usedFactoryVersionMethodProvider = FactoryV1_1.class;
-                orgid = factory.getOrgid();
-                break;
-            case V1_2:
-                usedFactoryVersionMethodProvider = FactoryV1_2.class;
-                orgid = factory.getOrgid();
-                break;
             case V2_0:
                 usedFactoryVersionMethodProvider = FactoryV2_0.class;
                 orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;

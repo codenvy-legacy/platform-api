@@ -10,6 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
+import static java.lang.String.format;
+
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
@@ -19,7 +23,6 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Policies;
-import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
@@ -33,10 +36,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
-import static java.lang.String.format;
-
 /**
  * Validates values of factory parameters.
  *
@@ -48,8 +47,8 @@ public abstract class FactoryUrlBaseValidator {
 
     private final boolean onPremises;
 
-    private final AccountDao accountDao;
-    private final UserDao userDao;
+    private final AccountDao     accountDao;
+    private final UserDao        userDao;
     private final UserProfileDao profileDao;
 
     public FactoryUrlBaseValidator(AccountDao accountDao,
@@ -75,17 +74,12 @@ public abstract class FactoryUrlBaseValidator {
         String location;
         String parameterTypeName;
         String parameterLocationName;
-        if (factory.getV().startsWith("1.")) {
-            type = factory.getVcs();
-            location = factory.getVcsurl();
-            parameterTypeName = "vcs";
-            parameterLocationName = "vcsurl";
-        } else {
-            type = factory.getSource().getProject().getType();
-            location = factory.getSource().getProject().getLocation();
-            parameterTypeName = "source.project.type";
-            parameterLocationName = "source.project.location";
-        }
+
+        type = factory.getSource().getProject().getType();
+        location = factory.getSource().getProject().getLocation();
+        parameterTypeName = "source.project.type";
+        parameterLocationName = "source.project.location";
+
         // check that vcs value is correct
         if (!("git".equals(type) || "esbwso2".equals(type))) {
             throw new ConflictException("Parameter '" + parameterTypeName + "' has illegal value.");
@@ -107,16 +101,8 @@ public abstract class FactoryUrlBaseValidator {
         // validate project name
         String pname = null;
         switch (factory.getV()) {
-            case "1.0":
-                pname = factory.getPname();
-                break;
-            case "1.1":
-            case "1.2":
-                if (factory.getProjectattributes() != null) {
-                    pname = factory.getProjectattributes().getPname();
-                }
-                break;
             case "2.0":
+            case "2.1":
                 if (null != factory.getProject()) {
                     pname = factory.getProject().getName();
                 }
@@ -135,13 +121,9 @@ public abstract class FactoryUrlBaseValidator {
         String orgid;
         String userid;
         // TODO do we need check if user is temporary?
-        if (factory.getV().startsWith("1.")) {
-            orgid = Strings.emptyToNull(factory.getOrgid());
-            userid = factory.getUserid();
-        } else {
-            orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
-            userid = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
-        }
+
+        orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
+        userid = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
         if (null != orgid) {
             if (null != userid) {
@@ -174,12 +156,7 @@ public abstract class FactoryUrlBaseValidator {
 
     protected void validateTrackedFactoryAndParams(Factory factory) throws ApiException {
         // validate tracked parameters
-        String orgid;
-        if (factory.getV().startsWith("1.")) {
-            orgid = Strings.emptyToNull(factory.getOrgid());
-        } else {
-            orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
-        }
+        String orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
 
         if (orgid != null) {
             try {
@@ -202,24 +179,15 @@ public abstract class FactoryUrlBaseValidator {
         Long validSince = null;
         Long validUntil = null;
         WelcomePage welcomePage = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
-            }
 
-            welcomePage = factory.getWelcome();
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
-            }
+        final Policies policies = factory.getPolicies();
+        if (policies != null) {
+            validSince = policies.getValidSince();
+            validUntil = policies.getValidUntil();
+        }
 
-            if (factory.getActions() != null) {
-                welcomePage = factory.getActions().getWelcome();
-            }
+        if (factory.getActions() != null) {
+            welcomePage = factory.getActions().getWelcome();
         }
 
         if (validSince != null && validSince > 0) {
@@ -247,18 +215,11 @@ public abstract class FactoryUrlBaseValidator {
     protected void validateCurrentTimeBetweenSinceUntil(Factory factory) throws ConflictException {
         Long validSince = null;
         Long validUntil = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
-            }
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
-            }
+
+        final Policies policies = factory.getPolicies();
+        if (policies != null) {
+            validSince = policies.getValidSince();
+            validUntil = policies.getValidUntil();
         }
 
         if (validSince != null && validSince != 0) {
@@ -277,18 +238,11 @@ public abstract class FactoryUrlBaseValidator {
     protected void validateCurrentTimeBeforeSinceUntil(Factory factory) throws ConflictException {
         Long validSince = null;
         Long validUntil = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
-            }
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
-            }
+
+        final Policies policies = factory.getPolicies();
+        if (policies != null) {
+            validSince = policies.getValidSince();
+            validUntil = policies.getValidUntil();
         }
 
         if (validSince != null && validSince != 0 && validUntil != null && validUntil != 0 && validSince >= validUntil) {

@@ -10,6 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.testng.Assert.assertEquals;
+
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
@@ -18,17 +28,13 @@ import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
-import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryV1_1;
-import com.codenvy.api.factory.dto.Git;
+import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.OnAppClosed;
 import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
-import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.factory.dto.WelcomeConfiguration;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.factory.dto.Workspace;
@@ -62,16 +68,6 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
-
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.testng.Assert.assertEquals;
 
 /**
  * Tests for {@link com.codenvy.api.factory.dto.Factory}
@@ -127,107 +123,107 @@ public class FactoryBuilderTest {
         return result;
     }
 
-    @Test
-    public void shouldBeAbleToValidateFactory1_0() throws ApiException {
-        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
-              .withAction("action").withWname("wname").withVcsinfo(true).withOpenfile("openfile");
-
-        factoryBuilder.checkValid(actual, NONENCODED);
-    }
-
-    @Test
-    public void shouldBeAbleToValidateEncodedFactory1_1() throws ApiException {
-        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withVcsinfo(
-                true).withOpenfile("openfile").withAction("action")).withStyle("style").withDescription("description").withContactmail(
-                "contactmail").withAuthor("author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch")
-                                                                    .withValidsince(123456789l).withValiduntil(234567899l);
-
-        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
-
-        Variable replacement = dto.createDto(Variable.class).withReplacemode(
-                "replacemod").withReplace("replace").withFind("find");
-
-        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
-                                             .withFiles(Arrays.asList("file1"))));
-
-        WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
-        actual.setWelcome(dto.createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
-
-        factoryBuilder.checkValid(actual, ENCODED);
-    }
-
-    @Test
-    public void shouldBeAbleToValidateNonEncodedFactory1_1() throws ApiException {
-        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action").withVcsinfo(
-                true).withOpenfile("openfile")).withContactmail("contactmail").withAuthor("author").withOrgid("orgid")
-                                               .withAffiliateid("affid").withVcsbranch(
-                "branch").withValidsince(123456789l).withValiduntil(234567899l);
-
-        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
-
-        Variable replacement = dto.createDto(Variable.class).withReplacemode(
-                "replacemod").withReplace("replace").withFind("find");
-
-        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
-                                             .withFiles(Arrays.asList("file1"))));
-
-        factoryBuilder.checkValid(actual, NONENCODED);
-    }
-
-    @Test
-    public void shouldBeAbleToValidateEncodedFactory1_2() throws ApiException {
-        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsinfo(true).withOpenfile("openfile").withVcsurl("vcsurl")
-                            .withCommitid("commitid").withAction(
-                        "action")).withStyle("style").withDescription("description").withContactmail("contactmail").withAuthor("author")
-                                  .withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
-
-        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
-
-        Variable replacement = dto.createDto(Variable.class).withReplacemode(
-                "replacemod").withReplace("replace").withFind("find");
-
-        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
-                                             .withFiles(Arrays.asList("file1"))));
-
-        WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
-        actual.setWelcome(dto.createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
-
-        actual.withGit(dto.createDto(Git.class).withConfigbranchmerge(
-                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
-                "configremoteoriginfetch"));
-
-        actual.withRestriction(
-                dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
-
-        factoryBuilder.checkValid(actual, ENCODED);
-    }
-
-    @Test
-    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws ApiException {
-        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withVcsinfo(true).withCommitid("commitid").withOpenfile(
-                "openfile").withAction("action")).withContactmail("contactmail").withAuthor(
-                "author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
-
-        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
-
-        Variable replacement = dto.createDto(Variable.class).withReplacemode(
-                "replacemod").withReplace("replace").withFind("find");
-
-        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
-                                             .withFiles(Arrays.asList("file1"))));
-
-        actual.withGit(dto.createDto(Git.class).withConfigbranchmerge(
-                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
-                "configremoteoriginfetch"));
-
-        actual.withRestriction(
-                dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
-                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
-
-
-        factoryBuilder.checkValid(actual, NONENCODED);
-    }
+//    @Test
+//    public void shouldBeAbleToValidateFactory1_0() throws ApiException {
+//        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
+//              .withAction("action").withWname("wname").withVcsinfo(true).withOpenfile("openfile");
+//
+//        factoryBuilder.checkValid(actual, NONENCODED);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToValidateEncodedFactory1_1() throws ApiException {
+//        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withVcsinfo(
+//                true).withOpenfile("openfile").withAction("action")).withStyle("style").withDescription("description").withContactmail(
+//                "contactmail").withAuthor("author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch")
+//                                                                    .withValidsince(123456789l).withValiduntil(234567899l);
+//
+//        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+//
+//        Variable replacement = dto.createDto(Variable.class).withReplacemode(
+//                "replacemod").withReplace("replace").withFind("find");
+//
+//        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
+//                                             .withFiles(Arrays.asList("file1"))));
+//
+//        WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
+//        actual.setWelcome(dto.createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
+//
+//        factoryBuilder.checkValid(actual, ENCODED);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToValidateNonEncodedFactory1_1() throws ApiException {
+//        ((FactoryV1_1)actual.withV("1.1").withVcs("vcs").withVcsurl("vcsurl").withCommitid("commitid").withAction("action").withVcsinfo(
+//                true).withOpenfile("openfile")).withContactmail("contactmail").withAuthor("author").withOrgid("orgid")
+//                                               .withAffiliateid("affid").withVcsbranch(
+//                "branch").withValidsince(123456789l).withValiduntil(234567899l);
+//
+//        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+//
+//        Variable replacement = dto.createDto(Variable.class).withReplacemode(
+//                "replacemod").withReplace("replace").withFind("find");
+//
+//        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
+//                                             .withFiles(Arrays.asList("file1"))));
+//
+//        factoryBuilder.checkValid(actual, NONENCODED);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToValidateEncodedFactory1_2() throws ApiException {
+//        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsinfo(true).withOpenfile("openfile").withVcsurl("vcsurl")
+//                            .withCommitid("commitid").withAction(
+//                        "action")).withStyle("style").withDescription("description").withContactmail("contactmail").withAuthor("author")
+//                                  .withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
+//
+//        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+//
+//        Variable replacement = dto.createDto(Variable.class).withReplacemode(
+//                "replacemod").withReplace("replace").withFind("find");
+//
+//        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
+//                                             .withFiles(Arrays.asList("file1"))));
+//
+//        WelcomeConfiguration wc = dto.createDto(WelcomeConfiguration.class);
+//        actual.setWelcome(dto.createDto(WelcomePage.class).withAuthenticated(wc).withNonauthenticated(wc));
+//
+//        actual.withGit(dto.createDto(Git.class).withConfigbranchmerge(
+//                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
+//                "configremoteoriginfetch"));
+//
+//        actual.withRestriction(
+//                dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
+//                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
+//
+//        factoryBuilder.checkValid(actual, ENCODED);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToValidateNonEncodedFactory1_2() throws ApiException {
+//        ((FactoryV1_1)actual.withV("1.2").withVcs("vcs").withVcsurl("vcsurl").withVcsinfo(true).withCommitid("commitid").withOpenfile(
+//                "openfile").withAction("action")).withContactmail("contactmail").withAuthor(
+//                "author").withOrgid("orgid").withAffiliateid("affid").withVcsbranch("branch");
+//
+//        actual.setProjectattributes(dto.createDto(ProjectAttributes.class).withPname("pname").withPtype("ptype"));
+//
+//        Variable replacement = dto.createDto(Variable.class).withReplacemode(
+//                "replacemod").withReplace("replace").withFind("find");
+//
+//        actual.setVariables(Arrays.asList(dto.createDto(ReplacementSet.class).withEntries(Arrays.asList(replacement))
+//                                             .withFiles(Arrays.asList("file1"))));
+//
+//        actual.withGit(dto.createDto(Git.class).withConfigbranchmerge(
+//                "configbranchmerge").withConfigpushdefault("configpushdefault").withConfigremoteoriginfetch(
+//                "configremoteoriginfetch"));
+//
+//        actual.withRestriction(
+//                dto.createDto(Restriction.class).withPassword("password").withRefererhostname("codenvy-dev.com")
+//                   .withValiduntil(123456789l).withValidsince(12345678l).withMaxsessioncount(123l));
+//
+//
+//        factoryBuilder.checkValid(actual, NONENCODED);
+//    }
 
     @Test
     public void shouldBeAbleToValidateEncodedV2_0() throws Exception {
@@ -511,24 +507,24 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, ENCODED);
     }
 
-    @DataProvider(name = "TFParamsProvider")
-    public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
-        Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.2").withVcs("vcs").withVcsurl("vcsurl");
-        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
-                dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
-        return new Object[][]{
-                {dto.clone(v1).withV("1.1").withWelcome(dto.createDto(WelcomePage.class))},
-                {dto.clone(v1).withWelcome(dto.createDto(WelcomePage.class))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withPassword("pass"))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRefererhostname("codenvy.com"))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRestrictbypassword(true))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withMaxsessioncount(123l))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValidsince(123456789l))},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValiduntil(1234567989l))},
-                {dto.clone(v2).withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
-                {dto.clone(v2).withPolicies(dto.createDto(Policies.class))}
-        };
-    }
+//    @DataProvider(name = "TFParamsProvider")
+//    public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+//        Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.2").withVcs("vcs").withVcsurl("vcsurl");
+//        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
+//                dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
+//        return new Object[][]{
+//                {dto.clone(v1).withV("1.1").withWelcome(dto.createDto(WelcomePage.class))},
+//                {dto.clone(v1).withWelcome(dto.createDto(WelcomePage.class))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withPassword("pass"))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRefererhostname("codenvy.com"))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withRestrictbypassword(true))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withMaxsessioncount(123l))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValidsince(123456789l))},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class).withValiduntil(1234567989l))},
+//                {dto.clone(v2).withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
+//                {dto.clone(v2).withPolicies(dto.createDto(Policies.class))}
+//        };
+//    }
 
     @Test(expectedExceptions = ApiException.class)
     public void shouldNotAllowInNonencodedVersionUsingParamsOnlyForEncodedVersion() throws ApiException, URISyntaxException {
@@ -554,33 +550,188 @@ public class FactoryBuilderTest {
 
     @DataProvider(name = "setByServerParamsProvider")
     public static Object[][] setByServerParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
-        Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withVcs("vcs").withVcsurl("vcsurl");
+        //Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withVcs("vcs").withVcsurl("vcsurl");
         Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
                 dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
         return new Object[][]{
-                {dto.clone(v1).withId("id")},
-                {dto.clone(v1).withUserid("id")},
-                {dto.clone(v1).withCreated(123l)},
-                {dto.clone(v1).withV("1.2").withId("id")},
-                {dto.clone(v1).withV("1.2").withUserid("id")},
-                {dto.clone(v1).withV("1.2").withCreated(123l)},
-                {dto.clone(v1).withV("1.2").withRestriction(dto.createDto(Restriction.class).withRestrictbypassword(true)).withOrgid(
-                        "orgid")},
+//                {dto.clone(v1).withId("id")},
+//                {dto.clone(v1).withUserid("id")},
+//                {dto.clone(v1).withCreated(123l)},
+//                {dto.clone(v1).withV("1.2").withId("id")},
+//                {dto.clone(v1).withV("1.2").withUserid("id")},
+//                {dto.clone(v1).withV("1.2").withCreated(123l)},
+//                {dto.clone(v1).withV("1.2").withRestriction(dto.createDto(Restriction.class).withRestrictbypassword(true)).withOrgid(
+//                        "orgid")},
                 {dto.clone(v2).withId("id")},
                 {dto.clone(v2).withCreator(dto.createDto(Author.class).withUserId("id"))},
                 {dto.clone(v2).withCreator(dto.createDto(Author.class).withCreated(123l))}
         };
     }
 
-    //    @Test
-    public void shouldBeAbleToConvertToLatest() throws ApiException {
-        actual.withIdcommit("idcommit").withPname("pname").withPtype("ptype").withWname("wname");
+    @Test
+    public void shouldBeAbleToConvert2_0ActionsToNewFormat2_1() throws ApiException {
 
-        expected.withProjectattributes(
-                dto.createDto(ProjectAttributes.class).withPname(actual.getPname()).withPtype(actual.getPtype()))
-                .withCommitid(actual.getIdcommit()).withV("1.2");
+        Factory given = (Factory)dto.createDto(Factory.class).withV("2.0")
+                                    .withSource(dto.createDto(Source.class)
+                                                   .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                   .withType("git")
+                                                                   .withLocation("location")
+                                                                   .withParameters(singletonMap("key", "value")))
+                                                   .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
+                                                                                          .withLocation("location")
+                                                                                          .withParameters(singletonMap("key", "value")))))
+                                    .withProject(dto.createDto(NewProject.class)
+                                                    .withType("type")
+                                                    .withAttributes(singletonMap("key", singletonList("value")))
+                                                    .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
+                                                    .withDescription("description")
+                                                    .withName("name")
+                                                    .withRunners(dto.createDto(RunnersDescriptor.class)
+                                                                    .withDefault("default")
+                                                                    .withConfigs(
+                                                                            singletonMap("key", dto.createDto(RunnerConfiguration.class)
+                                                                                                   .withRam(768)
+                                                                                                   .withOptions(
+                                                                                                           singletonMap("key", "value"))
+                                                                                                   .withVariables(
+                                                                                                           singletonMap("key", "value")))))
+                                                    .withVisibility("private"))
+                                    .withCreator(dto.createDto(Author.class)
+                                                    .withAccountId("accountId")
+                                                    .withEmail("email")
+                                                    .withName("name"))
+                                    .withPolicies(dto.createDto(Policies.class)
+                                                     .withRefererHostname("referrer")
+                                                     .withValidSince(123l)
+                                                     .withValidUntil(123l))
+                                    .withActions(dto.createDto(Actions.class)
+                                                    .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                                      .withFiles(singletonList("file"))
+                                                                                      .withEntries(singletonList(
+                                                                                              dto.createDto(Variable.class)
+                                                                                                 .withFind("find")
+                                                                                                 .withReplace("replace")
+                                                                                                 .withReplacemode("mode")))))
 
-        assertEquals(factoryBuilder.convertToLatest(actual), expected);
+                                                    .withOpenFile("openFile")
+                                                    .withWarnOnClose(true)
+                                                    .withWelcome(dto.createDto(WelcomePage.class)
+                                                                    .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                          .withContenturl("url")
+                                                                                          .withIconurl("url")
+                                                                                          .withNotification("notification")
+                                                                                          .withTitle("title"))
+                                                                    .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                             .withContenturl("url")
+                                                                                             .withIconurl("url")
+                                                                                             .withNotification("notification")
+                                                                                             .withTitle("title"))));
+
+        Factory expected = (Factory)dto.createDto(Factory.class).withV("2.1")
+                                       .withSource(dto.createDto(Source.class)
+                                                      .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                      .withType("git")
+                                                                      .withLocation("location")
+                                                                      .withParameters(singletonMap("key", "value")))
+                                                      .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
+                                                                                             .withLocation("location")
+                                                                                             .withParameters(
+                                                                                                     singletonMap("key", "value")))))
+                                       .withProject(dto.createDto(NewProject.class)
+                                                       .withType("type")
+                                                       .withAttributes(singletonMap("key", singletonList("value")))
+                                                       .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
+                                                       .withDescription("description")
+                                                       .withName("name")
+                                                       .withRunners(dto.createDto(RunnersDescriptor.class)
+                                                                       .withDefault("default")
+                                                                       .withConfigs(
+                                                                               singletonMap("key", dto.createDto(RunnerConfiguration.class)
+                                                                                                      .withRam(768)
+                                                                                                      .withOptions(
+                                                                                                              singletonMap("key", "value"))
+                                                                                                      .withVariables(
+                                                                                                              singletonMap("key",
+                                                                                                                           "value")))))
+                                                       .withVisibility("private"))
+                                       .withCreator(dto.createDto(Author.class)
+                                                       .withAccountId("accountId")
+                                                       .withEmail("email")
+                                                       .withName("name"))
+                                       .withPolicies(dto.createDto(Policies.class)
+                                                        .withRefererHostname("referrer")
+                                                        .withValidSince(123l)
+                                                        .withValidUntil(123l))
+                                       .withActions(dto.createDto(Actions.class)
+                                                       .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                                         .withFiles(singletonList("file"))
+                                                                                         .withEntries(singletonList(
+                                                                                                 dto.createDto(Variable.class)
+                                                                                                    .withFind("find")
+                                                                                                    .withReplace("replace")
+                                                                                                    .withReplacemode("mode")))))
+
+                                                       .withOpenFile("openFile")
+                                                       .withWarnOnClose(true)
+                                                       .withWelcome(dto.createDto(WelcomePage.class)
+                                                                       .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                             .withContenturl("url")
+                                                                                             .withIconurl("url")
+                                                                                             .withNotification("notification")
+                                                                                             .withTitle("title"))
+                                                                       .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                                .withContenturl("url")
+                                                                                                .withIconurl("url")
+                                                                                                .withNotification("notification")
+                                                                                                .withTitle("title"))))
+                                       .withIde(dto.createDto(Ide.class)
+                                                   .withOnAppClosed(
+                                                           dto.createDto(OnAppClosed.class)
+                                                              .withActions(
+                                                                      singletonList(dto.createDto(Action.class).withId("warnonclose"))))
+                                                   .withOnAppLoaded(
+                                                           dto.createDto(OnAppLoaded.class)
+                                                              .withActions(singletonList(dto.createDto(Action.class).withId("newProject"))))
+                                                   .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                                           .withActions(Arrays.asList(
+                                                                                   dto.createDto(Action.class)
+                                                                                      .withId("openfile")
+                                                                                      .withProperties(singletonMap("file", "openFile")),
+                                                                                   dto.createDto(Action.class)
+                                                                                      .withId("run"),
+                                                                                   dto.createDto(Action.class)
+                                                                                      .withId("findReplace")
+                                                                                      .withProperties(
+                                                                                              ImmutableMap.of(
+                                                                                                      "in",
+                                                                                                      "file",
+                                                                                                      "find", "find",
+                                                                                                      "replace", "replace"
+                                                                                                             ))))
+                                                                           .withParts(singletonList(dto.createDto(Part.class)
+                                                                                                       .withId("welcomepanel")
+                                                                                                       .withProperties(ImmutableMap
+                                                                                                                               .<String,
+                                                                                                                                       String>builder()
+                                                                                                                               .put("authenticatedTitle",
+                                                                                                                                    "title")
+                                                                                                                               .put("authenticatedIconUrl",
+                                                                                                                                    "url")
+                                                                                                                               .put("authenticatedContentUrl",
+                                                                                                                                    "url")
+                                                                                                                               .put("nonAuthenticatedTitle",
+                                                                                                                                    "title")
+                                                                                                                               .put("nonAuthenticatedIconUrl",
+                                                                                                                                    "url")
+                                                                                                                               .put("nonAuthenticatedContentUrl",
+                                                                                                                                    "url")
+
+
+                                                                                                                               .build()))
+                                                                                     )));
+
+
+        assertEquals(factoryBuilder.convertToLatest(given), expected);
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "notValidParamsProvider")
@@ -589,44 +740,44 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, encoded);
     }
 
-    @DataProvider(name = "notValidParamsProvider")
-    public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
-        Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withOrgid("id").withVcs("vcs").withVcsurl("vcsurl");
-        return new Object[][]{
-                {dto.clone(v1).withWname("name"), ENCODED},
-                {dto.clone(v1).withV("1.2").withWname("name"), ENCODED},
-                {dto.clone(v1).withIdcommit("id"), ENCODED},
-                {dto.clone(v1).withPname("name"), ENCODED},
-                {dto.clone(v1).withPtype("type"), ENCODED},
-                {dto.clone(v1).withV("1.2").withIdcommit("id"), ENCODED},
-                {dto.clone(v1).withV("1.2").withPname("name"), ENCODED},
-                {dto.clone(v1).withV("1.2").withPtype("type"), ENCODED},
-                {dto.clone(v1).withStyle("style"), NONENCODED},
-                {dto.clone(v1).withV("1.2").withStyle("style"), NONENCODED},
-                {dto.clone(v1).withDescription("desc"), NONENCODED},
-                {dto.clone(v1).withV("1.2").withDescription("desc"), NONENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withProjectattributes(dto.createDto(ProjectAttributes.class)), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withStyle("style"), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withDescription("desc"), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withContactmail("mail"), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withAuthor("author"), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withOrgid("id"), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withAffiliateid("id"), ENCODED},
-                {dto.clone(v1).withV("1.0").withVcsbranch("br").withOrgid(null), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withValidsince(123l), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withValiduntil(123l), ENCODED},
-                {dto.clone(v1).withV("1.2").withValidsince(123l), ENCODED},
-                {dto.clone(v1).withV("1.2").withValiduntil(123l), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withVariables(Arrays.asList(dto.createDto(ReplacementSet.class))), ENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withWelcome(dto.createDto(WelcomePage.class)), ENCODED},
-                {dto.clone(v1).withWelcome(dto.createDto(WelcomePage.class)), NONENCODED},
-                {dto.clone(v1).withV("1.0").withOrgid(null).withImage("im"), ENCODED},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class)).withOrgid(null).withV("1.0"), ENCODED},
-                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class)), ENCODED},
-                {dto.clone(v1).withV("1.0").withGit(dto.createDto(Git.class)).withOrgid(null), ENCODED},
-                {dto.clone(v1).withGit(dto.createDto(Git.class)), ENCODED}
-        };
-    }
+//    @DataProvider(name = "notValidParamsProvider")
+//    public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+//        Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withOrgid("id").withVcs("vcs").withVcsurl("vcsurl");
+//        return new Object[][]{
+//                {dto.clone(v1).withWname("name"), ENCODED},
+//                {dto.clone(v1).withV("1.2").withWname("name"), ENCODED},
+//                {dto.clone(v1).withIdcommit("id"), ENCODED},
+//                {dto.clone(v1).withPname("name"), ENCODED},
+//                {dto.clone(v1).withPtype("type"), ENCODED},
+//                {dto.clone(v1).withV("1.2").withIdcommit("id"), ENCODED},
+//                {dto.clone(v1).withV("1.2").withPname("name"), ENCODED},
+//                {dto.clone(v1).withV("1.2").withPtype("type"), ENCODED},
+//                {dto.clone(v1).withStyle("style"), NONENCODED},
+//                {dto.clone(v1).withV("1.2").withStyle("style"), NONENCODED},
+//                {dto.clone(v1).withDescription("desc"), NONENCODED},
+//                {dto.clone(v1).withV("1.2").withDescription("desc"), NONENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withProjectattributes(dto.createDto(ProjectAttributes.class)), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withStyle("style"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withDescription("desc"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withContactmail("mail"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withAuthor("author"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withOrgid("id"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withAffiliateid("id"), ENCODED},
+//                {dto.clone(v1).withV("1.0").withVcsbranch("br").withOrgid(null), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withValidsince(123l), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withValiduntil(123l), ENCODED},
+//                {dto.clone(v1).withV("1.2").withValidsince(123l), ENCODED},
+//                {dto.clone(v1).withV("1.2").withValiduntil(123l), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withVariables(Arrays.asList(dto.createDto(ReplacementSet.class))), ENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withWelcome(dto.createDto(WelcomePage.class)), ENCODED},
+//                {dto.clone(v1).withWelcome(dto.createDto(WelcomePage.class)), NONENCODED},
+//                {dto.clone(v1).withV("1.0").withOrgid(null).withImage("im"), ENCODED},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class)).withOrgid(null).withV("1.0"), ENCODED},
+//                {dto.clone(v1).withRestriction(dto.createDto(Restriction.class)), ENCODED},
+//                {dto.clone(v1).withV("1.0").withGit(dto.createDto(Git.class)).withOrgid(null), ENCODED},
+//                {dto.clone(v1).withGit(dto.createDto(Git.class)), ENCODED}
+//        };
+//    }
 
     private String encode(String value) {
         try {
@@ -636,185 +787,185 @@ public class FactoryBuilderTest {
         }
     }
 
-    @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0()
-            throws ApiException, UnsupportedEncodingException, URISyntaxException {
-        StringBuilder sb = new StringBuilder("?");
-        sb.append("v=").append("1.0").append("&");
-        sb.append("vcs=").append("git").append("&");
-        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
-        sb.append("commitid=").append("7896464674879").append("&");
-        sb.append("ptype=").append("ptype").append("&");
-        sb.append("pname=").append("pname").append("&");
-        sb.append("action=").append("openReadme").append("&");
-        sb.append("wname=").append("codenvy").append("&");
-        sb.append("vcsinfo=").append("true").append("&");
-        sb.append("openfile=").append("openfile").append("&");
-
-        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withCommitid("7896464674879")
-                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true)
-                .withOpenfile("openfile");
-
-        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
-        assertEquals(newFactory, expected);
-    }
-
-    @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit()
-            throws ApiException, UnsupportedEncodingException, URISyntaxException {
-        StringBuilder sb = new StringBuilder("?");
-        sb.append("v=").append("1.0").append("&");
-        sb.append("vcs=").append("git").append("&");
-        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
-        sb.append("idcommit=").append("7896464674879").append("&");
-        sb.append("ptype=").append("ptype").append("&");
-        sb.append("pname=").append("pname").append("&");
-        sb.append("action=").append("openReadme").append("&");
-        sb.append("wname=").append("codenvy").append("&");
-        sb.append("vcsinfo=").append("true").append("&");
-        sb.append("openfile=").append("openfile").append("&");
-
-        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withIdcommit("7896464674879")
-                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true).withOpenfile(
-                "openfile");
-
-        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
-        assertEquals(newFactory, expected);
-    }
-
-    @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1()
-            throws ApiException, UnsupportedEncodingException, URISyntaxException {
-
-        expected.setV("1.1");
-        expected.setVcs("git");
-        expected.setVcsurl("https://github.com/codenvy/commons.git");
-        expected.setCommitid("7896464674879");
-        expected.setAction("openReadme");
-        expected.setContactmail("developer@codenvy.com");
-        expected.setAuthor("codenvy");
-        expected.setOpenfile("/src/test.java");
-        expected.setOrgid("orgid");
-        expected.setAffiliateid("affiliateid");
-        expected.setVcsinfo(true);
-        expected.setVcsbranch("release");
-        expected.setValidsince(123456l);
-        expected.setValiduntil(1234567l);
-
-        ProjectAttributes attributes = dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
-
-        ReplacementSet variable = dto.createDto(ReplacementSet.class);
-        Variable replacement = dto.createDto(Variable.class);
-        replacement.setFind("find1");
-        replacement.setReplace("replace1");
-        replacement.setReplacemode("mode1");
-        variable.setFiles(Arrays.asList("file1.java, file2.java"));
-        variable.setEntries(Arrays.asList(replacement));
-
-        expected.setProjectattributes(attributes);
-        expected.setVariables(Arrays.asList(variable));
-
-        StringBuilder sb = new StringBuilder("?");
-        sb.append("v=").append(expected.getV()).append("&");
-        sb.append("vcs=").append(expected.getVcs()).append("&");
-        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
-        sb.append("commitid=").append(expected.getCommitid()).append("&");
-        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
-        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
-        sb.append("action=").append(expected.getAction()).append("&");
-        sb.append("contactmail=").append(expected.getContactmail()).append("&");
-        sb.append("author=").append(expected.getAuthor()).append("&");
-        sb.append("openfile=").append(expected.getOpenfile()).append("&");
-        sb.append("orgid=").append(expected.getOrgid()).append("&");
-        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
-        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
-        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
-        if (expected.getValidsince() != null) {
-            sb.append("validsince=").append(expected.getValidsince()).append("&");
-        }
-        if (expected.getValiduntil() != null) {
-            sb.append("validuntil=").append(expected.getValiduntil()).append("&");
-        }
-        sb.append("variables=").append(encode("[" + dto.toJson(variable) + "]"));
-
-        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
-        assertEquals(newFactory, expected);
-    }
-
-    @Test
-    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2()
-            throws ApiException, UnsupportedEncodingException, URISyntaxException {
-
-        expected.setV("1.2");
-        expected.setVcs("git");
-        expected.setVcsurl("https://github.com/codenvy/commons.git");
-        expected.setCommitid("7896464674879");
-        expected.setAction("openReadme");
-        expected.setContactmail("developer@codenvy.com");
-        expected.setAuthor("codenvy");
-        expected.setOpenfile("/src/test.java");
-        expected.setOrgid("orgid");
-        expected.setAffiliateid("affiliateid");
-        expected.setVcsinfo(true);
-        expected.setVcsbranch("release");
-
-        Restriction restriction = dto.createDto(Restriction.class).withMaxsessioncount(3l).withPassword("password2323")
-                                     .withValiduntil(5679841595l).withValidsince(1654879849l)
-                                     .withRefererhostname("stackoverflow.com");
-
-        Git git =
-                dto.createDto(Git.class).withConfigbranchmerge("refs/for/master").withConfigpushdefault("upstream")
-                   .withConfigremoteoriginfetch("changes/41/1841/1");
-
-        ProjectAttributes attributes =
-                dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname")
-                   .withRunnername("runnername").withRunnerenvironmentid("runnerenvironmentid")
-                   .withBuildername("buildername");
-
-        ReplacementSet variable = dto.createDto(ReplacementSet.class);
-        Variable replacement = dto.createDto(Variable.class);
-        replacement.setFind("find1");
-        replacement.setReplace("replace1");
-        replacement.setReplacemode("mode1");
-        variable.setFiles(Arrays.asList("file1.java, file2.java"));
-        variable.setEntries(Arrays.asList(replacement));
-
-        expected.setRestriction(restriction);
-        expected.setGit(git);
-        expected.setProjectattributes(attributes);
-        expected.setVariables(Arrays.asList(variable));
-
-        StringBuilder sb = new StringBuilder("?");
-        sb.append("v=").append(expected.getV()).append("&");
-        sb.append("vcs=").append(expected.getVcs()).append("&");
-        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
-        sb.append("commitid=").append(expected.getCommitid()).append("&");
-        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
-        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
-        sb.append("projectattributes.runnername=").append(expected.getProjectattributes().getRunnername()).append("&");
-        sb.append("projectattributes.buildername=").append(expected.getProjectattributes().getBuildername()).append("&");
-        sb.append("projectattributes.runnerenvironmentid=").append(expected.getProjectattributes().getRunnerenvironmentid()).append("&");
-        sb.append("action=").append(expected.getAction()).append("&");
-        sb.append("contactmail=").append(expected.getContactmail()).append("&");
-        sb.append("author=").append(expected.getAuthor()).append("&");
-        sb.append("openfile=").append(expected.getOpenfile()).append("&");
-        sb.append("orgid=").append(expected.getOrgid()).append("&");
-        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
-        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
-        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
-        sb.append("restriction.refererhostname=").append(expected.getRestriction().getRefererhostname()).append("&");
-        sb.append("restriction.validsince=").append(expected.getRestriction().getValidsince()).append("&");
-        sb.append("restriction.validuntil=").append(expected.getRestriction().getValiduntil()).append("&");
-        sb.append("restriction.password=").append(expected.getRestriction().getPassword()).append("&");
-        sb.append("restriction.maxsessioncount=").append(expected.getRestriction().getMaxsessioncount()).append("&");
-        sb.append("git.configremoteoriginfetch=").append(expected.getGit().getConfigremoteoriginfetch()).append("&");
-        sb.append("git.configbranchmerge=").append(expected.getGit().getConfigbranchmerge()).append("&");
-        sb.append("git.configpushdefault=").append(expected.getGit().getConfigpushdefault()).append("&");
-        sb.append("variables=").append(encode("[" + dto.toJson(variable) + "]"));
-
-        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
-        assertEquals(newFactory, expected);
-    }
+//    @Test
+//    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0()
+//            throws ApiException, UnsupportedEncodingException, URISyntaxException {
+//        StringBuilder sb = new StringBuilder("?");
+//        sb.append("v=").append("1.0").append("&");
+//        sb.append("vcs=").append("git").append("&");
+//        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
+//        sb.append("commitid=").append("7896464674879").append("&");
+//        sb.append("ptype=").append("ptype").append("&");
+//        sb.append("pname=").append("pname").append("&");
+//        sb.append("action=").append("openReadme").append("&");
+//        sb.append("wname=").append("codenvy").append("&");
+//        sb.append("vcsinfo=").append("true").append("&");
+//        sb.append("openfile=").append("openfile").append("&");
+//
+//        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withCommitid("7896464674879")
+//                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true)
+//                .withOpenfile("openfile");
+//
+//        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
+//        assertEquals(newFactory, expected);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_0WithIdCommit()
+//            throws ApiException, UnsupportedEncodingException, URISyntaxException {
+//        StringBuilder sb = new StringBuilder("?");
+//        sb.append("v=").append("1.0").append("&");
+//        sb.append("vcs=").append("git").append("&");
+//        sb.append("vcsurl=").append("https://github.com/codenvy/commons.git").append("&");
+//        sb.append("idcommit=").append("7896464674879").append("&");
+//        sb.append("ptype=").append("ptype").append("&");
+//        sb.append("pname=").append("pname").append("&");
+//        sb.append("action=").append("openReadme").append("&");
+//        sb.append("wname=").append("codenvy").append("&");
+//        sb.append("vcsinfo=").append("true").append("&");
+//        sb.append("openfile=").append("openfile").append("&");
+//
+//        expected.withV("1.0").withVcs("git").withVcsurl("https://github.com/codenvy/commons.git").withIdcommit("7896464674879")
+//                .withAction("openReadme").withPtype("ptype").withPname("pname").withWname("codenvy").withVcsinfo(true).withOpenfile(
+//                "openfile");
+//
+//        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
+//        assertEquals(newFactory, expected);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_1()
+//            throws ApiException, UnsupportedEncodingException, URISyntaxException {
+//
+//        expected.setV("1.1");
+//        expected.setVcs("git");
+//        expected.setVcsurl("https://github.com/codenvy/commons.git");
+//        expected.setCommitid("7896464674879");
+//        expected.setAction("openReadme");
+//        expected.setContactmail("developer@codenvy.com");
+//        expected.setAuthor("codenvy");
+//        expected.setOpenfile("/src/test.java");
+//        expected.setOrgid("orgid");
+//        expected.setAffiliateid("affiliateid");
+//        expected.setVcsinfo(true);
+//        expected.setVcsbranch("release");
+//        expected.setValidsince(123456l);
+//        expected.setValiduntil(1234567l);
+//
+//        ProjectAttributes attributes = dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname");
+//
+//        ReplacementSet variable = dto.createDto(ReplacementSet.class);
+//        Variable replacement = dto.createDto(Variable.class);
+//        replacement.setFind("find1");
+//        replacement.setReplace("replace1");
+//        replacement.setReplacemode("mode1");
+//        variable.setFiles(Arrays.asList("file1.java, file2.java"));
+//        variable.setEntries(Arrays.asList(replacement));
+//
+//        expected.setProjectattributes(attributes);
+//        expected.setVariables(Arrays.asList(variable));
+//
+//        StringBuilder sb = new StringBuilder("?");
+//        sb.append("v=").append(expected.getV()).append("&");
+//        sb.append("vcs=").append(expected.getVcs()).append("&");
+//        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
+//        sb.append("commitid=").append(expected.getCommitid()).append("&");
+//        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
+//        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
+//        sb.append("action=").append(expected.getAction()).append("&");
+//        sb.append("contactmail=").append(expected.getContactmail()).append("&");
+//        sb.append("author=").append(expected.getAuthor()).append("&");
+//        sb.append("openfile=").append(expected.getOpenfile()).append("&");
+//        sb.append("orgid=").append(expected.getOrgid()).append("&");
+//        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
+//        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
+//        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
+//        if (expected.getValidsince() != null) {
+//            sb.append("validsince=").append(expected.getValidsince()).append("&");
+//        }
+//        if (expected.getValiduntil() != null) {
+//            sb.append("validuntil=").append(expected.getValiduntil()).append("&");
+//        }
+//        sb.append("variables=").append(encode("[" + dto.toJson(variable) + "]"));
+//
+//        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
+//        assertEquals(newFactory, expected);
+//    }
+//
+//    @Test
+//    public void shouldBeAbleToParseAndValidateNonEncodedFactory1_2()
+//            throws ApiException, UnsupportedEncodingException, URISyntaxException {
+//
+//        expected.setV("1.2");
+//        expected.setVcs("git");
+//        expected.setVcsurl("https://github.com/codenvy/commons.git");
+//        expected.setCommitid("7896464674879");
+//        expected.setAction("openReadme");
+//        expected.setContactmail("developer@codenvy.com");
+//        expected.setAuthor("codenvy");
+//        expected.setOpenfile("/src/test.java");
+//        expected.setOrgid("orgid");
+//        expected.setAffiliateid("affiliateid");
+//        expected.setVcsinfo(true);
+//        expected.setVcsbranch("release");
+//
+//        Restriction restriction = dto.createDto(Restriction.class).withMaxsessioncount(3l).withPassword("password2323")
+//                                     .withValiduntil(5679841595l).withValidsince(1654879849l)
+//                                     .withRefererhostname("stackoverflow.com");
+//
+//        Git git =
+//                dto.createDto(Git.class).withConfigbranchmerge("refs/for/master").withConfigpushdefault("upstream")
+//                   .withConfigremoteoriginfetch("changes/41/1841/1");
+//
+//        ProjectAttributes attributes =
+//                dto.createDto(ProjectAttributes.class).withPtype("ptype").withPname("pname")
+//                   .withRunnername("runnername").withRunnerenvironmentid("runnerenvironmentid")
+//                   .withBuildername("buildername");
+//
+//        ReplacementSet variable = dto.createDto(ReplacementSet.class);
+//        Variable replacement = dto.createDto(Variable.class);
+//        replacement.setFind("find1");
+//        replacement.setReplace("replace1");
+//        replacement.setReplacemode("mode1");
+//        variable.setFiles(Arrays.asList("file1.java, file2.java"));
+//        variable.setEntries(Arrays.asList(replacement));
+//
+//        expected.setRestriction(restriction);
+//        expected.setGit(git);
+//        expected.setProjectattributes(attributes);
+//        expected.setVariables(Arrays.asList(variable));
+//
+//        StringBuilder sb = new StringBuilder("?");
+//        sb.append("v=").append(expected.getV()).append("&");
+//        sb.append("vcs=").append(expected.getVcs()).append("&");
+//        sb.append("vcsurl=").append(expected.getVcsurl()).append("&");
+//        sb.append("commitid=").append(expected.getCommitid()).append("&");
+//        sb.append("projectattributes.ptype=").append(expected.getProjectattributes().getPtype()).append("&");
+//        sb.append("projectattributes.pname=").append(expected.getProjectattributes().getPname()).append("&");
+//        sb.append("projectattributes.runnername=").append(expected.getProjectattributes().getRunnername()).append("&");
+//        sb.append("projectattributes.buildername=").append(expected.getProjectattributes().getBuildername()).append("&");
+//        sb.append("projectattributes.runnerenvironmentid=").append(expected.getProjectattributes().getRunnerenvironmentid()).append("&");
+//        sb.append("action=").append(expected.getAction()).append("&");
+//        sb.append("contactmail=").append(expected.getContactmail()).append("&");
+//        sb.append("author=").append(expected.getAuthor()).append("&");
+//        sb.append("openfile=").append(expected.getOpenfile()).append("&");
+//        sb.append("orgid=").append(expected.getOrgid()).append("&");
+//        sb.append("affiliateid=").append(expected.getAffiliateid()).append("&");
+//        sb.append("vcsinfo=").append(expected.getVcsinfo()).append("&");
+//        sb.append("vcsbranch=").append(expected.getVcsbranch()).append("&");
+//        sb.append("restriction.refererhostname=").append(expected.getRestriction().getRefererhostname()).append("&");
+//        sb.append("restriction.validsince=").append(expected.getRestriction().getValidsince()).append("&");
+//        sb.append("restriction.validuntil=").append(expected.getRestriction().getValiduntil()).append("&");
+//        sb.append("restriction.password=").append(expected.getRestriction().getPassword()).append("&");
+//        sb.append("restriction.maxsessioncount=").append(expected.getRestriction().getMaxsessioncount()).append("&");
+//        sb.append("git.configremoteoriginfetch=").append(expected.getGit().getConfigremoteoriginfetch()).append("&");
+//        sb.append("git.configbranchmerge=").append(expected.getGit().getConfigbranchmerge()).append("&");
+//        sb.append("git.configpushdefault=").append(expected.getGit().getConfigpushdefault()).append("&");
+//        sb.append("variables=").append(encode("[" + dto.toJson(variable) + "]"));
+//
+//        Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
+//        assertEquals(newFactory, expected);
+//    }
 
     @Test
     public void shouldBeAbleToParseAndValidateNonEncodedV2_0() throws Exception {
@@ -884,7 +1035,6 @@ public class FactoryBuilderTest {
                                   }));
 
 
-
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=2.0").append("&");
         sb.append("actions.openFile=openFile").append("&");
@@ -919,7 +1069,6 @@ public class FactoryBuilderTest {
         sb.append("project.runners.configs.key.options.key2=value2").append("&");
         sb.append("project.runners.configs.key.variables.key1=value1").append("&");
         sb.append("project.runners.configs.key.variables.key2=value2");
-
 
 
         Factory newFactory = factoryBuilder.buildEncoded(new URI(sb.toString()));
@@ -1018,7 +1167,6 @@ public class FactoryBuilderTest {
                                                                                                                ))))));
 
 
-
         StringBuilder sb = new StringBuilder("?");
         sb.append("v=2.1").append("&");
         sb.append("policies.refererHostname=referrer").append("&");
@@ -1052,7 +1200,8 @@ public class FactoryBuilderTest {
         sb.append("ide.onProjectOpened.parts.%5B0%5D.id=welcomepanel").append("&");
         sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedTitle=Greeting+title+for+authenticated+users").append("&");
         sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedIconUrl=http%3A%2F%2Fexample.com%2Ficon.url").append("&");
-        sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedContentUrl=http%3A%2F%2Fexample.com%2Fcontent.url").append("&");
+        sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedContentUrl=http%3A%2F%2Fexample.com%2Fcontent.url")
+          .append("&");
         sb.append("ide.onProjectOpened.actions.%5B0%5D.id=openfile").append("&");
         sb.append("ide.onProjectOpened.actions.%5B0%5D.properties.file=pom.xml").append("&");
         sb.append("ide.onProjectOpened.actions.%5B1%5D.id=run").append("&");
@@ -1108,16 +1257,5 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
 
-    @Test(enabled = false)
-    public void speedTest() throws ApiException {
-        actual.withV("1.0").withVcs("vcs").withVcsurl("vcsurl").withIdcommit("idcommit").withPtype("ptype").withPname("pname")
-              .withAction("action").withWname("wname").withVcsinfo(true);
-
-        long start = System.currentTimeMillis();
-        for (int i = 0; i < 1000; ++i) {
-            factoryBuilder.checkValid(actual, NONENCODED);
-        }
-        System.err.println((System.currentTimeMillis() - start));
-    }
 
 }

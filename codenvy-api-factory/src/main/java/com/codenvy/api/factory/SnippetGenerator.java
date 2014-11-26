@@ -32,55 +32,27 @@ public class SnippetGenerator {
 
     public static String generateMarkdownSnippet(String baseUrl, Factory factory, String imageId) {
         String imgUrl;
-        if (factory.getV().startsWith("1.")) {
-            String style = factory.getStyle();
 
-            if (style == null || style.isEmpty()) {
-                throw new IllegalArgumentException("Unable to generate markdown snippet with empty factory style");
-            }
-            switch (style) {
-                case "Advanced":
-                case "Advanced with Counter":
-                    if (imageId != null && factory.getId() != null) {
-                        imgUrl = format("%s/api/factory/%s/image?imgId=%s", baseUrl, factory.getId(), imageId);
-                        break;
-                    } else {
-                        throw new IllegalArgumentException("Factory with advanced style MUST have at leas one image.");
-                    }
-                case "White":
-                case "Horizontal,White":
-                case "Vertical,White":
-                    imgUrl = format("%s/factory/resources/factory-white.png", baseUrl);
-                    break;
-                case "Dark":
-                case "Horizontal,Dark":
-                case "Vertical,Dark":
-                    imgUrl = format("%s/factory/resources/factory-dark.png", baseUrl);
-                    break;
-                default:
-                    throw new IllegalArgumentException("Unknown factory style " + style);
-            }
-        } else {
-            if (factory.getButton() == null) {
-                throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button");
-            }
-
-            if (Button.ButtonType.logo.equals(factory.getButton().getType())) {
-                if (imageId != null && factory.getId() != null) {
-                    imgUrl = format("%s/api/factory/%s/image?imgId=%s", baseUrl, factory.getId(), imageId);
-                } else {
-                    throw new IllegalArgumentException("Factory with logo MUST have at leas one image.");
-                }
-            } else if (factory.getButton().getAttributes() == null) {
-                throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button's attributes");
-            } else if ("white".equals(factory.getButton().getAttributes().getColor())) {
-                imgUrl = format("%s/factory/resources/factory-white.png", baseUrl);
-            } else if ("gray".equals(factory.getButton().getAttributes().getColor())) {
-                imgUrl = format("%s/factory/resources/factory-dark.png", baseUrl);
-            } else {
-                throw new IllegalArgumentException("Unable to generate markdown snippet with nologo button and empty color");
-            }
+        if (factory.getButton() == null) {
+            throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button");
         }
+
+        if (Button.ButtonType.logo.equals(factory.getButton().getType())) {
+            if (imageId != null && factory.getId() != null) {
+                imgUrl = format("%s/api/factory/%s/image?imgId=%s", baseUrl, factory.getId(), imageId);
+            } else {
+                throw new IllegalArgumentException("Factory with logo MUST have at leas one image.");
+            }
+        } else if (factory.getButton().getAttributes() == null) {
+            throw new IllegalArgumentException("Unable to generate markdown snippet for factory without button's attributes");
+        } else if ("white".equals(factory.getButton().getAttributes().getColor())) {
+            imgUrl = format("%s/factory/resources/factory-white.png", baseUrl);
+        } else if ("gray".equals(factory.getButton().getAttributes().getColor())) {
+            imgUrl = format("%s/factory/resources/factory-dark.png", baseUrl);
+        } else {
+            throw new IllegalArgumentException("Unable to generate markdown snippet with nologo button and empty color");
+        }
+
 
         final String factoryURL = UriBuilder.fromUri(baseUrl).replacePath("factory").queryParam("id", factory.getId()).build().toString();
         return format("[![alt](%s)](%s)", imgUrl, factoryURL);

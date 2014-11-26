@@ -26,7 +26,6 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
  * @author Alexander Garagatyi
  */
 @DTO
-@Deprecated
 public interface Actions {
     /**
      * Welcome page configuration.
@@ -46,16 +45,9 @@ public interface Actions {
     List<ReplacementSet> getFindReplace();
     @Deprecated
     void setFindReplace(List<ReplacementSet> variable);
-    @Deprecated
+
     Actions withFindReplace(List<ReplacementSet> variable);
 
-    // TODO
-//    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "macro")
-//    String getMacro();
-//
-//    void setMacro(String macro);
-//
-//    Actions withMacro(String macro);
 
     /**
      * Path of the file to open in the project.
@@ -79,10 +71,4 @@ public interface Actions {
     @Deprecated
     Actions withWarnOnClose(Boolean warnOnClose);
 
-    // TODO add plugins section
-//    Plugins getPlugins();
-//
-//    void setPlugins(Plugins plugins);
-//
-//    Actions withPlugins(Plugins plugins);
 }

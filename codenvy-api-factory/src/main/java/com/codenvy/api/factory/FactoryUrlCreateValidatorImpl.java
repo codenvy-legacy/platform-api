@@ -12,17 +12,13 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.Policies;
-import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
 
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import java.util.Date;
 
 /**
  * Factory URL creation stage builder.

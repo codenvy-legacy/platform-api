@@ -231,11 +231,9 @@ public class ProjectService extends Service {
         final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
         if (generateDescriptor != null) {
             final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getName());
-            if (generator == null) {
-                throw new ServerException(
-                        String.format("Unable to generate project. Unknown generator '%s'.", generateDescriptor.getName()));
+            if (generator != null) {
+                generator.generateProject(project.getBaseFolder(), newProject);
             }
-            generator.generateProject(project.getBaseFolder(), newProject);
         }
 
         final String visibility = newProject.getVisibility();
@@ -311,6 +309,15 @@ public class ProjectService extends Service {
         final FolderEntry moduleFolder = folder.createFolder(name);
         final Project module = new Project(moduleFolder, projectManager);
         module.updateDescription(DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
+
+        final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
+        if (generateDescriptor != null) {
+            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getName());
+            if (generator != null) {
+                generator.generateProject(module.getBaseFolder(), newProject);
+            }
+        }
+
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(module, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),

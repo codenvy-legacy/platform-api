@@ -84,8 +84,10 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
     Actions getActions();
+
     @Deprecated
     void setActions(Actions actions);
+
     @Deprecated
     FactoryV2_0 withActions(Actions actions);
 
@@ -98,15 +100,5 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     void setButton(Button button);
 
     FactoryV2_0 withButton(Button button);
-
-    /**
-     * Describes ide look and feel.
-     */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ide", format = BOTH)
-    Ide getIde();
-
-    void setIde(Ide button);
-
-    FactoryV2_0 withIde(Ide button);
 
 }

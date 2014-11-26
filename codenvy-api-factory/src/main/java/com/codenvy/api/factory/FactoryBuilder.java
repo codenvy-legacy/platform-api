@@ -23,6 +23,7 @@ import com.codenvy.api.factory.dto.FactoryV1_0;
 import com.codenvy.api.factory.dto.FactoryV1_1;
 import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.factory.dto.FactoryV2_1;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.lang.Strings;
@@ -213,6 +214,10 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 usedFactoryVersionMethodProvider = FactoryV2_0.class;
                 orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
+            case V2_1:
+                usedFactoryVersionMethodProvider = FactoryV2_1.class;
+                orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
+                break;
             default:
                 throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
@@ -231,7 +236,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      */
     public Factory convertToLatest(Factory factory) throws ApiException {
         Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        resultFactory.setV("2.0");
+        resultFactory.setV("2.1");
         for (LegacyConverter converter : LEGACY_CONVERTERS) {
             converter.convert(resultFactory);
         }

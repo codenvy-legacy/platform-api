@@ -23,7 +23,7 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface Factory extends FactoryV2_0 {
+public interface Factory extends FactoryV2_1 {
     List<Link> getLinks();
 
     void setLinks(List<Link> links);

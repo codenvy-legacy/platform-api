@@ -13,6 +13,7 @@ package com.codenvy.api.factory;
 import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Author;
+import com.codenvy.api.factory.dto.FactoryV2_1;
 import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV1_0;
@@ -74,6 +75,9 @@ public abstract class NonEncodedFactoryBuilder {
                 break;
             case "2.0":
                 buildNonEncoded((FactoryV2_0)factory, result);
+                break;
+            case "2.1":
+                buildNonEncoded((FactoryV2_1)factory, result);
                 break;
             default:
                 throw new RuntimeException("Factory version '" + factory.getV() + "' not found");
@@ -335,6 +339,10 @@ public abstract class NonEncodedFactoryBuilder {
                        .append(encode(toJson(actions.getFindReplace())));
             }
         }
+
+    }
+
+    private void buildNonEncoded(FactoryV2_1 factory, StringBuilder builder) {
         final Ide ide = factory.getIde();
         if (ide != null) {
             final OnProjectOpened onProjectOpened = ide.getOnProjectOpened();
@@ -342,7 +350,7 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Part> parts = onProjectOpened.getParts();
                 for (int i = 0; i < parts.size(); i++) {
                     Part part = parts.get(i);
-                    builder.append("&client.onProjectOpened.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    builder.append("&client.onProjectOpened.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
                     for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
                         builder.append("&client.onProjectOpened.parts.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
@@ -354,7 +362,7 @@ public abstract class NonEncodedFactoryBuilder {
                     Action action = ideActions.get(i);
                     builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onProjectOpened.actions.").append(encode("["+i+"]")).append(".properties.")
+                        builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -365,9 +373,9 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Part> parts = onAppClosed.getParts();
                 for (int i = 0; i < parts.size(); i++) {
                     Part part = parts.get(i);
-                    builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
                     for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".properties.")
+                        builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -375,9 +383,9 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Action> ideActions = onAppClosed.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
-                    builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".id=").append(action.getId());
+                    builder.append("&client.onAppClosed.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.actions.").append(encode("["+i+"]")).append(".properties.")
+                        builder.append("&client.onAppClosed.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -388,9 +396,9 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Part> parts = onAppLoaded.getParts();
                 for (int i = 0; i < parts.size(); i++) {
                     Part part = parts.get(i);
-                    builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".id=").append(part.getId());
+                    builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
                     for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.parts.").append(encode("["+i+"]")).append(".properties.")
+                        builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -398,19 +406,19 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Action> ideActions = onAppLoaded.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
-                    builder.append("&client.onAppLoaded.actions.").append(encode("["+i+"]")).append(".id=").append(action.getId());
+                    builder.append("&client.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onAppLoaded.actions.").append(encode("["+i+"]")).append(".properties.")
+                        builder.append("&client.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
             }
 
 
-
-
         }
+
     }
+
 
     private void appendIfNotNull(StringBuilder sb, String key, Object value, boolean encodeValue) {
         if (value != null) {

@@ -17,39 +17,40 @@ import com.codenvy.dto.shared.DTO;
  * else.
  * This configuration will be processed when user apply factory link. And shows in right side of IDE
  */
+@Deprecated
 @DTO
 public interface WelcomeConfiguration {
 
     // Greeting title
-
+    @Deprecated
     String getTitle();
-
+    @Deprecated
     void setTitle(String title);
 
     WelcomeConfiguration withTitle(String title);
 
     // URL to greeting icon
-
+    @Deprecated
     String getIconurl();
-
+    @Deprecated
     void setIconurl(String iconurl);
-
+    @Deprecated
     WelcomeConfiguration withIconurl(String iconurl);
 
     // URL to greeting page
-
+    @Deprecated
     String getContenturl();
-
+    @Deprecated
     void setContenturl(String contenturl);
-
+    @Deprecated
     WelcomeConfiguration withContenturl(String contenturl);
 
     // Notification
-
+    @Deprecated
     String getNotification();
-
+    @Deprecated
     void setNotification(String notification);
-
+    @Deprecated
     WelcomeConfiguration withNotification(String notification);
 
 }

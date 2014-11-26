@@ -26,6 +26,7 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
  * @author Alexander Garagatyi
  */
 @DTO
+@Deprecated
 public interface Actions {
     /**
      * Welcome page configuration.
@@ -41,10 +42,11 @@ public interface Actions {
      * Allow to use text replacement in project files after clone
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "findReplace")
+    @Deprecated
     List<ReplacementSet> getFindReplace();
-
+    @Deprecated
     void setFindReplace(List<ReplacementSet> variable);
-
+    @Deprecated
     Actions withFindReplace(List<ReplacementSet> variable);
 
     // TODO
@@ -59,20 +61,22 @@ public interface Actions {
      * Path of the file to open in the project.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "openFile")
+    @Deprecated
     String getOpenFile();
-
+    @Deprecated
     void setOpenFile(String openFile);
-
+    @Deprecated
     Actions withOpenFile(String openFile);
 
     /**
      * Warn on leave page
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnOnClose")
+    @Deprecated
     Boolean getWarnOnClose();
-
+    @Deprecated
     void setWarnOnClose(Boolean warnOnClose);
-
+    @Deprecated
     Actions withWarnOnClose(Boolean warnOnClose);
 
     // TODO add plugins section

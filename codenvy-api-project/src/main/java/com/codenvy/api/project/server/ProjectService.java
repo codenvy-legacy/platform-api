@@ -235,7 +235,7 @@ public class ProjectService extends Service {
                 throw new ServerException(
                         String.format("Unable to generate project. Unknown generator '%s'.", generateDescriptor.getName()));
             }
-            generator.generateProject(project.getBaseFolder(), generateDescriptor.getOptions());
+            generator.generateProject(project.getBaseFolder(), newProject);
         }
 
         final String visibility = newProject.getVisibility();

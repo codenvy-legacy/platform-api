@@ -412,7 +412,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, String> options)
+            public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
                     throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");

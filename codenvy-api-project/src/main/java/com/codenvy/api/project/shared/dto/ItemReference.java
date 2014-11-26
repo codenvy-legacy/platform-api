@@ -15,6 +15,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -52,6 +53,12 @@ public interface ItemReference extends Hyperlinks {
     void setPath(String path);
 
     ItemReference withPath(String path);
+
+    Map<String, String> getAttributes();
+
+    void setAttributes(Map<String, String> attributes);
+
+    ItemReference withAttributes(Map<String, String> attributes);
 
     ItemReference withLinks(List<Link> links);
 }

@@ -13,6 +13,7 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -73,25 +74,25 @@ import java.util.List;
 import java.util.Map;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static java.lang.Boolean.parseBoolean;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonMap;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.ID_LENGTH;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_CREATE_TEMP_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_CREATE_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_NAME;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static java.lang.Boolean.parseBoolean;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.status;
 
 /**
@@ -181,19 +182,29 @@ public class WorkspaceService extends Service {
             validateAttributes(newWorkspace.getAttributes());
         }
         final Account account = accountDao.getById(newWorkspace.getAccountId());
+
         //check user has access to add new workspace
-        if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
+        if (!context.isUserInRole("system/admin")) {
             ensureCurrentUserOwnerOf(account);
-            final String multiWs = account.getAttributes().get("codenvy:multi-ws");
-            final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
-            if (!existedWorkspaces.isEmpty()) {
+        }
+
+        final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
+        if (!existedWorkspaces.isEmpty()) {
+            if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
+                final String multiWs = account.getAttributes().get("codenvy:multi-ws");
                 if (!parseBoolean(multiWs)) {
                     throw new ForbiddenException("You don't have access to create more workspaces");
                 }
-                // in multi-ws mode user have to initialize runner memory manually
+            }
+
+            //TODO
+            // in multi-ws mode user have to initialize runner memory manually
+            if (!isOrgAddonEnabledByDefault) {
                 newWorkspace.getAttributes().put("codenvy:runner_ram", "0");
+                newWorkspace.getAttributes().put("codenvy:role", "extra");
             }
         }
+
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(false)
@@ -847,6 +858,46 @@ public class WorkspaceService extends Service {
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
+        Workspace workspaceToDelete = workspaceDao.getById(wsId);
+        if (!workspaceToDelete.isTemporary()) {
+            //checking active Saas subscription
+            List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
+            if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
+                //checking primary workspace
+                if (!workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
+                    throw new ConflictException("You can't delete primary ws when saas subscription is active");//TODO
+                }
+                //moving RAM to primary workspace
+                if ("extra".equals(workspaceToDelete.getAttributes().get("codenvy:role"))) {
+                    //removing extra workspace
+                    List<Workspace> workspaces = workspaceDao.getByAccount(workspaceToDelete.getAccountId());
+
+                    //finding primary
+                    Workspace primaryWorkspace = null;
+                    for (Workspace workspace : workspaces) {
+                        if (!workspace.getAttributes().containsKey("codenvy:role")) {
+                            primaryWorkspace = workspace;
+                            break;
+                        }
+                    }
+
+                    if (primaryWorkspace == null) {
+                        throw new ConflictException("Can't find primary workspace");//TODO
+                    }
+
+                    //moving RAM
+                    //TODO mb try catch
+                    //FIXME Exception for onPremises packaging
+                    int RAM = Integer.parseInt(workspaceToDelete.getAttributes().get("codenvy:runner_ram"));
+                    int primaryRAM = Integer.parseInt(primaryWorkspace.getAttributes().get("codenvy:runner_ram"));
+                    primaryWorkspace.getAttributes().put("codenvy:runner_ram", String.valueOf(RAM + primaryRAM));
+
+                    workspaceDao.remove(wsId);
+                    workspaceDao.update(primaryWorkspace);
+                    return;
+                }
+            }
+        }
         workspaceDao.remove(wsId);
     }
 

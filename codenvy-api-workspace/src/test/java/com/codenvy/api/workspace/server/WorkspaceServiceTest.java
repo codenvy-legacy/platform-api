@@ -14,6 +14,7 @@ import sun.security.acl.PrincipalImpl;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
@@ -23,7 +24,6 @@ import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.api.workspace.server.dao.Workspace;
@@ -55,6 +55,7 @@ import org.testng.annotations.Test;
 import javax.ws.rs.core.SecurityContext;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -62,32 +63,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_NAME;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.Response.Status;
 import static javax.ws.rs.core.Response.Status.CONFLICT;
-import static javax.ws.rs.core.Response.Status.FORBIDDEN;
-import static javax.ws.rs.core.Response.Status.OK;
-import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static javax.ws.rs.core.Response.Status.CREATED;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonList;
+import static javax.ws.rs.core.Response.Status.FORBIDDEN;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
+import static javax.ws.rs.core.Response.Status.OK;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertFalse;
 import static org.testng.Assert.assertTrue;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
-import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_NAME;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE;
 
 /**
  * Tests for {@link com.codenvy.api.workspace.server.WorkspaceService}
@@ -211,6 +213,20 @@ public class WorkspaceServiceTest {
         verify(workspaceDao).create(any(Workspace.class));
     }
 
+    //TODO
+    @Test
+    public void shouldNotBeAbleToCreateWorkspaceAssociatedWithOtherAccount() throws Exception {
+        //new workspace descriptor
+        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("new_workspace")
+                                                                    .withAccountId("fake_account_id");
+
+        when(accountDao.getByOwner(testUser.getId())).thenReturn(new ArrayList<Account>());
+
+        final String errorJson = doPost(SERVICE_PATH, newWorkspace, CONFLICT);
+
+        assertEquals(asError(errorJson).getMessage(), "You can create workspace associated only with your own account");
+    }
+
     @Test
     public void shouldBeAbleToCreateMultiWorkspacesIfAccountContainsMultiWsAttribute() throws Exception {
         //create new account with existed workspace and 'codenvy:multi-ws' attribute equal with 'true'
@@ -224,6 +240,8 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
+        assertEquals(descriptor.getAttributes().get("codenvy:runner_ram"), "0");
+        assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
         verify(workspaceDao).create(any(Workspace.class));
     }
 
@@ -255,6 +273,7 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
+        assertTrue(descriptor.getAttributes().isEmpty());
         verify(workspaceDao).create(any(Workspace.class));
     }
 
@@ -272,6 +291,8 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
+        assertEquals(descriptor.getAttributes().get("codenvy:runner_ram"), "0");
+        assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
         verify(workspaceDao).create(any(Workspace.class));
     }
 
@@ -671,6 +692,62 @@ public class WorkspaceServiceTest {
         verify(workspaceDao).remove(testWorkspace.getId());
     }
 
+    //TODO
+    @Test
+    public void shouldBeAbleToRemoveExtraWorkspace() throws Exception {
+        final Workspace primaryWorkspace = createWorkspace();
+        primaryWorkspace.getAttributes().put("codenvy:runner_ram", "256");
+        final Workspace extraWorkspace = createExtraWorkspace();
+        extraWorkspace.getAttributes().put("codenvy:runner_ram", "256");
+
+        when(workspaceDao.getByAccount("test_account_id")).thenReturn(Arrays.asList(primaryWorkspace, extraWorkspace));
+
+        Map<String, String> subscriptionProperties = new HashMap<>();
+        subscriptionProperties.put("Package", "Enterprise");
+        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
+                                                          .withServiceId("Saas")
+                                                          .withProperties(subscriptionProperties);
+        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
+
+        doDelete(SERVICE_PATH + "/" + extraWorkspace.getId(), NO_CONTENT);
+
+        assertEquals(primaryWorkspace.getAttributes().get("codenvy:runner_ram"), "512");
+        verify(workspaceDao).remove(extraWorkspace.getId());
+        verify(workspaceDao).update(primaryWorkspace);
+    }
+
+    @Test
+    public void shouldBeAbleToRemovePrimaryWorkspaceWhenAccountHasSaasCommunitySubscription() throws Exception {
+        final Workspace primaryWorkspace = createWorkspace();
+
+        Map<String, String> subscriptionProperties = new HashMap<>();
+        subscriptionProperties.put("Package", "Community");
+        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
+                                                          .withServiceId("Saas")
+                                                          .withProperties(subscriptionProperties);
+        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
+
+        doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), NO_CONTENT);
+
+        verify(workspaceDao).remove(primaryWorkspace.getId());
+    }
+
+    @Test
+    public void shouldNotBeAbleToRemovePrimaryWorkspaceWhenAccoutHasActiveSaasSubscription() throws Exception {
+        final Workspace primaryWorkspace = createWorkspace();
+
+        Map<String, String> subscriptionProperties = new HashMap<>();
+        subscriptionProperties.put("Package", "Enterprise");
+        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
+                                                          .withServiceId("Saas")
+                                                          .withProperties(subscriptionProperties);
+        when(accountDao.getSubscriptions("test_account_id", "Saas")).thenReturn(Arrays.asList(saasSubscription));
+
+        final String errorJson = doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), CONFLICT);
+
+        assertEquals(asError(errorJson).getMessage(), "You can't delete primary ws when saas subscription is active");
+    }
+
     @Test
     public void testWorkspaceDescriptorLinksForUser() throws NotFoundException, ServerException {
         final Workspace testWorkspace = createWorkspace();
@@ -828,6 +905,22 @@ public class WorkspaceServiceTest {
         when(workspaceDao.getByName(workspaceName)).thenReturn(testWorkspace);
         when(workspaceDao.getByAccount(accountId)).thenReturn(singletonList(testWorkspace));
         return testWorkspace;
+    }
+
+    private Workspace createExtraWorkspace() throws NotFoundException, ServerException {
+        final String workspaceId = "extra_test_workspace_id";
+        final String workspaceName = "extra_test_workspace_name";
+        final String accountId = "test_account_id";
+        final Map<String, String> attributes = new HashMap<>();
+        attributes.put("codenvy:role", "extra");
+        final Workspace extraWorkspace = new Workspace().withId(workspaceId)
+                                                        .withName(workspaceName)
+                                                        .withTemporary(false)
+                                                        .withAccountId(accountId)
+                                                        .withAttributes(attributes);
+        when(workspaceDao.getById(workspaceId)).thenReturn(extraWorkspace);
+        when(workspaceDao.getByName(workspaceName)).thenReturn(extraWorkspace);
+        return extraWorkspace;
     }
 
     private void prepareRole(String role) {

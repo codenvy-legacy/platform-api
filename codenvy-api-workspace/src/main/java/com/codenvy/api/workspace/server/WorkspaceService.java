@@ -415,7 +415,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal server error")})
     @POST
     @Path("/{id}")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public WorkspaceDescriptor update(@ApiParam(value = "Workspace ID")
@@ -674,7 +674,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/attribute")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     public void removeAttribute(@ApiParam(value = "Workspace ID")
                                 @PathParam("id")
                                 String wsId,
@@ -791,7 +791,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/members/{userid}")
-    @RolesAllowed({"workspace/admin", "account/owner"})
+    @RolesAllowed({"account/owner", "workspace/admin", "account/owner"})
     public void removeMember(@ApiParam(value = "Workspace ID")
                              @PathParam("id")
                              String wsId,
@@ -843,7 +843,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {

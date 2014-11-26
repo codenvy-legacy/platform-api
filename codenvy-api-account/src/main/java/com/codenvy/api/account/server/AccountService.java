@@ -766,6 +766,9 @@ public class AccountService extends Service {
         }
 
         service.afterCreateSubscription(subscription);
+
+        LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
+
         return Response.status(Response.Status.CREATED)
                        .entity(toDescriptor(subscription, securityContext, roles))
                        .build();

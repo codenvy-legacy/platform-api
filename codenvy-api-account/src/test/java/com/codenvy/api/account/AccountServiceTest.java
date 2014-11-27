@@ -84,6 +84,7 @@ import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyListOf;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
@@ -1380,7 +1381,31 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToRedistributeResources() throws Exception {
+    public void shouldBeAbleToRedistributeResourcesByAccountOwner() throws Exception {
+        prepareSecurityContext("account/owner");
+
+        Map<String, String> accountSubscription = new HashMap<>();
+        accountSubscription.put("RAM", "2GB");
+        accountSubscription.put("Package", "Enterprise");
+        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                      .withServiceId("Saas")
+                                                      .withProperties(accountSubscription);
+        when(accountDao.getSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription));
+
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+
+        assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
+        verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyInt(), anyListOf(UpdateResourcesDescriptor.class));
+    }
+
+    @Test
+    public void shouldBeAbleToRedistributeResourcesBySystemAdminWithoutLimitation() throws Exception {
+        prepareSecurityContext("system/admin");
+
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
                                                  DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
@@ -1392,9 +1417,74 @@ public class AccountServiceTest {
     }
 
     @Test
+    public void shouldThrowConflictExceptionIfUserHasCommunitySubscription() throws Exception {
+        Map<String, String> accountSubscription = new HashMap<>();
+        accountSubscription.put("RAM", "256MB");
+        accountSubscription.put("Package", "Community");
+        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                      .withServiceId("Saas")
+                                                      .withProperties(accountSubscription);
+
+        when(accountDao.getSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription));
+
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Users who have community subscription can't distribute resources");
+    }
+
+    @Test
+    public void shouldThrowConflictExceptionIfUserHasMore1SaasSubscription() throws Exception {
+        Map<String, String> accountSubscription = new HashMap<>();
+        accountSubscription.put("RAM", "256MB");
+        accountSubscription.put("Package", "Enterprise");
+        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                      .withServiceId("Saas")
+                                                      .withProperties(accountSubscription);
+
+        when(accountDao.getSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription, subscription));
+
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Account has more than 1 Saas subscription");
+    }
+
+    @Test
+    public void shouldThrowConflictExceptionIfUserHasNotSaasSubscription() throws Exception {
+        when(accountDao.getSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(new ArrayList<Subscription>());
+
+        ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
+                                                 MediaType.APPLICATION_JSON,
+                                                 DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
+                                                           .withWorkspaceId("some_workspace")
+                                                           .withResources(Collections.EMPTY_MAP));
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Account hasn't Saas subscription");
+    }
+
+    @Test
     public void shouldThrowExceptionWhenResourcesManagerThrowsIt() throws Exception {
+        prepareSecurityContext("account/owner");
+
+        Map<String, String> accountSubscription = new HashMap<>();
+        accountSubscription.put("RAM", "2GB");
+        accountSubscription.put("Package", "Enterprise");
+        Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
+                                                      .withServiceId("Saas")
+                                                      .withProperties(accountSubscription);
+        when(accountDao.getSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription));
+
+        prepareSecurityContext("account/owner");
+
         doThrow(new ConflictException("Error"))
-                .when(resourcesManager).redistributeResources(anyString(), anyListOf(UpdateResourcesDescriptor.class));
+                .when(resourcesManager).redistributeResources(anyString(), anyInt(), anyListOf(UpdateResourcesDescriptor.class));
 
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
@@ -1404,7 +1494,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "Error");
-        verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
+        verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyInt(), anyListOf(UpdateResourcesDescriptor.class));
     }
 
     private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {

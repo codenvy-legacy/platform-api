@@ -10,7 +10,19 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import com.codenvy.api.core.ConflictException;
+import static com.jayway.restassured.RestAssured.given;
+import static java.net.URLEncoder.encode;
+import static javax.ws.rs.core.Response.Status;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
@@ -20,17 +32,10 @@ import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
-//import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.project.server.ProjectManager;
-import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
-import com.codenvy.api.project.shared.dto.RunnerConfiguration;
-import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.Pair;
@@ -55,34 +60,18 @@ import org.testng.annotations.Test;
 
 import javax.ws.rs.core.MediaType;
 import java.io.File;
-import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
-import static com.jayway.restassured.RestAssured.given;
-import static java.net.URLEncoder.encode;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
-import static javax.ws.rs.core.Response.Status;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
+//import com.codenvy.api.factory.dto.ProjectAttributes;
 
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
@@ -172,34 +161,6 @@ public class FactoryServiceTest {
     }
 
 
-    //    //    @Test
-//    public void shouldBeAbleToReturnLatestFactory() throws Exception {
-//        // given
-//        Factory factoryUrl = dto.createDto(Factory.class);
-//        factoryUrl.withIdcommit("132456").withWname("wname").withPtype("ptype").withPname("pname").withV("1.0");
-//        factoryUrl.setId(CORRECT_FACTORY_ID);
-//
-//        ProjectAttributes attributes =
-//                dto.createDto(ProjectAttributes.class).withPname(factoryUrl.getPname()).withPtype(
-//                        factoryUrl.getPtype());
-//
-//        Factory expected = (Factory)dto.createDto(
-//                Factory.class).withProjectattributes(attributes).withId(CORRECT_FACTORY_ID).withV("1.2")
-//                                              .withCommitid(factoryUrl.getIdcommit());
-//
-//        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factoryUrl);
-//        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.EMPTY_SET);
-//
-//        // when
-//        Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "?legacy=true");
-//
-//        // then
-//        assertEquals(response.getStatusCode(), 200);
-//        Factory responseFactoryUrl = dto.createDtoFromJson(response.getBody().asInputStream(), Factory.class);
-//        responseFactoryUrl.setLinks(Collections.<Link>emptyList());
-//        assertEquals(responseFactoryUrl, expected);
-//    }
-//
     @Test
     public void shouldReturnSavedFactoryIfUserDidNotUseSpecialMethod() throws Exception {
         // given

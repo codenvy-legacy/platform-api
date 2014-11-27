@@ -611,7 +611,18 @@ public class FactoryBuilderTest {
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, encoded);
     }
+    @DataProvider(name = "notValidParamsProvider")
+    public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+        Factory factory = dto.createDto(Factory.class)
+                             .withV("2.0")
+                             .withSource(dto.createDto(Source.class)
+                                            .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                            .withType("git")
+                                                            .withLocation(
+                                                                    "http://github.com/codenvy/platform-api.git")));
 
+        return new Object[][]{};
+    }
 
     private String encode(String value) {
         try {

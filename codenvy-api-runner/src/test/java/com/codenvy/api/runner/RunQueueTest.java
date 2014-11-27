@@ -14,7 +14,6 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.RemoteBuilderServer;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
@@ -26,10 +25,10 @@ import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
-import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerDescriptor;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
@@ -629,6 +628,34 @@ public class RunQueueTest {
 
         runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withMemorySize(128));
         runQueue.run(wsId, pPath, serviceContext, dto(RunOptions.class).withMemorySize(129));
+    }
+
+    @Test
+    public void testWhenRunningOutOfDiskSpace() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        List<RunnerMetric> metrics = new ArrayList<>(2);
+        metrics.add(dto(RunnerMetric.class).withName(RunnerMetric.DISK_SPACE_TOTAL).withValue("1000000"));
+        metrics.add(dto(RunnerMetric.class).withName(RunnerMetric.DISK_SPACE_USED).withValue("980000"));
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(256)).withStats(metrics))
+                .when(runner).getRemoteRunnerState();
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"));
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+        doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
+
+        RunQueueTask task = runQueue.run(wsId, pPath, serviceContext, null);
+
+        assertTrue(task.isWaiting());
+        // sleep - max waiting time + 2 sec
+        TimeUnit.SECONDS.sleep(7);
+        verify(runner, never()).run(any(RunRequest.class));
+        assertFalse(task.isWaiting());
+        assertTrue(task.isCancelled());
+        checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE, RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED);
     }
 
     private String mockBuilderApi(final int inProgressNum) throws Exception {

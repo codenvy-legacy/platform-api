@@ -332,7 +332,7 @@ public class WorkspaceServiceTest {
         final Workspace testWorkspace = createWorkspace();
         final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
 
-        prepareRole("workspace/developer");
+        prepareRole("workspace/admin");
         final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "/" + testWorkspace.getId());
 
         assertEquals(descriptor.getAttributes(), actualAttributes);
@@ -343,7 +343,7 @@ public class WorkspaceServiceTest {
         final Workspace testWorkspace = createWorkspace();
         final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
 
-        prepareRole("workspace/admin");
+        prepareRole("workspace/developer");
         final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "/" + testWorkspace.getId());
 
         assertEquals(descriptor.getAttributes(), actualAttributes);

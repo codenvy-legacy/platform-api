@@ -188,9 +188,9 @@ public class FactoryService extends Service {
             factoryUrl.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
 
             // for logging purposes
-            String  orgid = factoryUrl.getCreator().getAccountId();
+            String orgid = factoryUrl.getCreator().getAccountId();
             String repoUrl = factoryUrl.getSource().getProject().getLocation();
-            String  ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
+            String ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
 
             createValidator.validateOnCreate(factoryUrl);
             String factoryId = factoryStore.saveFactory(factoryUrl, images);
@@ -235,25 +235,15 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
-                                            @QueryParam("maxVersion") String maxVersion,
                                             @Context UriInfo uriInfo) throws ApiException {
         final URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
                                   .replaceQueryParam("legacy", null)
                                   .replaceQueryParam("token", null)
                                   .replaceQueryParam("validate", null)
-                                  .replaceQueryParam("maxVersion", null)
                                   .build();
         Factory factory = factoryBuilder.buildEncoded(uri);
         if (legacy) {
-            if (maxVersion != null) {
-                if ("1.2".equals(maxVersion)) {
-                    factory = factoryBuilder.convertToV1_2(factory);
-                } else {
-                    factory = factoryBuilder.convertToLatest(factory);
-                }
-            } else {
-                factory = factoryBuilder.convertToLatest(factory);
-            }
+            factory = factoryBuilder.convertToLatest(factory);
         }
         if (validate) {
             acceptValidator.validateOnAccept(factory, false);
@@ -293,7 +283,6 @@ public class FactoryService extends Service {
                               @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
                                       allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
-                              @QueryParam("maxVersion") String maxVersion,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
@@ -302,15 +291,7 @@ public class FactoryService extends Service {
         }
 
         if (legacy) {
-            if (maxVersion != null) {
-                if ("1.2".equals(maxVersion)) {
-                    factoryUrl = factoryBuilder.convertToV1_2(factoryUrl);
-                } else {
-                    factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
-                }
-            } else {
-                factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
-            }
+            factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
         }
 
         try {
@@ -511,7 +492,7 @@ public class FactoryService extends Service {
         NewProject newProject;
         try {
             final ProjectDescription projectDescription = project.getDescription();
-            if ("git".equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
+            if ("git" .equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
                 final Link importSourceLink = dtoFactory.createDto(Link.class)
                                                         .withMethod("GET")
                                                         .withHref(UriBuilder.fromUri(baseApiUrl)

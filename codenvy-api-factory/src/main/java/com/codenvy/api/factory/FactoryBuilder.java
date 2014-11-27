@@ -28,6 +28,7 @@ import static java.lang.String.format;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.factory.converter.ActionsConverter;
 import com.codenvy.api.factory.converter.LegacyConverter;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV2_0;
@@ -80,7 +81,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
     static {
-        List<LegacyConverter> l = new ArrayList<>(0);
+        List<LegacyConverter> l = new ArrayList<>(1);
+        l.add(new ActionsConverter());
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
@@ -222,23 +224,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         return resultFactory;
     }
 
-    /**
-     * Convert factory of given version to the V1.2 factory format.
-     *
-     * @param factory
-     *         - given factory.
-     * @return - factory in V1_2 format.
-     * @throws com.codenvy.api.core.ApiException
-     */
-    public Factory convertToV1_2(Factory factory) throws ApiException {
-        Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        resultFactory.setV("1.2");
-        for (LegacyConverter converter : LEGACY_CONVERTERS) {
-            converter.convertToV1_2(resultFactory);
-        }
-
-        return resultFactory;
-    }
 
     /**
      * Validate compatibility of factory parameters.

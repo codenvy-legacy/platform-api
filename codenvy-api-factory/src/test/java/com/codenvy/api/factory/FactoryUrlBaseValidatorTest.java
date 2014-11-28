@@ -49,7 +49,6 @@ import org.testng.annotations.Test;
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
-import java.lang.reflect.InvocationTargetException;
 import java.net.URISyntaxException;
 import java.text.ParseException;
 import java.util.Arrays;
@@ -140,7 +139,8 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test(expectedExceptions = ApiException.class,
             expectedExceptionsMessageRegExp =
-                    "The parameter vcsurl has a value submitted http://codenvy.com/git/04%2 with a value that is unexpected. " +
+                    "The parameter source.project.location has a value submitted http://codenvy.com/git/04%2 with a value that is " +
+                    "unexpected. " +
                     "For more information, please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference")
     public void shouldNotValidateIfVcsurlContainIncorrectEncodedSymbol() throws ApiException {
         // given
@@ -376,14 +376,6 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateTrackedFactoryAndParams(factory);
     }
 
-    @Test(dataProvider = "trackedFactoryParametersProvider", expectedExceptions = ApiException.class)
-    public void shouldNotValidateIfThereIsTrackedOnlyParameterAndOAccountIsNull(Factory factory)
-            throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, ApiException {
-        factory.withCreator(dto.createDto(Author.class)
-                               .withAccountId(null)
-                               .withUserId("userid"));
-        validator.validateTrackedFactoryAndParams(factory);
-    }
 
     @Test
     public void shouldValidateIfCurrentTimeBeforeSinceUntil() throws ConflictException {
@@ -460,15 +452,6 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateCurrentTimeBetweenSinceUntil(factory);
     }
 
-    @DataProvider(name = "trackedFactoryParametersProvider")
-    public Object[][] trackedFactoryParametersProvider() throws URISyntaxException, IOException, NoSuchMethodException {
-        return new Object[][]{
-                //{factory.withWelcome(DtoFactory.getInstance().createDto(WelcomePage.class))}, TODO
-                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
-                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},
-                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withRefererHostname("host"))}
-        };
-    }
 
     @Test
     public void shouldValidateTrackedParamsIfOrgIdIsMissingButOnPremisesTrue() throws Exception {
@@ -487,27 +470,49 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateTrackedFactoryAndParams(factory);
     }
 
-    @Test(dataProvider = "trackedFactoryParameterWithoutOrgIdProvider",
+
+    @Test(dataProvider = "trackedFactoryParameterWithoutValidAccountId",
             expectedExceptions = ConflictException.class,
             expectedExceptionsMessageRegExp = "(?s)You do not have a valid orgID. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
 
-        validator.validateTrackedFactoryAndParams(factory);
+        validator.validateTrackedFactoryAndParams(dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId(null)));
     }
 
-    @DataProvider(name = "trackedFactoryParameterWithoutOrgIdProvider")
-    public Object[][] dataProvider() {
-        final DtoFactory dtoFactory = DtoFactory.getInstance();
-        Factory factory = dtoFactory.createDto(Factory.class);
-        factory.withV("2.1");
+
+    @DataProvider(name = "trackedFactoryParameterWithoutValidAccountId")
+    public Object[][] trackedFactoryParameterWithoutValidAccountId() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
-                {dtoFactory.clone(factory).withActions(dtoFactory.createDto(Actions.class)
-                                                                 .withWelcome(dtoFactory.createDto(WelcomePage.class)))},
-                {dtoFactory.clone(factory).withPolicies(dtoFactory.createDto(Policies.class).withValidSince(
-                        System.currentTimeMillis() + 1_000_000))},
-                {dtoFactory.clone(factory).withPolicies(dtoFactory.createDto(Policies.class).withValidUntil(
-                        System.currentTimeMillis() + 10_000_000))}
+                {
+                        dto.createDto(Factory.class).withV("2.1").withIde(dto.createDto(Ide.class)
+                                                                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                                                                     .withParts(singletonList(dto.createDto(
+                                                                                                                        Part.class)
+                                                                                                                                 .withId("welcomePanel")
+                                                                                                                                 .withProperties(
+                                                                                                                                         ImmutableMap
+                                                                                                                                                 .<String,
+                                                                                                                                                         String>builder()
+                                                                                                                                                 .put("authenticatedTitle",
+                                                                                                                                                      "title")
+                                                                                                                                                 .put("authenticatedIconUrl",
+                                                                                                                                                      "url")
+                                                                                                                                                 .put("authenticatedContentUrl",
+                                                                                                                                                      "url")
+                                                                                                                                                 .put("nonAuthenticatedTitle",
+                                                                                                                                                      "title")
+                                                                                                                                                 .put("nonAuthenticatedIconUrl",
+                                                                                                                                                      "url")
+                                                                                                                                                 .put("nonAuthenticatedContentUrl",
+                                                                                                                                                      "url")
+                                                                                                                                                 .build()))
+                                                                                                               )))},
+
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withRefererHostname("host"))}
         };
     }
+
 }

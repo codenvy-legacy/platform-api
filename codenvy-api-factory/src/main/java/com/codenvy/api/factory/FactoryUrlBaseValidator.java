@@ -198,6 +198,12 @@ public abstract class FactoryUrlBaseValidator {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
             }
         }
+        if (policies != null && policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
+            if (null == orgid && !onPremises) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
+            }
+        }
+
         if (factory.getV().equals("2.0")) {
             WelcomePage welcomePage = null;
             if (factory.getActions() != null) {

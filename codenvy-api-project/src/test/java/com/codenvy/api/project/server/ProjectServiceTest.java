@@ -89,6 +89,7 @@ import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissi
 /**
  * @author andrew00x
  * @author Eugene Voevodin
+ * @author Artem Zatsarynnyy
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class ProjectServiceTest {
@@ -359,14 +360,32 @@ public class ProjectServiceTest {
 
     @Test
     public void testCreateProject() throws Exception {
+        generatorRegistry.register(new ProjectGenerator() {
+            @Override
+            public String getId() {
+                return "my_generator";
+            }
+
+            @Override
+            public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+                    throws ConflictException, ForbiddenException, ServerException {
+                baseFolder.createFolder("a");
+                baseFolder.createFolder("b");
+                baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
+            }
+        });
+
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
+        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
+                                                          .withName("my_generator");
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")
                                           .withDescription("new project")
-                                          .withAttributes(attributeValues);
+                                          .withAttributes(attributeValues)
+                                          .withGenerateDescriptor(generateDescriptor);
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s?name=new_project", workspace),
                                                       "http://localhost:8080/api",
@@ -401,18 +420,40 @@ public class ProjectServiceTest {
         Assert.assertEquals(description.getProjectType().getName(), "my project type");
         Attribute attribute = description.getAttribute("new project attribute");
         Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+
+        Assert.assertNotNull(project.getBaseFolder().getChild("a"));
+        Assert.assertNotNull(project.getBaseFolder().getChild("b"));
+        Assert.assertNotNull(project.getBaseFolder().getChild("test.txt"));
     }
 
     @Test
     public void testCreateModule() throws Exception {
+        generatorRegistry.register(new ProjectGenerator() {
+            @Override
+            public String getId() {
+                return "my_generator";
+            }
+
+            @Override
+            public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+                    throws ConflictException, ForbiddenException, ServerException {
+                baseFolder.createFolder("a");
+                baseFolder.createFolder("b");
+                baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
+            }
+        });
+
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
+        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
+                                                          .withName("my_generator");
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")
                                           .withDescription("new module")
-                                          .withAttributes(attributeValues);
+                                          .withAttributes(attributeValues)
+                                          .withGenerateDescriptor(generateDescriptor);
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/my_project?name=new_module",
                                                                     workspace),
@@ -448,6 +489,10 @@ public class ProjectServiceTest {
         Assert.assertEquals(description.getProjectType().getName(), "my project type");
         Attribute attribute = description.getAttribute("new module attribute");
         Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+
+        Assert.assertNotNull(project.getBaseFolder().getChild("a"));
+        Assert.assertNotNull(project.getBaseFolder().getChild("b"));
+        Assert.assertNotNull(project.getBaseFolder().getChild("test.txt"));
     }
 
     @Test
@@ -1368,92 +1413,6 @@ public class ProjectServiceTest {
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/folder2"));
         Assert.assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/folder2/file1.txt"));
-    }
-
-    @Test
-    public void testGenerate() throws Exception {
-        pm.createProject(workspace, "new_project",
-                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
-        generatorRegistry.register(new ProjectGenerator() {
-            @Override
-            public String getId() {
-                return "my_generator";
-            }
-
-            @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, String> options)
-                    throws ConflictException, ForbiddenException, ServerException {
-                baseFolder.createFolder("a");
-                baseFolder.createFolder("b");
-                baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
-            }
-        });
-
-        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
-                                                          .withGeneratorName("my_generator");
-
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-
-        ContainerResponse response = launcher.service("POST",
-                                                      String.format(
-                                                              "http://localhost:8080/api/project/%s/generate/new_project",
-                                                              workspace),
-                                                      "http://localhost:8080/api",
-                                                      headers, DtoFactory.getInstance().toJson(generateDescriptor).getBytes(), null);
-        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        Assert.assertEquals(descriptor.getType(), "my_project_type");
-        Assert.assertEquals(descriptor.getTypeName(), "my project type");
-        Project newProject = pm.getProject(workspace, "new_project");
-        Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("a"));
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("b"));
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("test.txt"));
-    }
-
-    @Test
-    public void testGeneratePrivateProject() throws Exception {
-        pm.createProject(workspace, "new_project",
-                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
-        generatorRegistry.register(new ProjectGenerator() {
-            @Override
-            public String getId() {
-                return "my_generator";
-            }
-
-            @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, String> options)
-                    throws ConflictException, ForbiddenException, ServerException {
-                baseFolder.createFolder("a");
-                baseFolder.createFolder("b");
-                baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
-            }
-        });
-
-        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
-                                                          .withGeneratorName("my_generator")
-                                                          .withProjectVisibility("private");
-
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-
-        ContainerResponse response = launcher.service("POST",
-                                                      String.format(
-                                                              "http://localhost:8080/api/project/%s/generate/new_project",
-                                                              workspace),
-                                                      "http://localhost:8080/api",
-                                                      headers, DtoFactory.getInstance().toJson(generateDescriptor).getBytes(), null);
-        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        Assert.assertEquals(descriptor.getType(), "my_project_type");
-        Assert.assertEquals(descriptor.getTypeName(), "my project type");
-        Assert.assertEquals(descriptor.getVisibility(), "private");
-        Project newProject = pm.getProject(workspace, "new_project");
-        Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("a"));
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("b"));
-        Assert.assertNotNull(newProject.getBaseFolder().getChild("test.txt"));
     }
 
     @Test

@@ -82,6 +82,7 @@ import java.util.List;
 import java.util.Set;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
+import static com.codenvy.commons.lang.MemoryUtils.convert;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 
@@ -843,36 +844,6 @@ public class AccountService extends Service {
     }
 
     /**
-     * Redistributes resources between workspaces
-     *
-     * @param id
-     *         account id
-     * @param updateResourcesDescriptors
-     *         descriptor of resources for updating
-     * @throws ForbiddenException
-     *         when account hasn't permission for setting attribute in workspace
-     * @throws NotFoundException
-     *         when account or workspace with given id doesn't exist
-     * @throws ConflictException
-     *         when account hasn't required Saas subscription
-     *         or user want to use more RAM than he has
-     * @throws ServerException
-     */
-    @POST
-    @Path("/{id}/resources")
-    @RolesAllowed("account/owner")
-    public void redistributeResources(@ApiParam(value = "Account ID", required = true)
-                                      @PathParam("id") String id,
-                                      @ApiParam(value = "resources description", required = true)
-                                      @Required
-                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors) throws ForbiddenException,
-                                                                                                         ConflictException,
-                                                                                                         NotFoundException,
-                                                                                                         ServerException {
-        resourcesManager.redistributeResources(id, updateResourcesDescriptors);
-    }
-
-    /**
      * Returns billing properties of certain subscription
      *
      * @param subscriptionId
@@ -959,6 +930,68 @@ public class AccountService extends Service {
         return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
                          .withPlanId(subscriptionTemplate.getPlanId())
                          .withAccountId(subscriptionTemplate.getAccountId());
+    }
+
+    /**
+     * Redistributes resources between workspaces
+     *
+     * @param id
+     *         account id
+     * @param updateResourcesDescriptors
+     *         descriptor of resources for updating
+     * @throws ForbiddenException
+     *         when account hasn't permission for setting attribute in workspace
+     * @throws NotFoundException
+     *         when account or workspace with given id doesn't exist
+     * @throws ConflictException
+     *         when account hasn't required Saas subscription
+     *         or user want to use more RAM than he has
+     * @throws ServerException
+     */
+    @ApiOperation(value = "Redistributes resources",
+                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/admin.",
+                  position = 17)
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Conflict Error"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @POST
+    @Path("/{id}/resources")
+    @RolesAllowed({"account/owner", "system/admin"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void redistributeResources(@ApiParam(value = "Account ID", required = true)
+                                      @PathParam("id") String id,
+                                      @ApiParam(value = "Resources description", required = true)
+                                      @Required
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors,
+                                      @Context SecurityContext securityContext) throws ForbiddenException,
+                                                                                       ConflictException,
+                                                                                       NotFoundException,
+                                                                                       ServerException {
+        if (securityContext.isUserInRole("system/admin")) {
+            //redistributing resources without limitation of RAM
+            resourcesManager.redistributeResources(id, updateResourcesDescriptors);
+            return;
+        }
+
+        //getting allowed RAM
+        final List<Subscription> saasSubscriptions = accountDao.getSubscriptions(id, "Saas");
+        if (saasSubscriptions.isEmpty()) {
+            throw new ConflictException("Account hasn't Saas subscription");
+        }
+        if (saasSubscriptions.size() > 1) {
+            throw new ConflictException("Account has more than 1 Saas subscription");
+        }
+        final Subscription saas = saasSubscriptions.get(0);
+
+        if ("Community".equals(saas.getProperties().get("Package"))) {
+            throw new ConflictException("Users who have community subscription can't distribute resources");
+        }
+        final int allowedRAM = convert(saas.getProperties().get("RAM"));
+
+        resourcesManager.redistributeResources(id, allowedRAM, updateResourcesDescriptors);
     }
 
     /**

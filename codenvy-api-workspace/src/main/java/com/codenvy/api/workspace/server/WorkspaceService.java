@@ -314,7 +314,9 @@ public class WorkspaceService extends Service {
                                                                                 ServerException,
                                                                                 ForbiddenException {
         final Workspace workspace = workspaceDao.getById(id);
-        if (!context.isUserInRole("workspace/developer") && !context.isUserInRole("workspace/admin")) {
+        if (!context.isUserInRole("account/owner") &&
+            !context.isUserInRole("workspace/developer") &&
+            !context.isUserInRole("workspace/admin")) {
             // tmp_workspace_cloned_from_private_repo - gives information
             // whether workspace was clone from private repository or not. It can be use
             // by temporary workspace sharing filter for user that are not workspace/admin
@@ -366,7 +368,9 @@ public class WorkspaceService extends Service {
                                                                                   ForbiddenException {
         requiredNotNull(name, "Workspace name");
         final Workspace workspace = workspaceDao.getByName(name);
-        if (!context.isUserInRole("workspace/developer") && !context.isUserInRole("workspace/admin")) {
+        if (!context.isUserInRole("account/owner") &&
+            !context.isUserInRole("workspace/developer") &&
+            !context.isUserInRole("workspace/admin")) {
             // tmp_workspace_cloned_from_private_repo - gives information
             // whether workspace was clone from private repository or not. It can be use
             // by temporary workspace sharing filter for user that are not workspace/admin
@@ -885,8 +889,9 @@ public class WorkspaceService extends Service {
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final List<Link> links = new LinkedList<>();
 
-        if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer")) {
-
+        if (context.isUserInRole("account/owner") ||
+            context.isUserInRole("workspace/admin") ||
+            context.isUserInRole("workspace/developer")) {
             links.add(createLink("GET",
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "getMembers")
@@ -896,7 +901,7 @@ public class WorkspaceService extends Service {
                                  APPLICATION_JSON,
                                  LINK_REL_GET_WORKSPACE_MEMBERS));
         }
-        if (context.isUserInRole("workspace/admin")) {
+        if (context.isUserInRole("account/owner") || context.isUserInRole("workspace/admin")) {
             links.add(createLink("DELETE",
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "removeMember")
@@ -984,7 +989,7 @@ public class WorkspaceService extends Service {
                                  LINK_REL_GET_CURRENT_USER_MEMBERSHIP));
         }
         if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer") ||
-            context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
+            context.isUserInRole("system/admin") || context.isUserInRole("system/manager") || context.isUserInRole("account/owner")) {
             links.add(createLink("GET",
                                  uriBuilder.clone().
                                          path(getClass(), "getByName")
@@ -1011,7 +1016,7 @@ public class WorkspaceService extends Service {
                                  APPLICATION_JSON,
                                  LINK_REL_GET_WORKSPACE_MEMBERS));
         }
-        if (context.isUserInRole("workspace/admin") || context.isUserInRole("system/admin")) {
+        if (context.isUserInRole("account/owner") || context.isUserInRole("workspace/admin") || context.isUserInRole("system/admin")) {
             links.add(createLink("DELETE",
                                  uriBuilder.clone()
                                            .path(getClass(), "remove")

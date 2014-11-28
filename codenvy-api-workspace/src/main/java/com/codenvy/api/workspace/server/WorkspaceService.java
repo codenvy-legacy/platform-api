@@ -197,10 +197,7 @@ public class WorkspaceService extends Service {
                 }
             }
 
-            //TODO
-            // in multi-ws mode user have to initialize runner memory manually
             if (!isOrgAddonEnabledByDefault) {
-                newWorkspace.getAttributes().put("codenvy:runner_ram", "0");
                 newWorkspace.getAttributes().put("codenvy:role", "extra");
             }
         }
@@ -870,35 +867,6 @@ public class WorkspaceService extends Service {
                 //checking primary workspace
                 if (!workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
                     throw new ConflictException("You can't delete primary ws when saas subscription is active");//TODO
-                }
-                //moving RAM to primary workspace
-                if ("extra".equals(workspaceToDelete.getAttributes().get("codenvy:role"))) {
-                    //removing extra workspace
-                    List<Workspace> workspaces = workspaceDao.getByAccount(workspaceToDelete.getAccountId());
-
-                    //finding primary
-                    Workspace primaryWorkspace = null;
-                    for (Workspace workspace : workspaces) {
-                        if (!workspace.getAttributes().containsKey("codenvy:role")) {
-                            primaryWorkspace = workspace;
-                            break;
-                        }
-                    }
-
-                    if (primaryWorkspace == null) {
-                        throw new ConflictException("Can't find primary workspace");//TODO
-                    }
-
-                    //moving RAM
-                    //TODO mb try catch
-                    //FIXME Exception for onPremises packaging
-                    int RAM = Integer.parseInt(workspaceToDelete.getAttributes().get("codenvy:runner_ram"));
-                    int primaryRAM = Integer.parseInt(primaryWorkspace.getAttributes().get("codenvy:runner_ram"));
-                    primaryWorkspace.getAttributes().put("codenvy:runner_ram", String.valueOf(RAM + primaryRAM));
-
-                    workspaceDao.remove(wsId);
-                    workspaceDao.update(primaryWorkspace);
-                    return;
                 }
             }
         }

@@ -84,12 +84,11 @@ public class FactoryUrlBaseValidatorTest {
 
     private Factory factory;
 
-    private DtoFactory dto;
+    private DtoFactory dto = DtoFactory.getInstance();
 
 
     @BeforeMethod
     public void setUp() throws ParseException, NotFoundException, ServerException {
-        dto = DtoFactory.getInstance();
         factory = dto.createDto(Factory.class)
                      .withV("2.1")
                      .withSource(dto.createDto(Source.class)
@@ -351,7 +350,7 @@ public class FactoryUrlBaseValidatorTest {
         factory.withIde(dto.createDto(Ide.class)
                            .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
                                                    .withParts(singletonList(dto.createDto(Part.class)
-                                                                               .withId("welcomepanel")
+                                                                               .withId("welcomePanel")
                                                                                .withProperties(ImmutableMap
                                                                                                        .<String,
                                                                                                                String>builder()
@@ -378,7 +377,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(dataProvider = "trackedFactoryParametersProvider", expectedExceptions = ApiException.class)
-    public void shouldNotValidateIfThereIsTrackedOnlyParameterAndOrgidIsNull(Factory factory)
+    public void shouldNotValidateIfThereIsTrackedOnlyParameterAndOAccountIsNull(Factory factory)
             throws NoSuchMethodException, InvocationTargetException, IllegalAccessException, ApiException {
         factory.withCreator(dto.createDto(Author.class)
                                .withAccountId(null)
@@ -465,9 +464,9 @@ public class FactoryUrlBaseValidatorTest {
     public Object[][] trackedFactoryParametersProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
                 //{factory.withWelcome(DtoFactory.getInstance().createDto(WelcomePage.class))}, TODO
-                {factory.withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
-                {factory.withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},
-                {factory.withPolicies(dto.createDto(Policies.class).withRefererHostname("host"))}
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},
+                {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withRefererHostname("host"))}
         };
     }
 

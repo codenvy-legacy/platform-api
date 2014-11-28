@@ -22,6 +22,7 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
@@ -178,7 +179,7 @@ public abstract class FactoryUrlBaseValidator {
 
         Long validSince = null;
         Long validUntil = null;
-        WelcomePage welcomePage = null;
+
 
         final Policies policies = factory.getPolicies();
         if (policies != null) {
@@ -186,28 +187,37 @@ public abstract class FactoryUrlBaseValidator {
             validUntil = policies.getValidUntil();
         }
 
-        if (factory.getActions() != null) {
-            welcomePage = factory.getActions().getWelcome();
-        }
-
         if (validSince != null && validSince > 0) {
             if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "restriction.validsince" : "policies.validSince"));
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
             }
         }
 
         if (validUntil != null && validUntil > 0) {
             if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "restriction.validuntil" : "policies.validUntil"));
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
             }
         }
-
-        if (null != welcomePage) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "welcome" : "actions.welcome"));
+        if (factory.getV().equals("2.0")) {
+            WelcomePage welcomePage = null;
+            if (factory.getActions() != null) {
+                welcomePage = factory.getActions().getWelcome();
+            }
+            if (null != welcomePage) {
+                if (null == orgid && !onPremises) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
+                }
+            }
+        } else {
+            if (factory.getIde() != null && factory.getIde().getOnProjectOpened() != null &&
+                factory.getIde().getOnProjectOpened().getParts() != null) {
+                List<Part> onOpenedParts = factory.getIde().getOnProjectOpened().getParts();
+                for (Part onOpenedPart : onOpenedParts) {
+                    if (onOpenedPart.getId().equals("welcomePanel") && null == orgid && !onPremises) {
+                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                           "ide.onProjectOpened.parts.[%index%].id=welcomePanel"));
+                    }
+                }
             }
         }
     }

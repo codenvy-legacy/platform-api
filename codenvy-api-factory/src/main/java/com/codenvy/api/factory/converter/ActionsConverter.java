@@ -52,7 +52,7 @@ public class ActionsConverter implements LegacyConverter {
         if (welcomePage != null) {
 
             addEventHandlers(factory, OnProjectOpened.class, null, singletonList(dto.createDto(Part.class)
-                                                                                    .withId("welcomepanel")
+                                                                                    .withId("welcomePanel")
                                                                                     .withProperties(ImmutableMap
                                                                                                             .<String,
                                                                                                                     String>builder()

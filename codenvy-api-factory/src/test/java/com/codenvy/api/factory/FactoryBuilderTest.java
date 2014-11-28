@@ -382,7 +382,7 @@ public class FactoryBuilderTest {
                                                                              "replace", "NEW_VALUE_2"
                                                                                     ))))
                                                   .withParts(singletonList(dto.createDto(Part.class)
-                                                                              .withId("welcomepanel")
+                                                                              .withId("welcomePanel")
                                                                               .withProperties(ImmutableMap.of(
                                                                                       "authenticatedTitle",
                                                                                       "Greeting title for authenticated " +
@@ -577,7 +577,7 @@ public class FactoryBuilderTest {
                                                                                       .withProperties(singletonMap("file", "openFile"))
                                                                                                      ))
                                                                            .withParts(singletonList(dto.createDto(Part.class)
-                                                                                                       .withId("welcomepanel")
+                                                                                                       .withId("welcomePanel")
                                                                                                        .withProperties(ImmutableMap
                                                                                                                                .<String,
                                                                                                                                        String>builder()
@@ -818,7 +818,7 @@ public class FactoryBuilderTest {
                                                                                "replace", "NEW_VALUE_2"
                                                                                       ))))
                                                     .withParts(singletonList(dto.createDto(Part.class)
-                                                                                .withId("welcomepanel")
+                                                                                .withId("welcomePanel")
                                                                                 .withProperties(ImmutableMap.of(
                                                                                         "authenticatedTitle",
                                                                                         "Greeting title for authenticated " +

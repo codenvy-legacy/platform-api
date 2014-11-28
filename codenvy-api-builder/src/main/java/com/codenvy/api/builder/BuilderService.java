@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -45,8 +46,10 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * RESTful frontend for BuildQueue.
@@ -228,9 +231,54 @@ public class BuilderService extends Service {
         buildQueue.getTask(id).readReport(new HttpServletProxyResponse(httpServletResponse));
     }
 
+    private static final List<Pattern> urlRewriteMimeTypes = new ArrayList<>(2);
+
+    static {
+        urlRewriteMimeTypes.add(Pattern.compile("^text/htm(l)?(\\s*;.*)?$"));
+        urlRewriteMimeTypes.add(Pattern.compile("^application/json(\\s*;.*)?$"));
+    }
+
+    @GET
+    @Path("browse/{id}")
+    public void browse(@PathParam("ws-id") String workspace,
+                       @PathParam("id") Long id,
+                       @DefaultValue(".") @QueryParam("path") String path,
+                       @Context HttpServletResponse httpServletResponse) throws Exception {
+        final BuildQueueTask myTask = buildQueue.getTask(id);
+        final RemoteTask myRemoteTask = myTask.getRemoteTask();
+        if (myRemoteTask == null) {
+            return;
+        }
+        final String myBaseUri = getServiceContext().getServiceUriBuilder().build(workspace).toString();
+        final String from = String.format("%s/(browse|download|view)/%s/%d",
+                                          myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(), myRemoteTask.getId());
+        final String to = String.format("%s/$1/%d", myBaseUri, myTask.getId());
+        final List<Pair<String, String>> currentUrlRewriteRules = new ArrayList<>(1);
+        currentUrlRewriteRules.add(Pair.of(from, to));
+        final String url = String.format("%s/browse/%s/%d?path=%s", myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(),
+                                         myRemoteTask.getId(), path);
+        myRemoteTask.readFromUrl(url, new HttpServletProxyResponse(httpServletResponse, urlRewriteMimeTypes, currentUrlRewriteRules));
+    }
+
+    @GET
+    @Path("/view/{id}")
+    public void view(@PathParam("ws-id") String workspace,
+                     @PathParam("id") Long id,
+                     @Required @QueryParam("path") String path,
+                     @Context HttpServletResponse httpServletResponse) throws Exception {
+        final BuildQueueTask myTask = buildQueue.getTask(id);
+        final RemoteTask myRemoteTask = myTask.getRemoteTask();
+        if (myRemoteTask == null) {
+            throw new NotFoundException(String.format("Path %s doesn't exists", path));
+        }
+        final String url = String.format("%s/view/%s/%d?path=%s", myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(),
+                                         myRemoteTask.getId(), path);
+        myRemoteTask.readFromUrl(url, new HttpServletProxyResponse(httpServletResponse));
+    }
+
     @ApiOperation(value = "Download build artifact",
-                  notes = "Download build artifact",
-                  position = 7)
+            notes = "Download build artifact",
+            position = 7)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found")})
@@ -240,7 +288,7 @@ public class BuilderService extends Service {
                          @PathParam("ws-id") String workspace,
                          @ApiParam(value = "Build ID", required = true)
                          @PathParam("id") Long id,
-                         @ApiParam(value = "Path to a project as /target/{BuildArtifactName}", required = true)
+                         @ApiParam(value = "Path to a build artifact as /target/{BuildArtifactName}", required = true)
                          @Required @QueryParam("path") String path,
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
@@ -248,10 +296,10 @@ public class BuilderService extends Service {
     }
 
     @ApiOperation(value = "Get all builders",
-                  notes = "Get information on all registered builders",
-                  response = BuilderDescriptor.class,
-                  responseContainer = "List",
-                  position = 8)
+            notes = "Get information on all registered builders",
+            response = BuilderDescriptor.class,
+            responseContainer = "List",
+            position = 8)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found")})

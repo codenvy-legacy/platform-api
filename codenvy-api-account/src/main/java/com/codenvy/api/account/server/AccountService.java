@@ -959,7 +959,7 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{id}/resources")
-    @RolesAllowed({"account/owner", "system/admin"})
+    @RolesAllowed({"account/owner", "system/manager", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void redistributeResources(@ApiParam(value = "Account ID", required = true)
                                       @PathParam("id") String id,

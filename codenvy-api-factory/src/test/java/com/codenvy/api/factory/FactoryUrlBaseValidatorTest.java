@@ -12,6 +12,7 @@ package com.codenvy.api.factory;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.when;
 
 import com.codenvy.api.account.server.dao.AccountDao;
@@ -481,6 +482,35 @@ public class FactoryUrlBaseValidatorTest {
     }
 
 
+    @Test (dataProvider = "trackedFactoryParameterWithoutValidAccountId")
+    public void shouldNotFailValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesTrue(Factory factory) throws Exception {
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, true);
+
+        validator.validateTrackedFactoryAndParams(dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId(null)));
+    }
+
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateTrackedParamsIfSubscribtionIsMissing() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
+        when(accountDao.getSubscriptions(eq("accountId-1243"), eq("Factory"))).thenReturn(Collections.<Subscription>emptyList());
+        //when
+        validator.validateTrackedFactoryAndParams(factoryWithAccountId);
+    }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateTrackedParamsIfSubscribtionIsNotFound() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
+        when(accountDao.getSubscriptions(eq("accountId-1243"), eq("Factory"))).thenThrow(NotFoundException.class);
+        //when
+        validator.validateTrackedFactoryAndParams(factoryWithAccountId);
+    }
+
+
     @DataProvider(name = "trackedFactoryParameterWithoutValidAccountId")
     public Object[][] trackedFactoryParameterWithoutValidAccountId() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
@@ -511,6 +541,8 @@ public class FactoryUrlBaseValidatorTest {
 
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},
+                {dto.createDto(Factory.class).withV("2.0")
+                    .withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withRefererHostname("host"))}
         };
     }

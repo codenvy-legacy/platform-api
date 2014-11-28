@@ -561,16 +561,8 @@ public class FactoryBuilderTest {
                                                            dto.createDto(OnAppClosed.class)
                                                               .withActions(
                                                                       singletonList(dto.createDto(Action.class).withId("warnonclose"))))
-                                                   .withOnAppLoaded(
-                                                           dto.createDto(OnAppLoaded.class)
-                                                              .withActions(singletonList(dto.createDto(Action.class).withId("newProject"))))
                                                    .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
                                                                            .withActions(Arrays.asList(
-                                                                                   dto.createDto(Action.class)
-                                                                                      .withId("openfile")
-                                                                                      .withProperties(singletonMap("file", "openFile")),
-                                                                                   dto.createDto(Action.class)
-                                                                                      .withId("run"),
                                                                                    dto.createDto(Action.class)
                                                                                       .withId("findReplace")
                                                                                       .withProperties(
@@ -579,7 +571,11 @@ public class FactoryBuilderTest {
                                                                                                       "file",
                                                                                                       "find", "find",
                                                                                                       "replace", "replace"
-                                                                                                             ))))
+                                                                                                             )),
+                                                                                   dto.createDto(Action.class)
+                                                                                      .withId("openfile")
+                                                                                      .withProperties(singletonMap("file", "openFile"))
+                                                                                                     ))
                                                                            .withParts(singletonList(dto.createDto(Part.class)
                                                                                                        .withId("welcomepanel")
                                                                                                        .withProperties(ImmutableMap
@@ -611,6 +607,7 @@ public class FactoryBuilderTest {
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, encoded);
     }
+
     @DataProvider(name = "notValidParamsProvider")
     public static Object[][] notValidParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
         Factory factory = dto.createDto(Factory.class)

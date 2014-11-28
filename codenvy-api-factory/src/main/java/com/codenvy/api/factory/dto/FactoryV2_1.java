@@ -33,8 +33,8 @@ public interface FactoryV2_1 extends FactoryV2_0 {
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "ide", format = BOTH)
     Ide getIde();
 
-    void setIde(Ide button);
+    void setIde(Ide ide);
 
-    FactoryV2_1 withIde(Ide button);
+    FactoryV2_1 withIde(Ide ide);
 
 }

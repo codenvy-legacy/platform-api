@@ -32,6 +32,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
+ * Convert 2.0 actions to 2.1 format.
+ *
  * @author Sergii Kabashniuk
  */
 public class ActionsConverter implements LegacyConverter {
@@ -48,86 +50,146 @@ public class ActionsConverter implements LegacyConverter {
         Ide ide = null;
 
         if (welcomePage != null) {
-            ide = dto.createDto(Ide.class);
-            ide.withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                       .withParts(singletonList(dto.createDto(Part.class)
-                                                                   .withId("welcomepanel")
-                                                                   .withProperties(ImmutableMap
-                                                                                           .<String,
-                                                                                                   String>builder()
-                                                                                           .put("authenticatedTitle",
-                                                                                                welcomePage.getAuthenticated().getTitle())
-                                                                                           .put("authenticatedIconUrl",
-                                                                                                welcomePage.getAuthenticated().getIconurl())
-                                                                                           .put("authenticatedContentUrl",
-                                                                                                welcomePage.getAuthenticated()
-                                                                                                           .getContenturl())
-                                                                                           .put("nonAuthenticatedTitle",
-                                                                                                welcomePage.getNonauthenticated()
-                                                                                                           .getTitle())
-                                                                                           .put("nonAuthenticatedIconUrl",
-                                                                                                welcomePage.getNonauthenticated()
-                                                                                                           .getIconurl())
-                                                                                           .put("nonAuthenticatedContentUrl",
-                                                                                                welcomePage.getNonauthenticated()
-                                                                                                           .getContenturl())
+
+            addEventHandlers(factory, OnProjectOpened.class, null, singletonList(dto.createDto(Part.class)
+                                                                                    .withId("welcomepanel")
+                                                                                    .withProperties(ImmutableMap
+                                                                                                            .<String,
+                                                                                                                    String>builder()
+                                                                                                            .put("authenticatedTitle",
+                                                                                                                 welcomePage
+                                                                                                                         .getAuthenticated()
+                                                                                                                         .getTitle())
+                                                                                                            .put("authenticatedIconUrl",
+                                                                                                                 welcomePage
+                                                                                                                         .getAuthenticated()
+                                                                                                                         .getIconurl())
+                                                                                                            .put("authenticatedContentUrl",
+                                                                                                                 welcomePage
+                                                                                                                         .getAuthenticated()
+                                                                                                                         .getContenturl())
+                                                                                                            .put("nonAuthenticatedTitle",
+                                                                                                                 welcomePage
+                                                                                                                         .getNonauthenticated()
+                                                                                                                         .getTitle())
+                                                                                                            .put("nonAuthenticatedIconUrl",
+                                                                                                                 welcomePage
+                                                                                                                         .getNonauthenticated()
+                                                                                                                         .getIconurl())
+                                                                                                            .put("nonAuthenticatedContentUrl",
+                                                                                                                 welcomePage
+                                                                                                                         .getNonauthenticated()
+                                                                                                                         .getContenturl())
 
 
-                                                                                           .build()))));
+                                                                                                            .build())));
         }
 
         final Boolean warnOnClose = actions.getWarnOnClose();
-        if (warnOnClose != null) {
-            if (ide != null) {
-                ide = dto.createDto(Ide.class);
-            }
-            ide.withOnAppClosed(
-                    dto.createDto(OnAppClosed.class)
-                       .withActions(
-                               singletonList(dto.createDto(Action.class).withId("warnonclose"))));
+        if (warnOnClose != null && warnOnClose) {
+            addEventHandlers(factory, OnAppClosed.class, singletonList(dto.createDto(Action.class).withId("warnonclose")), null);
         }
 
 
         final List<ReplacementSet> replacement = actions.getFindReplace();
         if (replacement != null) {
-            if (ide != null) {
-                ide = dto.createDto(Ide.class);
-            }
+
             List<Action> replacementActions = new ArrayList<>();
             for (ReplacementSet replacementSet : replacement) {
                 for (String file : replacementSet.getFiles()) {
                     for (Variable variable : replacementSet.getEntries()) {
-                        replacementActions.add(dto.createDto(Action.class).withId("findReplace").withProperties(
-                                ImmutableMap.of(
-                                        "in",
-                                        file,
-                                        "find", variable.getFind(),
-                                        "replace", variable.getReplace()
-                                               )));
+                        replacementActions.add(dto.createDto(Action.class)
+                                                  .withId("findReplace")
+                                                  .withProperties(ImmutableMap.of(
+                                                          "in",
+                                                          file,
+                                                          "find", variable.getFind(),
+                                                          "replace", variable.getReplace()
+                                                                                 )));
                     }
                 }
 
             }
-            ide.withOnProjectOpened(dto.createDto(OnProjectOpened.class).withActions(replacementActions));
+            addEventHandlers(factory, OnProjectOpened.class, replacementActions, null);
         }
 
         final String openFile = actions.getOpenFile();
         if (openFile != null) {
-            if (ide != null) {
+
+            addEventHandlers(factory, OnProjectOpened.class,
+                             singletonList(dto.createDto(Action.class)
+                                              .withId("openfile")
+                                              .withProperties(singletonMap("file", openFile))), null);
+        }
+    }
+
+
+    private void addEventHandlers(Factory factory, Class actionClass, List<Action> actions, List<Part> parts) {
+        Ide ide = factory.getIde();
+        synchronized (factory) {
+            if (ide == null) {
                 ide = dto.createDto(Ide.class);
+                factory.withIde(ide);
             }
-            OnProjectOpened onProjectOpened =
-                    ide.getOnProjectOpened() != null ? ide.getOnProjectOpened() : dto.createDto(OnProjectOpened.class);
-
-            List<Action> onProjectOpenedActions =
-                    onProjectOpened.getActions() != null ? new ArrayList<>(onProjectOpened.getActions()) : new ArrayList<Action>();
-
-            onProjectOpenedActions.add(dto.createDto(Action.class)
-                                          .withId("openfile")
-                                          .withProperties(singletonMap("file", openFile)));
-
+        }
+        if (actionClass.equals(OnProjectOpened.class)) {
+            OnProjectOpened onProjectOpened = ide.getOnProjectOpened();
+            synchronized (ide) {
+                if (onProjectOpened == null) {
+                    onProjectOpened = dto.createDto(OnProjectOpened.class);
+                    ide.withOnProjectOpened(onProjectOpened);
+                }
+            }
+            if (actions != null) {
+                List<Action> currentActions = onProjectOpened.getActions();
+                synchronized (onProjectOpened) {
+                    if (currentActions == null) {
+                        currentActions = new ArrayList<>();
+                        onProjectOpened.withActions(currentActions);
+                    }
+                }
+                currentActions.addAll(actions);
+            }
+            if (parts != null) {
+                List<Part> currentParts = onProjectOpened.getParts();
+                synchronized (onProjectOpened) {
+                    if (currentParts == null) {
+                        currentParts = new ArrayList<>();
+                        onProjectOpened.withParts(currentParts);
+                    }
+                }
+                currentParts.addAll(parts);
+            }
         }
 
-
+        if (actionClass.equals(OnAppClosed.class)) {
+            OnAppClosed onAppClosed = ide.getOnAppClosed();
+            synchronized (ide) {
+                if (onAppClosed == null) {
+                    onAppClosed = dto.createDto(OnAppClosed.class);
+                    ide.withOnAppClosed(onAppClosed);
+                }
+            }
+            if (actions != null) {
+                List<Action> currentActions = onAppClosed.getActions();
+                synchronized (onAppClosed) {
+                    if (currentActions == null) {
+                        currentActions = new ArrayList<>();
+                        onAppClosed.withActions(currentActions);
+                    }
+                }
+                currentActions.addAll(actions);
+            }
+            if (parts != null) {
+                List<Part> currentParts = onAppClosed.getParts();
+                synchronized (onAppClosed) {
+                    if (currentParts == null) {
+                        currentParts = new ArrayList<>();
+                        onAppClosed.withParts(currentParts);
+                    }
+                }
+                currentParts.addAll(parts);
+            }
+        }
     }
 }

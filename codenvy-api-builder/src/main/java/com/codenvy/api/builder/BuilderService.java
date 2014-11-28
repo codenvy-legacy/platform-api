@@ -276,6 +276,28 @@ public class BuilderService extends Service {
         myRemoteTask.readFromUrl(url, new HttpServletProxyResponse(httpServletResponse));
     }
 
+    @GET
+    @Path("tree/{id}")
+    public void listDirectory(@PathParam("ws-id") String workspace,
+                              @PathParam("id") Long id,
+                              @DefaultValue(".") @QueryParam("path") String path,
+                              @Context HttpServletResponse httpServletResponse) throws Exception {
+        final BuildQueueTask myTask = buildQueue.getTask(id);
+        final RemoteTask myRemoteTask = myTask.getRemoteTask();
+        if (myRemoteTask == null) {
+            return;
+        }
+        final String myBaseUri = getServiceContext().getServiceUriBuilder().build(workspace).toString();
+        final String from = String.format("%s/(tree|download|view)/%s/%d",
+                                          myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(), myRemoteTask.getId());
+        final String to = String.format("%s/$1/%d", myBaseUri, myTask.getId());
+        final List<Pair<String, String>> currentUrlRewriteRules = new ArrayList<>(1);
+        currentUrlRewriteRules.add(Pair.of(from, to));
+        final String url = String.format("%s/tree/%s/%d?path=%s", myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(),
+                                         myRemoteTask.getId(), path);
+        myRemoteTask.readFromUrl(url, new HttpServletProxyResponse(httpServletResponse, urlRewriteMimeTypes, currentUrlRewriteRules));
+    }
+
     @ApiOperation(value = "Download build artifact",
             notes = "Download build artifact",
             position = 7)

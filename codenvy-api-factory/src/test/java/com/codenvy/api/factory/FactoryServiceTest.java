@@ -51,6 +51,8 @@ import org.everrest.core.GenericContainerRequest;
 import org.everrest.core.RequestFilter;
 import org.mockito.Matchers;
 import org.mockito.Mock;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 import org.mockito.testng.MockitoTestNGListener;
 import org.testng.ITestContext;
 import org.testng.annotations.BeforeMethod;
@@ -70,8 +72,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
-
-//import com.codenvy.api.factory.dto.ProjectAttributes;
 
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
@@ -212,9 +212,11 @@ public class FactoryServiceTest {
                                     .getResource("100x100_image.jpeg")
                                     .toURI());
 
-        when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(
-                (Factory)dto.clone(factory).withId(CORRECT_FACTORY_ID));
+
+        FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
+        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
+
 
         // when, then
         Response response =
@@ -255,12 +257,7 @@ public class FactoryServiceTest {
     @Test
     public void shouldBeAbleToSaveFactoryWithOutImage(ITestContext context) throws Exception {
         // given
-//        Factory factoryUrl = dto.createDto(Factory.class);
-//        //factoryUrl.setId(CORRECT_FACTORY_ID);
-//        factoryUrl.setCommitid("12345679");
-//        factoryUrl.setVcs("git");
-//        factoryUrl.setV("1.1");
-//        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
+
 
         Factory factory = dto.createDto(Factory.class)
                              .withV("2.0")
@@ -276,9 +273,9 @@ public class FactoryServiceTest {
                 dto.createDto(Link.class).withMethod("GET").withProduces("text/html").withRel("create-project")
                    .withHref(getServerUrl(context) + "/f?id=" + CORRECT_FACTORY_ID);
 
-        when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID))
-                .thenReturn((Factory)dto.clone(factory).withId(CORRECT_FACTORY_ID));
+        FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
+        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
         Response response =
@@ -393,9 +390,9 @@ public class FactoryServiceTest {
                                                             .withParameters(ImmutableMap.of("commitId", "12345679"))));
 
 
-        when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID))
-                .thenReturn((Factory)dto.clone(factory).withId(CORRECT_FACTORY_ID));
+        FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
+        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
         Response response =
@@ -421,9 +418,9 @@ public class FactoryServiceTest {
                                                                     "http://github.com/codenvy/platform-api.git")
                                                             .withParameters(ImmutableMap.of("commitId", "12345679"))));
 
-        when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
-        when(factoryStore.getFactory(CORRECT_FACTORY_ID))
-                .thenReturn((Factory)dto.clone(factory).withId(CORRECT_FACTORY_ID));
+        FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
+        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
         given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD)//
@@ -790,7 +787,6 @@ public class FactoryServiceTest {
     }
 
 
-
     @Test
     public void shouldNotBeAbleToGetMarkdownSnippetForFactory1WithoutStyle(ITestContext context) throws Exception {
         // given
@@ -896,7 +892,7 @@ public class FactoryServiceTest {
                 expect().//
                 statusCode(404).//
                 when().//
-                get(SERVICE_PATH + "/ws/projectName" );
+                get(SERVICE_PATH + "/ws/projectName");
         verify(projectManager).getProject(eq("ws"), eq("projectName"));
 
     }
@@ -914,15 +910,6 @@ public class FactoryServiceTest {
     @Test
     public void shoutFindByAttribute() throws Exception {
         // given
-//        Factory factoryUrl = dto.createDto(Factory.class);
-//        factoryUrl.setId(CORRECT_FACTORY_ID);
-//        factoryUrl.setCommitid("12345679");
-//        factoryUrl.setOrgid("testorg");
-//        factoryUrl.setVcs("git");
-//        factoryUrl.setV("1.1");
-//        factoryUrl.setVcsurl("git@github.com:codenvy/cloud-ide.git");
-
-        // given
         Factory factory = (Factory)dto.createDto(Factory.class)
                                       .withV("2.0")
                                       .withSource(dto.createDto(Source.class)
@@ -934,7 +921,6 @@ public class FactoryServiceTest {
 
                                       .withId(CORRECT_FACTORY_ID)
                                       .withCreator(dto.createDto(Author.class).withAccountId("testorg"));
-
 
 
         when(factoryStore.findByAttribute(Pair.of("orgid", "testorg"))).thenReturn(
@@ -949,10 +935,19 @@ public class FactoryServiceTest {
         List<Link> responseLinks = dto.createListDtoFromJson(response.getBody().asString(), Link.class);
         assertEquals(responseLinks.size(), 2);
     }
-//
-//    // TODO
-//    @Test(enabled = false)
-//    public void shouldBeAbleToGenerateFactoryJsonForProject() throws Exception {
-//        Response response = given().when().get(SERVICE_PATH + "/wsId/projectName");
-//    }
+
+    private class FactorySaveAnswer implements Answer<Object> {
+
+        private Factory savedFactory;
+
+        @Override
+        public Object answer(InvocationOnMock invocation) throws Throwable {
+            if (savedFactory == null) {
+                savedFactory = (Factory)invocation.getArguments()[0];
+                return CORRECT_FACTORY_ID;
+            }
+            return dto.clone(savedFactory).withId(CORRECT_FACTORY_ID);
+        }
+    }
+
 }

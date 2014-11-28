@@ -148,14 +148,14 @@ public class FactoryService extends Service {
             }
 
             Set<FactoryImage> images = new HashSet<>();
-            Factory factoryUrl = null;
+            Factory factory = null;
 
             while (formData.hasNext()) {
                 FileItem item = formData.next();
                 String fieldName = item.getFieldName();
                 if (fieldName.equals("factoryUrl")) {
                     try {
-                        factoryUrl = factoryBuilder.buildEncoded(item.getInputStream());
+                        factory = factoryBuilder.buildEncoded(item.getInputStream());
                     } catch (JsonSyntaxException e) {
                         throw new ConflictException(
                                 "You have provided an invalid JSON.  For more information, " +
@@ -172,49 +172,40 @@ public class FactoryService extends Service {
                 }
             }
 
-            if (factoryUrl == null) {
+            if (factory == null) {
                 LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new ConflictException("No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            if (factoryUrl.getV().equals("1.0")) {
+            if (factory.getV().equals("1.0")) {
                 throw new ConflictException("Storing of Factory 1.0 is unsupported.");
             }
 
 
-            if (null == factoryUrl.getCreator()) {
-                factoryUrl.setCreator(DtoFactory.getInstance().createDto(Author.class));
+            if (null == factory.getCreator()) {
+                factory.setCreator(DtoFactory.getInstance().createDto(Author.class));
             }
-            factoryUrl.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
+            factory.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
 
-            // for logging purposes
-            String orgid = factoryUrl.getCreator().getAccountId();
-            String repoUrl = factoryUrl.getSource().getProject().getLocation();
-            String ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
 
-            createValidator.validateOnCreate(factoryUrl);
-            String factoryId = factoryStore.saveFactory(factoryUrl, images);
-            factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, images, uriInfo));
-
-            String createProjectLink = "";
-            Iterator<Link> createProjectLinksIterator = linksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
-            if (createProjectLinksIterator.hasNext()) {
-                createProjectLink = createProjectLinksIterator.next().getHref();
-            }
+            createValidator.validateOnCreate(factory);
+            String factoryId = factoryStore.saveFactory(factory, images);
+            factory = factoryStore.getFactory(factoryId);
+            factory = factory.withLinks(linksHelper.createLinks(factory, images, uriInfo));
 
             LOG.info(
+
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     context.getUser().getName(),
                     "",
-                    nullToEmpty(ptype),
-                    repoUrl,
-                    createProjectLink,
+                    nullToEmpty(factory.getProject() != null ? factory.getProject().getType() : null),
+                    factory.getSource().getProject().getLocation(),
+                    linksHelper.getLinkByRelation(factory.getLinks(), "create-project").iterator().next().getHref(),
                     "",
-                    nullToEmpty(orgid));
+                    nullToEmpty(factory.getCreator().getAccountId()));
 
-            return factoryUrl;
+            return factory;
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new ServerException(e.getLocalizedMessage(), e);

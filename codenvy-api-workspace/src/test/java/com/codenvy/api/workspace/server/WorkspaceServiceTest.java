@@ -349,17 +349,35 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToGetWorkspaceByIdWithAttributesForWorkspaceAdminOrDeveloper() throws Exception {
+    public void shouldBeAbleToGetWorkspaceByIdWithAttributesForWorkspaceAdmin() throws Exception {
         final Workspace testWorkspace = createWorkspace();
         final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
-        prepareRole("workspace/admin");
 
+        prepareRole("workspace/admin");
         final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "/" + testWorkspace.getId());
 
-        assertEquals(descriptor.getId(), testWorkspace.getId());
-        assertEquals(descriptor.getName(), testWorkspace.getName());
-        assertEquals(descriptor.isTemporary(), testWorkspace.isTemporary());
-        assertEquals(descriptor.getAccountId(), testWorkspace.getAccountId());
+        assertEquals(descriptor.getAttributes(), actualAttributes);
+    }
+
+    @Test
+    public void shouldBeAbleToGetWorkspaceByIdWithAttributesForWorkspaceDeveloper() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
+
+        prepareRole("workspace/developer");
+        final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "/" + testWorkspace.getId());
+
+        assertEquals(descriptor.getAttributes(), actualAttributes);
+    }
+
+    @Test
+    public void shouldBeAbleToGetWorkspaceByIdWithAttributesForAccountOwner() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
+
+        prepareRole("account/owner");
+        final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "/" + testWorkspace.getId());
+
         assertEquals(descriptor.getAttributes(), actualAttributes);
     }
 
@@ -393,17 +411,35 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToGetWorkspaceByNameForWorkspaceAdminOrDeveloper() throws Exception {
+    public void shouldBeAbleToGetWorkspaceByNameForWorkspaceAdmin() throws Exception {
         final Workspace testWorkspace = createWorkspace();
         final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
         prepareRole("workspace/admin");
 
         final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "?name=" + testWorkspace.getName());
 
-        assertEquals(descriptor.getId(), testWorkspace.getId());
-        assertEquals(descriptor.getName(), testWorkspace.getName());
-        assertEquals(descriptor.isTemporary(), testWorkspace.isTemporary());
-        assertEquals(descriptor.getAccountId(), testWorkspace.getAccountId());
+        assertEquals(descriptor.getAttributes(), actualAttributes);
+    }
+
+    @Test
+    public void shouldBeAbleToGetWorkspaceByNameForWorkspaceDeveloper() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
+        prepareRole("workspace/developer");
+
+        final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "?name=" + testWorkspace.getName());
+
+        assertEquals(descriptor.getAttributes(), actualAttributes);
+    }
+
+    @Test
+    public void shouldBeAbleToGetWorkspaceByNameForWorkspaceAccountOwner() throws Exception {
+        final Workspace testWorkspace = createWorkspace();
+        final Map<String, String> actualAttributes = new HashMap<>(testWorkspace.getAttributes());
+        prepareRole("account/owner");
+
+        final WorkspaceDescriptor descriptor = doGet(SERVICE_PATH + "?name=" + testWorkspace.getName());
+
         assertEquals(descriptor.getAttributes(), actualAttributes);
     }
 

@@ -23,7 +23,7 @@ import java.util.Map;
  */
 @DTO
 @ApiModel(description = "Generate new project")
-public interface GenerateDescriptor {
+public interface GeneratorDescription {
     /** Get name of project generator. */
     @ApiModelProperty(value = "Name of project generator", position = 1, required = true)
     String getName();
@@ -31,7 +31,7 @@ public interface GenerateDescriptor {
     /** Set name of project generator. */
     void setName(String generatorName);
 
-    GenerateDescriptor withName(String generatorName);
+    GeneratorDescription withName(String generatorName);
 
     /** Get options needed for generator. */
     @ApiModelProperty(value = "Options needed for generator", position = 2)
@@ -40,5 +40,5 @@ public interface GenerateDescriptor {
     /** Set options needed for generator. */
     void setOptions(Map<String, String> options);
 
-    GenerateDescriptor withOptions(Map<String, String> options);
+    GeneratorDescription withOptions(Map<String, String> options);
 }

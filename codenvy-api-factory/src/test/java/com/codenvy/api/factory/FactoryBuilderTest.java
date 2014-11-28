@@ -398,13 +398,6 @@ public class FactoryBuilderTest {
         verify(sourceProjectParametersValidator).validate(any(ImportSourceDescriptor.class), eq(FactoryParameter.Version.V2_1));
     }
 
-    @Test(expectedExceptions = ApiException.class, dataProvider = "TFParamsProvider",
-            expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId.*")
-    public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(Factory factory)
-            throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
-        factoryBuilder.checkValid(factory, ENCODED);
-    }
-
 
     @Test(expectedExceptions = ApiException.class)
     public void shouldNotAllowInNonencodedVersionUsingParamsOnlyForEncodedVersion() throws ApiException, URISyntaxException {
@@ -860,7 +853,7 @@ public class FactoryBuilderTest {
         sb.append("project.runners.configs.key.options.key2=value2").append("&");
         sb.append("project.runners.configs.key.variables.key1=value1").append("&");
         sb.append("project.runners.configs.key.variables.key2=value2").append("&");
-        sb.append("ide.onProjectOpened.parts.%5B0%5D.id=welcomepanel").append("&");
+        sb.append("ide.onProjectOpened.parts.%5B0%5D.id=welcomePanel").append("&");
         sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedTitle=Greeting+title+for+authenticated+users").append("&");
         sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedIconUrl=http%3A%2F%2Fexample.com%2Ficon.url").append("&");
         sb.append("ide.onProjectOpened.parts.%5B0%5D.properties.authenticatedContentUrl=http%3A%2F%2Fexample.com%2Fcontent.url")

@@ -26,21 +26,29 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.SystemInfo;
+import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.commons.lang.Size;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriBuilder;
-import java.io.StringWriter;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -150,60 +158,188 @@ public final class SlaveBuilderService extends Service {
 
     @GET
     @Path("browse/{builder}/{id}")
+    @Produces(MediaType.TEXT_HTML)
     public Response browse(@PathParam("builder") String builder,
                            @PathParam("id") Long id,
-                           @Required @QueryParam("path") String path) throws Exception {
+                           @DefaultValue(".") @QueryParam("path") String path) throws Exception {
         final Builder myBuilder = getBuilder(builder);
         final BuildTask task = myBuilder.getBuildTask(id);
         final java.io.File workDir = task.getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
-        if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
+        final java.nio.file.Path workDirPath = workDir.toPath().normalize();
+        final java.nio.file.Path targetPath = target.toPath().normalize();
+        if (!(targetPath.startsWith(workDirPath))) {
             throw new NotFoundException(String.format("Invalid relative path %s", path));
         }
         if (target.isDirectory()) {
-            final StringWriter buff = new StringWriter();
-            buff.write("<div class='file-browser'>");
+            StreamingOutput response = new StreamingOutput() {
+                @Override
+                public void write(OutputStream outputStream) throws IOException, WebApplicationException {
+                    String indentation = "  ";
+                    final PrintWriter writer = new PrintWriter(outputStream);
+                    writer.print("<div class='file-browser'>");
+                    final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+                    writer.print("<ul>\n");
+                    java.io.File parent = target.getParentFile();
+                    java.nio.file.Path parentPath = parent.toPath();
+                    if (!targetPath.equals(workDirPath) && parentPath.startsWith(workDirPath)) {
+                        java.io.File[] parentChildren = parent.listFiles();
+                        while (parentPath.startsWith(workDirPath) && parentChildren != null && parentChildren.length == 1) {
+                            parent = parent.getParentFile();
+                            parentPath = parent.toPath();
+                            parentChildren = parent.listFiles();
+                        }
+                        writer.print(indentation);
+                        final String upHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                                               .replaceQueryParam("path", workDirPath.relativize(parentPath))
+                                                               .build(task.getBuilder(), task.getId()).toString();
+                        writer.printf("<li><a href='%s'><span class='file-browser-directory-open'>..</span></a></li>", upHref);
+                    }
+                    final java.io.File[] list = target.listFiles();
+                    if (list != null) {
+                        Arrays.sort(list);
+                        for (java.io.File file : list) {
+                            String name = file.getName();
+                            java.nio.file.Path filePath = workDirPath.relativize(file.toPath()).normalize();
+                            writer.print(indentation);
+                            writer.print("<li>");
+                            if (file.isFile()) {
+                                final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "view")
+                                                                         .replaceQueryParam("path", filePath)
+                                                                         .build(task.getBuilder(), task.getId()).toString();
+                                writer.printf("<a href='%s'><span class='file-browser-file-open'>%s</span></a>", openHref, name);
+                                writer.print("&nbsp;");
+                                final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "download")
+                                                                             .replaceQueryParam("path", filePath)
+                                                                             .build(task.getBuilder(), task.getId()).toString();
+                                writer.printf("<a href='%s'><span class='file-browser-file-download'>%s</span></a>", downloadHref,
+                                              "download");
+                                writer.print("&nbsp;");
+                                writer.printf("Size: %s", Size.toHumanSize(file.length()));
+                            } else if (file.isDirectory()) {
+                                java.io.File[] children = file.listFiles();
+                                // Flatten empty directories
+                                java.io.File singleChildDir = null;
+                                while (children != null && children.length == 1 && children[0].isDirectory()) {
+                                    singleChildDir = children[0];
+                                    children = singleChildDir.listFiles();
+                                }
+                                if (singleChildDir != null) {
+                                    filePath = workDirPath.relativize(singleChildDir.toPath()).normalize();
+                                    name = targetPath.relativize(singleChildDir.toPath()).normalize().toString();
+                                }
+                                if (children != null && children.length == 0) {
+                                    writer.printf("<span class='file-browser-directory-open'>%s/</span></a>", name);
+                                } else {
+                                    final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                                                             .replaceQueryParam("path", filePath)
+                                                                             .build(task.getBuilder(), task.getId()).toString();
+                                    writer.printf("<a href='%s'><span class='file-browser-directory-open'>%s/</span></a>", openHref, name);
+                                }
+                            }
+                            writer.print("</li>\n");
+                        }
+                    }
+                    writer.print("</ul>\n");
+                    writer.print("</div>");
+                    writer.flush();
+                }
+            };
+            return Response.status(200).entity(response).type(MediaType.TEXT_HTML).build();
+        }
+        throw new NotFoundException(String.format("%s does not exist or is not a folder", path));
+    }
+
+    @GET
+    @Path("tree/{builder}/{id}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<ItemReference> listDirectory(@PathParam("builder") String builder,
+                                             @PathParam("id") Long id,
+                                             @DefaultValue(".") @QueryParam("path") String path) throws Exception {
+        final Builder myBuilder = getBuilder(builder);
+        final BuildTask task = myBuilder.getBuildTask(id);
+        final java.io.File workDir = task.getConfiguration().getWorkDir();
+        final java.io.File target = new java.io.File(workDir, path);
+        final java.nio.file.Path workDirPath = workDir.toPath().normalize();
+        final java.nio.file.Path targetPath = target.toPath().normalize();
+        if (!(targetPath.startsWith(workDirPath))) {
+            throw new NotFoundException(String.format("Invalid relative path %s", path));
+        }
+        final List<ItemReference> result = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        if (target.isDirectory()) {
             final UriBuilder serviceUriBuilder = getServiceContext().getServiceUriBuilder();
+            java.io.File parent = target.getParentFile();
+            java.nio.file.Path parentPath = parent.toPath();
+            if (!targetPath.equals(workDirPath) && parentPath.startsWith(workDirPath)) {
+                java.io.File[] parentChildren = parent.listFiles();
+                while (parentPath.startsWith(workDirPath) && parentChildren != null && parentChildren.length == 1) {
+                    parent = parent.getParentFile();
+                    parentPath = parent.toPath();
+                    parentChildren = parent.listFiles();
+                }
+                final String upHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "listDirectory")
+                                                       .replaceQueryParam("path", workDirPath.relativize(parentPath))
+                                                       .build(task.getBuilder(), task.getId()).toString();
+                final ItemReference up = dtoFactory.createDto(ItemReference.class).withName("..").withPath("..").withType("folder");
+                up.getLinks().add(dtoFactory.createDto(Link.class).withRel("children").withHref(upHref).withMethod("GET")
+                                            .withProduces(MediaType.APPLICATION_JSON));
+                result.add(up);
+            }
             final java.io.File[] list = target.listFiles();
             if (list != null) {
+                Arrays.sort(list);
                 for (java.io.File file : list) {
-                    final String name = file.getName();
-                    buff.write("<div class='file-browser-item'>");
-                    buff.write("<span class='file-browser-name'>");
-                    buff.write(name);
-                    buff.write("</span>");
-                    buff.write("&nbsp;");
+                    String name = file.getName();
+                    java.nio.file.Path filePath = workDirPath.relativize(file.toPath()).normalize();
                     if (file.isFile()) {
-                        buff.write("<span class='file-browser-file-open'>");
-                        buff.write(String.format("<a target='_blank' href='%s'>open</a>",
-                                                 serviceUriBuilder.clone().path(getClass(), "view")
-                                                                  .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()
-                                                ));
-                        buff.write("</span>");
-                        buff.write("&nbsp;");
-                        buff.write("<span class='file-browser-file-download'>");
-                        buff.write(String.format("<a href='%s'>download</a>",
-                                                 serviceUriBuilder.clone().path(getClass(), "download")
-                                                                  .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()
-                                                ));
-                        buff.write("</span>");
+                        final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "view")
+                                                                 .replaceQueryParam("path", filePath)
+                                                                 .build(task.getBuilder(), task.getId()).toString();
+                        final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "download")
+                                                                     .replaceQueryParam("path", filePath)
+                                                                     .build(task.getBuilder(), task.getId()).toString();
+                        final ItemReference fileItem =
+                                dtoFactory.createDto(ItemReference.class).withName(name).withPath("/" + filePath.toString())
+                                          .withType("file");
+                        final List<Link> links = fileItem.getLinks();
+                        final String contentType = ContentTypeGuesser.guessContentType(file);
+                        links.add(dtoFactory.createDto(Link.class).withRel("view").withHref(openHref).withMethod("GET")
+                                            .withProduces(contentType));
+                        links.add(dtoFactory.createDto(Link.class).withRel("download").withHref(downloadHref).withMethod("GET")
+                                            .withProduces(contentType));
+                        fileItem.getAttributes().put("size", Size.toHumanSize(file.length()));
+                        result.add(fileItem);
                     } else if (file.isDirectory()) {
-                        buff.write("<span class='file-browser-directory-open'>");
-                        buff.write(String.format("<a href='%s'>open</a>",
-                                                 serviceUriBuilder.clone().path(getClass(), "browse")
-                                                                  .replaceQueryParam("path", path + '/' + name)
-                                                                  .build(task.getBuilder(), task.getId()).toString()
-                                                ));
-                        buff.write("</span>");
-                        buff.write("&nbsp;");
+                        java.io.File[] children = file.listFiles();
+                        // Flatten empty directories
+                        java.io.File singleChildDir = null;
+                        while (children != null && children.length == 1 && children[0].isDirectory()) {
+                            singleChildDir = children[0];
+                            children = singleChildDir.listFiles();
+                        }
+                        if (singleChildDir != null) {
+                            filePath = workDirPath.relativize(singleChildDir.toPath()).normalize();
+                            name = targetPath.relativize(singleChildDir.toPath()).normalize().toString();
+                        }
+                        final ItemReference folderItem =
+                                dtoFactory.createDto(ItemReference.class).withName(name).withPath("/" + filePath.toString())
+                                          .withType("folder");
+
+                        if (children == null || children.length != 0) {
+                            final String childrenHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "listDirectory")
+                                                                     .replaceQueryParam("path", filePath)
+                                                                     .build(task.getBuilder(), task.getId()).toString();
+                            final List<Link> links = folderItem.getLinks();
+                            links.add(dtoFactory.createDto(Link.class).withRel("children").withHref(childrenHref).withMethod("GET")
+                                                .withProduces(MediaType.APPLICATION_JSON));
+                        }
+
+                        result.add(folderItem);
                     }
-                    buff.write("</div>");
                 }
             }
-            buff.write("</div>");
-            return Response.status(200).entity(buff.toString()).type(MediaType.TEXT_HTML).build();
+            return result;
         }
         throw new NotFoundException(String.format("%s does not exist or is not a folder", path));
     }

@@ -82,7 +82,8 @@ import java.util.List;
 import java.util.Set;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static com.codenvy.commons.lang.MemoryUtils.convert;
+import static com.codenvy.commons.lang.Size.parseSize;
+import static com.codenvy.commons.lang.Size.parseSizeToMegabytes;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 
@@ -959,7 +960,7 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/{id}/resources")
-    @RolesAllowed({"account/owner", "system/admin"})
+    @RolesAllowed({"account/owner", "system/manager", "system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     public void redistributeResources(@ApiParam(value = "Account ID", required = true)
                                       @PathParam("id") String id,
@@ -989,7 +990,7 @@ public class AccountService extends Service {
         if ("Community".equals(saas.getProperties().get("Package"))) {
             throw new ConflictException("Users who have community subscription can't distribute resources");
         }
-        final int allowedRAM = convert(saas.getProperties().get("RAM"));
+        final int allowedRAM = (int)parseSizeToMegabytes(saas.getProperties().get("RAM"));
 
         resourcesManager.redistributeResources(id, allowedRAM, updateResourcesDescriptors);
     }

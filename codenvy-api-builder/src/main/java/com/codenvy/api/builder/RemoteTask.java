@@ -70,6 +70,14 @@ public class RemoteTask {
         return created;
     }
 
+    public String getBaseRemoteUrl() {
+        return baseUrl;
+    }
+
+    public String getBuilder() {
+        return builder;
+    }
+
     /**
      * Get actual status of remote build process.
      *
@@ -137,7 +145,7 @@ public class RemoteTask {
         if (link == null) {
             throw new BuilderException("Logs are not available.");
         }
-        doRequest(link.getHref(), link.getMethod(), output);
+        readFromUrl(link.getHref(), output);
     }
 
     /**
@@ -157,7 +165,7 @@ public class RemoteTask {
         if (link == null) {
             throw new BuilderException("Report is not available.");
         }
-        doRequest(link.getHref(), link.getMethod(), output);
+        readFromUrl(link.getHref(), output);
     }
 
     /**
@@ -174,21 +182,21 @@ public class RemoteTask {
      * @see com.codenvy.api.builder.internal.BuildResult#getResults()
      */
     public void readFile(String path, OutputProvider output) throws IOException, BuilderException {
-        doRequest(String.format("%s/download/%s/%d?path=%s", baseUrl, builder, taskId, path), "GET", output);
+        readFromUrl(String.format("%s/download/%s/%d?path=%s", baseUrl, builder, taskId, path), output);
     }
 
-    private void doRequest(String url, String method, final OutputProvider output) throws IOException {
+    void readFromUrl(String url, final OutputProvider output) throws IOException {
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setConnectTimeout(60 * 1000);
         conn.setReadTimeout(60 * 1000);
-        conn.setRequestMethod(method);
+        conn.setRequestMethod("GET");
         try {
             if (output instanceof HttpOutputMessage) {
                 HttpOutputMessage httpOutput = (HttpOutputMessage)output;
                 httpOutput.setStatus(conn.getResponseCode());
                 final String contentType = conn.getContentType();
                 if (contentType != null) {
-                    httpOutput.addHttpHeader("Content-Type", contentType);
+                    httpOutput.setContentType(contentType);
                 }
                 // for download files
                 final String contentDisposition = conn.getHeaderField("Content-Disposition");
@@ -199,7 +207,11 @@ public class RemoteTask {
             ByteStreams.copy(new InputSupplier<InputStream>() {
                                  @Override
                                  public InputStream getInput() throws IOException {
-                                     return conn.getInputStream();
+                                     InputStream stream = conn.getErrorStream();
+                                     if (stream == null) {
+                                         stream = conn.getInputStream();
+                                     }
+                                     return stream;
                                  }
                              },
                              new OutputSupplier<OutputStream>() {

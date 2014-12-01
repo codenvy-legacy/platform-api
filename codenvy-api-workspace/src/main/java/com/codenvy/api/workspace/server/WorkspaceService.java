@@ -197,6 +197,7 @@ public class WorkspaceService extends Service {
                 }
             }
 
+            //TODO Should has an extra role workspace in onPremises?
             if (!isOrgAddonEnabledByDefault) {
                 newWorkspace.getAttributes().put("codenvy:role", "extra");
             }

@@ -240,7 +240,6 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertEquals(descriptor.getAttributes().get("codenvy:runner_ram"), "0");
         assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
         verify(workspaceDao).create(any(Workspace.class));
     }
@@ -291,7 +290,6 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertEquals(descriptor.getAttributes().get("codenvy:runner_ram"), "0");
         assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
         verify(workspaceDao).create(any(Workspace.class));
     }
@@ -728,15 +726,12 @@ public class WorkspaceServiceTest {
         verify(workspaceDao).remove(testWorkspace.getId());
     }
 
-    //TODO
     @Test
     public void shouldBeAbleToRemoveExtraWorkspace() throws Exception {
-        final Workspace primaryWorkspace = createWorkspace();
-        primaryWorkspace.getAttributes().put("codenvy:runner_ram", "256");
         final Workspace extraWorkspace = createExtraWorkspace();
         extraWorkspace.getAttributes().put("codenvy:runner_ram", "256");
 
-        when(workspaceDao.getByAccount("test_account_id")).thenReturn(Arrays.asList(primaryWorkspace, extraWorkspace));
+        when(workspaceDao.getByAccount("test_account_id")).thenReturn(Arrays.asList(extraWorkspace));
 
         Map<String, String> subscriptionProperties = new HashMap<>();
         subscriptionProperties.put("Package", "Enterprise");
@@ -747,9 +742,7 @@ public class WorkspaceServiceTest {
 
         doDelete(SERVICE_PATH + "/" + extraWorkspace.getId(), NO_CONTENT);
 
-        assertEquals(primaryWorkspace.getAttributes().get("codenvy:runner_ram"), "512");
         verify(workspaceDao).remove(extraWorkspace.getId());
-        verify(workspaceDao).update(primaryWorkspace);
     }
 
     @Test

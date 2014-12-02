@@ -16,22 +16,22 @@ import com.codenvy.api.project.newproj.ProjectType;
 /**
  * @author gazarenkov
  */
-public abstract class GetFileEventSubcriber implements EventSubscriber<GetFileEvent> {
+public abstract class GetItemSubcriber implements EventSubscriber<GetItemEvent> {
 
     protected  final ProjectType type;
 
-    protected GetFileEventSubcriber(ProjectType type) {
+    protected GetItemSubcriber(ProjectType type) {
         this.type = type;
     }
 
     @Override
-    public final void onEvent(GetFileEvent event) {
+    public final void onEvent(GetItemEvent event) {
 
         if(event.getProjectType().isTypeOf(type.getId()))
             execute(event);
 
     }
 
-    protected abstract void execute(GetFileEvent event);
+    protected abstract void execute(GetItemEvent event);
 
 }

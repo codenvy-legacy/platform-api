@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.shared;
 
 /**
  * Describes builder configuration for project.

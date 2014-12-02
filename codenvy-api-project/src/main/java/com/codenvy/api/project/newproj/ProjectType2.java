@@ -8,16 +8,29 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.newproj;
 
-import com.codenvy.api.project.newproj.AttributeValue;
+import java.util.List;
 
 /**
  * @author gazarenkov
  */
-public interface ValueProvider {
+public interface ProjectType2 {
 
-    AttributeValue getValue();
+    String getId();
 
-    void setValue(AttributeValue value);
+    String getDisplayName();
+
+    List<Attribute> getAttributes();
+
+    Attribute getAttribute(String id);
+
+    List <ProjectType2> getParents();
+
+    boolean isTypeOf(String typeId);
+
+    List <String> getRunnerCategories();
+
+//    List <String> getBuilderCategories();
+
 }

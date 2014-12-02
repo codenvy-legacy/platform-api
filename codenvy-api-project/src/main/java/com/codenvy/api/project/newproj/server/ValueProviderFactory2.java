@@ -8,19 +8,20 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj;
+package com.codenvy.api.project.newproj.server;
 
-import java.util.Map;
+import com.codenvy.api.project.server.Project;
+
 
 /**
- * @author gazarenkov
+ * Factory for {@link com.codenvy.api.project.shared.ValueProvider}.
+ *
+ * @author andrew00x
  */
-public interface ProjectRunnerEnvironment {
+public interface ValueProviderFactory2 {
+    /** Name of Attribute for which this factory may produce ValueProvider2. */
+    //String getName();
 
-    String getId();
-
-    Map<String, String> getVariables();
-
-    Map<String, String> getOptions();
-
+    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project. */
+    ValueProvider2 newInstance(Project project);
 }

@@ -8,20 +8,27 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.newproj.server.event;
 
-import com.codenvy.api.project.server.Project;
-
+import javax.annotation.Nullable;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
- * Factory for {@link com.codenvy.api.project.shared.ValueProvider}.
- *
- * @author andrew00x
+ * @author gazarenkov
  */
-public interface ValueProviderFactory {
-    /** Name of Attribute for which this factory may produce ValueProvider. */
-    //String getName();
+@Singleton
+public class ProjectEventRegistry {
 
-    /** Create new instance of ValueProvider. Project is used for access to low-level information about project. */
-    ValueProvider newInstance(Project project);
+    @Inject
+    @Nullable
+    private Set<GetItemSubcriber> getFileEventSubcribers;
+
+    public Set<GetItemSubcriber> getGetFileEventSubcribers() {
+
+        return this.getFileEventSubcribers == null ? new HashSet<GetItemSubcriber>() : getFileEventSubcribers;
+    }
+
 }

@@ -13,7 +13,7 @@ package com.codenvy.api.project.newproj;
 /**
  * @author gazarenkov
  */
-public interface Attribute {
+public interface Attribute2 {
 
     String getId();
 

@@ -12,17 +12,18 @@ package com.codenvy.api.project.newproj.server.event;
 
 import com.codenvy.api.project.newproj.ProjectType;
 import com.codenvy.api.project.server.FileEntry;
+import com.codenvy.api.project.shared.dto.ItemReference;
 
 /**
  * @author gazarenkov
  */
-public class GetFileEvent {
+public class GetItemEvent {
 
     private ProjectType projectType;
 
-    private FileEntry file;
+    private ItemReference file;
 
-    public GetFileEvent(ProjectType projectType, FileEntry file) {
+    public GetItemEvent(ProjectType projectType, ItemReference file) {
         this.projectType = projectType;
         this.file = file;
     }
@@ -31,7 +32,7 @@ public class GetFileEvent {
         return projectType;
     }
 
-    public FileEntry getFile() {
+    public ItemReference getFile() {
         return file;
     }
 

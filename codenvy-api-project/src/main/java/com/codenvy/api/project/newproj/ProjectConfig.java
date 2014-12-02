@@ -15,12 +15,32 @@ import java.util.List;
 /**
  * @author gazarenkov
  */
-public interface ProjectRunnerConfig {
+public class ProjectConfig {
 
-    String getType();
+    private String description;
+    private String typeId;
+    private List<Attribute> attributes;
 
-    String getDefaultEnvironmentId();
+    public ProjectConfig(String description, String typeId, List<Attribute> attributes) {
 
-    List<ProjectRunnerEnvironment> getRunnerEnvironments();
+        this.description = description;
+        this.typeId = typeId;
+        this.attributes = attributes;
+    }
 
+
+    public String getDescription() {
+        return description;
+    }
+
+    public String getTypeId() {
+        return typeId;
+    }
+
+    public List<Attribute> getAttributes() {
+        return attributes;
+    }
+
+
+    //    ProjectRunnerConfig getRunnerConfig();
 }

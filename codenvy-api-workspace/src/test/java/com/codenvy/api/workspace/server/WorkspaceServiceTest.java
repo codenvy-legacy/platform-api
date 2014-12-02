@@ -83,7 +83,6 @@ import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static javax.ws.rs.core.Response.Status.OK;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -272,7 +271,8 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertTrue(descriptor.getAttributes().isEmpty());
+        assertTrue(descriptor.getAttributes().size() == 1);
+        assertTrue("extra".equals(descriptor.getAttributes().get("codenvy:role")));
         verify(workspaceDao).create(any(Workspace.class));
     }
 
@@ -774,7 +774,7 @@ public class WorkspaceServiceTest {
 
         final String errorJson = doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), CONFLICT);
 
-        assertEquals(asError(errorJson).getMessage(), "You can't delete primary ws when saas subscription is active");
+        assertEquals(asError(errorJson).getMessage(), "You can't delete primary workspace when Saas subscription is active");
     }
 
     @Test

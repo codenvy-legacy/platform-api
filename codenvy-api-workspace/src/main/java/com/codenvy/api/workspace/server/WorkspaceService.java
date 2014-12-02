@@ -197,10 +197,7 @@ public class WorkspaceService extends Service {
                 }
             }
 
-            //TODO Should has an extra role workspace in onPremises?
-            if (!isOrgAddonEnabledByDefault) {
-                newWorkspace.getAttributes().put("codenvy:role", "extra");
-            }
+            newWorkspace.getAttributes().put("codenvy:role", "extra");
         }
 
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
@@ -867,7 +864,7 @@ public class WorkspaceService extends Service {
             if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
                 //checking primary workspace
                 if (!workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
-                    throw new ConflictException("You can't delete primary ws when saas subscription is active");//TODO
+                    throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
                 }
             }
         }

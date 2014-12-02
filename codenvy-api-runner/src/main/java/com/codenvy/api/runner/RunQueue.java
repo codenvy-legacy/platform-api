@@ -51,6 +51,7 @@ import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
+import com.codenvy.commons.lang.Size;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -1099,7 +1100,7 @@ public class RunQueue {
                     }
                 } else {
                     final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
-                    LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                    LOG.info("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
                     return runner.run(request);
                 }
             }
@@ -1135,7 +1136,7 @@ public class RunQueue {
         private long getTotalDiskSpace(RunnerState runnerState) {
             for (RunnerMetric metric : runnerState.getStats()) {
                 if (RunnerMetric.DISK_SPACE_TOTAL.equals(metric.getName())) {
-                    return Long.parseLong(metric.getValue());
+                    return Size.parseSize(metric.getValue());
                 }
             }
             return -1;
@@ -1145,7 +1146,7 @@ public class RunQueue {
         private long getUsedDiskSpace(RunnerState runnerState) {
             for (RunnerMetric metric : runnerState.getStats()) {
                 if (RunnerMetric.DISK_SPACE_USED.equals(metric.getName())) {
-                    return Long.parseLong(metric.getValue());
+                    return Size.parseSize(metric.getValue());
                 }
             }
             return -1;

@@ -20,7 +20,7 @@ import com.codenvy.api.core.rest.CodenvyJsonProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
-import com.codenvy.api.project.shared.dto.GenerateDescriptor;
+import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -379,13 +379,13 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
-        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
+        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class)
                                                           .withName("my_generator");
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")
                                           .withDescription("new project")
                                           .withAttributes(attributeValues)
-                                          .withGenerateDescriptor(generateDescriptor);
+                                          .withGeneratorDescription(generatorDescription);
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s?name=new_project", workspace),
                                                       "http://localhost:8080/api",
@@ -447,13 +447,13 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
-        GenerateDescriptor generateDescriptor = DtoFactory.getInstance().createDto(GenerateDescriptor.class)
+        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class)
                                                           .withName("my_generator");
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")
                                           .withDescription("new module")
                                           .withAttributes(attributeValues)
-                                          .withGenerateDescriptor(generateDescriptor);
+                                          .withGeneratorDescription(generatorDescription);
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/my_project?name=new_module",
                                                                     workspace),

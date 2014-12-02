@@ -858,14 +858,12 @@ public class WorkspaceService extends Service {
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
         Workspace workspaceToDelete = workspaceDao.getById(wsId);
-        if (!workspaceToDelete.isTemporary()) {
+        if (!workspaceToDelete.isTemporary() && !workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
             //checking active Saas subscription
             List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
             if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
                 //checking primary workspace
-                if (!workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
-                    throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
-                }
+                throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
             }
         }
         workspaceDao.remove(wsId);

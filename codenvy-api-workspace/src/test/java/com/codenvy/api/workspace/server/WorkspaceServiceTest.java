@@ -212,7 +212,6 @@ public class WorkspaceServiceTest {
         verify(workspaceDao).create(any(Workspace.class));
     }
 
-    //TODO
     @Test
     public void shouldNotBeAbleToCreateWorkspaceAssociatedWithOtherAccount() throws Exception {
         //new workspace descriptor

@@ -1100,7 +1100,7 @@ public class RunQueue {
                     }
                 } else {
                     final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
-                    LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                    LOG.info("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
                     return runner.run(request);
                 }
             }

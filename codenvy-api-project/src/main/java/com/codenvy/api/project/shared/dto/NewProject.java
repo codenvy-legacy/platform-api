@@ -36,17 +36,17 @@ public interface NewProject extends ProjectUpdate {
     /** Sets name of project. */
     void setName(String name);
 
-    /** Gets generate descriptor. */
-    GenerateDescriptor getGenerateDescriptor();
+    /** Gets generator description. */
+    GeneratorDescription getGeneratorDescription();
 
-    /** Sets generate descriptor. */
-    void setGenerateDescriptor(GenerateDescriptor generateDescriptor);
+    /** Sets generator description. */
+    void setGeneratorDescription(GeneratorDescription generatorDescription);
 
     // For method call chain
 
     NewProject withName(String name);
 
-    NewProject withGenerateDescriptor(GenerateDescriptor generateDescriptor);
+    NewProject withGeneratorDescription(GeneratorDescription generatorDescription);
 
     NewProject withType(String type);
 

@@ -11,12 +11,11 @@
 package com.codenvy.api.project.newproj.server;
 
 import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ValueType;
-import com.codenvy.api.project.server.Project;
+import com.codenvy.api.project.server.*;
 
 
 import javax.inject.Singleton;
-import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -27,51 +26,28 @@ public class MyVPFactory implements ValueProviderFactory {
 
 
     @Override
+    public String getName() {
+        return "var";
+    }
+
+    @Override
     public ValueProvider newInstance(Project project) {
         return new MyValueProvider();
 
     }
 
-
     public static class MyValueProvider implements ValueProvider {
+
+
         @Override
-        public AttributeValue getValue() {
-            return new AttributeValue() {
-
-                List <String> values = new ArrayList<>();
-
-
-                @Override
-                public String getString() {
-                    return "gena";
-                }
-
-                @Override
-                public void setString() {
-
-                }
-
-                @Override
-                public List<String> getList() {
-                    values.add("gena");
-                    return values;
-                }
-
-                @Override
-                public void setList(List<String> list) {
-
-                }
-
-                @Override
-                public ValueType getType() {
-                    return null;
-                }
-            };
+        public List<String> getValues() throws ValueStorageException {
+            return Arrays.asList("gena");
         }
 
         @Override
-        public void setValue(AttributeValue value) {
+        public void setValues(List<String> value) throws ValueStorageException, InvalidValueException {
 
         }
+
     }
 }

@@ -10,8 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj.server.event;
 
-import com.codenvy.api.project.newproj.ProjectType;
-import com.codenvy.api.project.server.FileEntry;
+import com.codenvy.api.project.newproj.ProjectType2;
 import com.codenvy.api.project.shared.dto.ItemReference;
 
 /**
@@ -19,16 +18,16 @@ import com.codenvy.api.project.shared.dto.ItemReference;
  */
 public class GetItemEvent {
 
-    private ProjectType projectType;
+    private ProjectType2 projectType;
 
     private ItemReference file;
 
-    public GetItemEvent(ProjectType projectType, ItemReference file) {
+    public GetItemEvent(ProjectType2 projectType, ItemReference item) {
         this.projectType = projectType;
-        this.file = file;
+        this.file = item;
     }
 
-    public ProjectType getProjectType() {
+    public ProjectType2 getProjectType() {
         return projectType;
     }
 

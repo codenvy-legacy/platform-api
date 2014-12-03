@@ -19,9 +19,11 @@ import javax.inject.Singleton;
 @Singleton
 public class BaseProjectType extends AbstractProjectType {
 
+    public static final String ID = "blank";
+
     public BaseProjectType() {
-        super("blank", "Blank");
-        this.attributes.add(new Variable(this.getId(), "vcs", "VCS", false, null));
+        super(ID, "Blank");
+        this.attributes.add(new Variable(this.getId(), "vcs", "VCS", false));
     }
 
 }

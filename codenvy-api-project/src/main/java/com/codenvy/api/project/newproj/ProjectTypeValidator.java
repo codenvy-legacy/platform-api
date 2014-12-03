@@ -16,7 +16,7 @@ import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 
 /**
- * Utility for validation Project's description against it's ProjectType restrictions
+ * Utility for validation Project's description against it's ProjectType2 restrictions
  *
  * @author gazarenkov
  */
@@ -32,7 +32,7 @@ public class ProjectTypeValidator {
         }
 
         // Do not we try to rewrite predefined attributes
-//        for(com.codenvy.api.project.shared.Attribute attr : project.getAttributes()) {
+//        for(com.codenvy.api.project.shared.Attribute2 attr : project.getAttributes()) {
 //            typeDescriptor.
 //            if(attr )
 //                throw new InvalidValueException("No attribute found "+descr.getName());

@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashMap;
@@ -20,13 +23,14 @@ import java.util.Map;
  * Description of Project. Project description filled in a course of project creating and stored with a Project.
  *
  * @author gazarenkov
+ * @deprecated
  */
 public class ProjectDescription {
     private ProjectType            projectType;
     private Map<String, Attribute> attributes;
     private String                 description;
-    private Builders               builders;
-    private Runners                runners;
+    private Builders builders;
+    private Runners runners;
 
     public ProjectDescription(ProjectType projectType, List<Attribute> attributes, Builders builders, Runners runners) {
         setProjectType(projectType);

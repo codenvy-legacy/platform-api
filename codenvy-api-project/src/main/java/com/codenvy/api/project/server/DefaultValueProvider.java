@@ -15,7 +15,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Default implementation of ValueProvider.
+ * Default implementation of ValueProvider2.
  *
  * @author andrew00x
  */

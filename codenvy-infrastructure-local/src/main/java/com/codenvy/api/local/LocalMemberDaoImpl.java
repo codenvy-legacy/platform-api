@@ -49,7 +49,7 @@ public class LocalMemberDaoImpl implements MemberDao {
                 create(member);
             }
         } catch (Exception e) {
-            // fail if can't init this instance properly
+            // fail if can't validate this instance properly
             throw new RuntimeException(e);
         }
     }

@@ -11,30 +11,45 @@
 package com.codenvy.api.project.newproj.server;
 
 import com.codenvy.api.project.newproj.AbstractAttribute;
-import com.codenvy.api.project.newproj.Attribute;
 import com.codenvy.api.project.newproj.AttributeValue;
+import com.codenvy.api.project.server.InvalidValueException;
+import com.codenvy.api.project.server.ValueProvider;
+import com.codenvy.api.project.server.ValueStorageException;
+
 
 /**
  * @author gazarenkov
  */
 public class Variable extends AbstractAttribute {
 
-    protected ValueProvider valueProvider;
+    protected ValueProvider valueProvider = null;
+    protected AttributeValue value = null;
 
 
     public Variable(String projectType, String name, String description, boolean required, ValueProvider valueProvider) {
-        super(projectType, name, description, required, true);
+        this(projectType, name, description, required);
         this.valueProvider = valueProvider;
     }
 
+    public Variable(String projectType, String name, String description, boolean required, AttributeValue value) {
+        this(projectType, name, description, required);
+        this.value = value;
+    }
+
+    public Variable(String projectType, String name, String description, boolean required) {
+        super(projectType, name, description, required, true);
+    }
+
     @Override
-    public final AttributeValue getValue() {
-        return valueProvider.getValue();
+    public final AttributeValue getValue() throws ValueStorageException {
+        return (valueProvider != null)?new AttributeValue(valueProvider.getValues()):value;
     }
 
-    public final void setValue(AttributeValue value) {
-        valueProvider.setValue(value);
+    public final void setValue(AttributeValue value) throws InvalidValueException, ValueStorageException {
+        if(valueProvider != null)
+            this.valueProvider.setValues(value.getList());
+        else
+            this.value = value;
     }
-
 
 }

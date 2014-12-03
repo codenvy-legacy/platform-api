@@ -11,12 +11,7 @@
 package com.codenvy.api.project.newproj.server;
 
 import com.codenvy.api.project.newproj.AbstractAttribute;
-import com.codenvy.api.project.newproj.Attribute;
 import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ValueType;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * @author gazarenkov
@@ -35,40 +30,10 @@ public final class Constant extends AbstractAttribute {
     public Constant(String projectType, String name, String description, final String str) {
 
         super(projectType, name, description, true, false);
-
-        this.value = new AttributeValue() {
-
-            List <String> values = new ArrayList<>();
-
-            @Override
-            public String getString() {
-                return str;
-            }
-
-            @Override
-            public void setString() {
-
-            }
-
-            @Override
-            public List<String> getList() {
-                values.add(str);
-                return values;
-            }
-
-            @Override
-            public void setList(List<String> list) {
-
-            }
-
-            @Override
-            public ValueType getType() {
-                return null;
-            }
-        };
+        this.value = new AttributeValue(str);
     }
 
-    @Override
+
     public AttributeValue getValue() {
         return value;
     }

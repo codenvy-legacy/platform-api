@@ -24,11 +24,11 @@ public class ProjectEventRegistry {
 
     @Inject
     @Nullable
-    private Set<GetItemSubcriber> getFileEventSubcribers;
+    private Set<GetItemSubcriber> getItemSubcribers;
 
-    public Set<GetItemSubcriber> getGetFileEventSubcribers() {
+    public Set<GetItemSubcriber> getGetItemSubcribers() {
 
-        return this.getFileEventSubcribers == null ? new HashSet<GetItemSubcriber>() : getFileEventSubcribers;
+        return this.getItemSubcribers == null ? new HashSet<GetItemSubcriber>() : getItemSubcribers;
     }
 
 }

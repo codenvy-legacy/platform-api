@@ -15,10 +15,12 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Attribute of Project.
+ * Attribute2 of Project.
  *
  * @author andrew00x
  * @see ValueProvider
+ *
+ * @deprecated
  */
 public class Attribute {
 
@@ -26,8 +28,8 @@ public class Attribute {
     private final ValueProvider valueProvider;
 
     /**
-     * Creates new Attribute with specified {@code name} and use specified {@code ValueProvider} to reading and updating value of this
-     * Attribute.
+     * Creates new Attribute2 with specified {@code name} and use specified {@code ValueProvider2} to reading and updating value of this
+     * Attribute2.
      *
      * @throws IllegalArgumentException
      *         If {@code name} is {@code null} or empty
@@ -43,17 +45,17 @@ public class Attribute {
         this.valueProvider = valueProvider;
     }
 
-    /** Creates new Attribute. */
+    /** Creates new Attribute2. */
     public Attribute(String name, String value) {
         this(name, new DefaultValueProvider(value));
     }
 
-    /** Creates new Attribute. */
+    /** Creates new Attribute2. */
     public Attribute(String name, List<String> values) {
         this(name, new DefaultValueProvider(values));
     }
 
-    /** Creates new Attribute. */
+    /** Creates new Attribute2. */
     public Attribute(String name, String... values) {
         this(name, new DefaultValueProvider(values));
     }
@@ -74,7 +76,7 @@ public class Attribute {
      * This method is shortcut for:
      * <pre>
      *    String name = ...
-     *    Attribute attribute = ...;
+     *    Attribute2 attribute = ...;
      *    List&lt;String&gt; values = attribute.getValues();
      *    if (values != null && !values.isEmpty()) {
      *       return values.get(0);

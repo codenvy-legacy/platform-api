@@ -11,7 +11,9 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.newproj.ProjectConfig;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.newproj.server.*;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -36,18 +38,21 @@ public class ProjectEventTest {
     @BeforeMethod
     public void setUp() throws Exception {
         EventService eventService = new EventService();
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
-        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
+
+
+        AbstractProjectType pt = new AbstractProjectType("my_project_type", "my proj type") {
+
+            {
+                attributes.add(new Constant("my_project_type", "my_attribute", "attr description", "attribute value 1"));
             }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Collections.emptyList();
-            }
-        });
+        };
+
+        HashSet<ProjectType2> ptypes = new HashSet<>();
+        ptypes.add(pt);
+
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(ptypes);
+
 
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
         final MemoryFileSystemProvider memoryFileSystemProvider =
@@ -60,13 +65,11 @@ public class ProjectEventTest {
 
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
-        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(new HashSet<com.codenvy.api.project.newproj.ProjectType>());
+        pm = new DefaultProjectManager(Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry);
 
-        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry);
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category"));
-        pd.setDescription("my test project");
-        pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
-        pm.createProject("my_ws", "my_project", pd);
+        ProjectConfig config = new ProjectConfig("descr", "my_project_type");
+
+        pm.createProject("my_ws", "my_project", config);
 
         projectEventService = new ProjectEventService(eventService);
     }
@@ -218,4 +221,6 @@ public class ProjectEventTest {
         Assert.assertEquals(events.get(1).getProject(), "my_project");
         Assert.assertEquals(events.get(1).getPath(), "test.txt");
     }
+
+
 }

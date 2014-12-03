@@ -11,7 +11,11 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.newproj.Attribute2;
+import com.codenvy.api.project.newproj.AttributeValue;
+import com.codenvy.api.project.newproj.ProjectConfig;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.newproj.server.*;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -39,13 +43,11 @@ public class ProjectTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
-        final String projectType = "my_project_type";
-        final String category = "my_category";
+
         Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
             @Override
             public String getName() {
-                return "calculated_attribute";
+                return "my_project_type:calculated_attribute";
             }
 
             @Override
@@ -58,22 +60,28 @@ public class ProjectTest {
 
                     @Override
                     public void setValues(List<String> value) {
+
+                        System.out.println(" >>>> SET VALUE "+value);
                         calculateAttributeValueHolder = value;
                     }
                 };
             }
         });
-        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType(projectType, projectType, category));
+
+        AbstractProjectType pt = new AbstractProjectType("my_project_type", "my project type") {
+
+            {
+                attributes.add(new Variable("my_project_type", "calculated_attribute", "attr description", true));
+                attributes.add(new Variable("my_project_type", "my_property_1", "attr description", true));
+                attributes.add(new Variable("my_project_type", "my_property_2", "attr description", false));
             }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Arrays.asList(new AttributeDescription("calculated_attribute"));
-            }
-        });
+        };
+
+        Set <ProjectType2> types = new HashSet<ProjectType2>();
+        types.add(pt);
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(types);
+
         final EventService eventService = new EventService();
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
 
@@ -87,9 +95,9 @@ public class ProjectTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
-        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(new HashSet<com.codenvy.api.project.newproj.ProjectType>());
 
-        pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService, ptRegistry);
+        pm = new DefaultProjectManager(vpf, vfsRegistry, eventService, ptRegistry);
+
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_DIR).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
@@ -114,23 +122,33 @@ public class ProjectTest {
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
         new ProjectJson2().withType("my_project_type").withAttributes(attributes).save(myProject);
-        ProjectDescription myProjectDescription = myProject.getDescription();
-        Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
-        Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
+        //ProjectDescription myProjectDescription = myProject.getDescription();
 
-        Assert.assertEquals(myProjectDescription.getAttributes().size(), 3);
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("calculated_attribute"));
-        Attribute attribute = myProjectDescription.getAttribute("calculated_attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("hello"));
+        //System.out.println(">>    >>"+pm.getValueProviderFactories());
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("my_property_1"));
-        attribute = myProjectDescription.getAttribute("my_property_1");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("value_1", "value_2"));
+        ProjectConfig myConfig = myProject.getConfig();
+        Assert.assertEquals(myConfig.getTypeId(), "my_project_type");
+        //Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("my_property_2"));
-        attribute = myProjectDescription.getAttribute("my_property_2");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("value_3", "value_4"));
+        Assert.assertEquals(pm.getProjectTypeRegistry().getProjectType("my_project_type").getAttributes().size(), 4);
+
+
+        //System.out.println(">>>>"+myConfig.getAttribute("calculated_attribute"));
+
+        Assert.assertEquals(myConfig.getAttributes().size(), 3);
+
+        Assert.assertNotNull(myConfig.getAttributes().get("calculated_attribute"));
+        AttributeValue attributeVal = myConfig.getAttributes().get("calculated_attribute");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("hello"));
+
+        Assert.assertNotNull(myConfig.getAttributes().get("my_property_1"));
+        attributeVal = myConfig.getAttributes().get("my_property_1");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("value_1", "value_2"));
+
+        Assert.assertNotNull(myConfig.getAttributes().get("my_property_2"));
+        attributeVal = myConfig.getAttributes().get("my_property_2");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("value_3", "value_4"));
     }
 
     @Test
@@ -140,22 +158,30 @@ public class ProjectTest {
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null, null, "test project");
         projectJson.save(myProject);
-        ProjectDescription myProjectDescription = myProject.getDescription();
-        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
-        myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
-        myProjectDescription.getAttribute("my_property_1").setValue("updated value 1");
-        myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
 
-        myProject.updateDescription(myProjectDescription);
+        Map <String, AttributeValue> attrs = new HashMap<>();
+        attrs.put("calculated_attribute", new AttributeValue("updated calculated_attribute"));
+        attrs.put("my_property_1", new AttributeValue("updated value 1"));
+        attrs.put("new_my_property_2", new AttributeValue("new value 2"));
+
+        ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null);
+        //myConfig.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
+        //Assert.assertTrue(myConfig.getAttribute("calculated_attribute").isVariable());
+        //((Variable)myConfig.getAttribute("calculated_attribute")).setValue(new AttributeValue("updated calculated_attribute"));
+        //((Variable)myConfig.getAttribute("my_property_1")).setValue(new AttributeValue("updated value 1"));
+
+        //myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
+
+        myProject.updateConfig(myConfig);
 
         projectJson = ProjectJson2.load(myProject);
 
-        Assert.assertEquals(projectJson.getType(), "new_project_type");
+        Assert.assertEquals(projectJson.getType(), "my_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
         Map<String, List<String>> pm = projectJson.getAttributes();
         Assert.assertEquals(pm.size(), 2);
         Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
-        Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
+        //Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
     }
 
     @Test

@@ -13,7 +13,7 @@ package com.codenvy.api.project.newproj;
 /**
  * @author gazarenkov
  */
-public abstract class AbstractAttribute implements Attribute {
+public abstract class AbstractAttribute implements Attribute2 {
 
     protected String projectType;
     protected String name;
@@ -52,5 +52,10 @@ public abstract class AbstractAttribute implements Attribute {
     @Override
     public boolean isVariable() {
         return variable;
+    }
+
+    @Override
+    public String getName() {
+        return name;
     }
 }

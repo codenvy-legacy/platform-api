@@ -10,21 +10,42 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
  * @author gazarenkov
  */
-public interface AttributeValue {
+public class AttributeValue {
 
-    String getString();
+    private final List<String> values = new ArrayList<>();
 
-    void setString();
+    public AttributeValue(List<String> list) {
+        values.addAll(list);
+    }
 
-    List<String> getList();
+    public AttributeValue(String str) {
+        values.add(str);
+    }
 
-    void setList(List<String> list);
+    public String getString() {
+        return values.isEmpty()?null:values.get(0);
+    }
 
-    ValueType getType();
+    public void setString(String str) {
+        values.clear();
+        values.add(str);
+    }
+
+    public List<String> getList() {
+        return values;
+    }
+
+    public void setList(List<String> list) {
+        values.clear();
+        values.addAll(list);
+    }
+
+    //ValueType getType();
 
 }

@@ -28,5 +28,6 @@ public interface ProjectTypeResolver {
      * @throws ServerException
      *         if an error occurs
      */
-    boolean resolve(FolderEntry project) throws ServerException, ValueStorageException, InvalidValueException;
+    boolean resolve(FolderEntry project) throws ServerException, ValueStorageException,
+            InvalidValueException, ProjectTypeConstraintException;
 }

@@ -672,7 +672,7 @@ public class WorkspaceService extends Service {
     public void removeAttribute(@ApiParam(value = "Workspace ID")
                                 @PathParam("id")
                                 String wsId,
-                                @ApiParam(value = "Attribute name", required = true)
+                                @ApiParam(value = "Attribute2 name", required = true)
                                 @Required
                                 @QueryParam("name")
                                 String attributeName,
@@ -1042,7 +1042,7 @@ public class WorkspaceService extends Service {
      */
     private void validateAttributeName(String attributeName) throws ConflictException {
         if (attributeName == null || attributeName.isEmpty() || attributeName.toLowerCase().startsWith("codenvy")) {
-            throw new ConflictException(String.format("Attribute name '%s' is not valid", attributeName));
+            throw new ConflictException(String.format("Attribute2 name '%s' is not valid", attributeName));
         }
     }
 

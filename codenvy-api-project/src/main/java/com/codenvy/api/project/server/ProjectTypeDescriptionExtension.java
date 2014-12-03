@@ -16,13 +16,14 @@ import java.util.List;
 /**
  * A {@code ProjectTypeDescriptionExtension} helps register information about project type in {@link ProjectTypeDescriptionRegistry}.
  * <p/>
- * Unlike {@link ProjectTypeExtension} {@code ProjectTypeDescriptionExtension} registers list of ProjectType instead single ProjectType.
- * A {@code ProjectTypeDescriptionExtension} helps maps list of {@code AttributeDescription} to multiple {@code ProjectType}.
+ * Unlike {@link ProjectTypeExtension} {@code ProjectTypeDescriptionExtension} registers list of ProjectType2 instead single ProjectType2.
+ * A {@code ProjectTypeDescriptionExtension} helps maps list of {@code AttributeDescription} to multiple {@code ProjectType2}.
  *
  * @author gazarenkov
+ * @deprecated
  */
 public interface ProjectTypeDescriptionExtension {
-    /** Gets list of ProjectType registered with this {@code ProjectTypeDescriptionExtension}.
+    /** Gets list of ProjectType2 registered with this {@code ProjectTypeDescriptionExtension}.
      *  Can't be null
      * */
     @Nonnull

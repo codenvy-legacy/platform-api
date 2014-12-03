@@ -13,6 +13,8 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
 
@@ -38,7 +40,6 @@ public class ProjectJson2 {
      * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
      * otherwise returns false
      */
-    @Deprecated
     public static boolean isReadable(Project project) {
         final VirtualFileEntry projectFile;
         try {
@@ -120,8 +121,8 @@ public class ProjectJson2 {
     }
 
     private String                    type;
-    private Builders                  builders;
-    private Runners                   runners;
+    private Builders builders;
+    private Runners runners;
     private String                    description;
     private Map<String, List<String>> attributes;
 

@@ -15,6 +15,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.newproj.ProjectConfig;
 import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
@@ -59,21 +60,22 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Lock[]                                     miscLocks;
     private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
-    private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
+    //private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
     private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
     private final ProjectTypeRegistry projectTypeRegistry;
 
+
+
     @Inject
     @SuppressWarnings("unchecked")
-    public DefaultProjectManager(ProjectTypeDescriptionRegistry typeDescriptionRegistry,
-                                 Set<ValueProviderFactory> valueProviderFactories,
+    public DefaultProjectManager(Set<ValueProviderFactory> valueProviderFactories,
                                  VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService,
                                  ProjectTypeRegistry projectTypeRegistry) {
-        this.typeDescriptionRegistry = typeDescriptionRegistry;
+
         this.fileSystemRegistry = fileSystemRegistry;
         this.valueProviderFactories = new HashMap<>();
         this.eventService = eventService;
@@ -161,13 +163,27 @@ public final class DefaultProjectManager implements ProjectManager {
         return null;
     }
 
+//    @Override
+//    /**
+//     * @deprecated
+//     */
+//    public Project createProject(String workspace, String name, ProjectDescription projectDescription)
+//            throws ConflictException, ForbiddenException, ServerException {
+//        final FolderEntry myRoot = getProjectsRoot(workspace);
+//        final FolderEntry projectFolder = myRoot.createFolder(name);
+//        final Project project = new Project(projectFolder, this);
+//        project.updateDescription(projectDescription);
+//        getProjectMisc(project).setCreationDate(System.currentTimeMillis());
+//        return project;
+//    }
+
     @Override
-    public Project createProject(String workspace, String name, ProjectDescription projectDescription)
+    public Project createProject(String workspace, String name, ProjectConfig projectConfig)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);
-        project.updateDescription(projectDescription);
+        project.updateConfig(projectConfig);
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }
@@ -277,10 +293,10 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-    @Override
-    public ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
-        return typeDescriptionRegistry;
-    }
+//    @Override
+//    public ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
+//        return typeDescriptionRegistry;
+//    }
 
     @Override
     public Map<String, ValueProviderFactory> getValueProviderFactories() {
@@ -314,4 +330,7 @@ public final class DefaultProjectManager implements ProjectManager {
     public ProjectTypeRegistry getProjectTypeRegistry() {
         return this.projectTypeRegistry;
     }
+
+
+
 }

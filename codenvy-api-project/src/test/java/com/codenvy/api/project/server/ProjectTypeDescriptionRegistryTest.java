@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import org.testng.Assert;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -22,6 +24,7 @@ import java.util.Map;
 
 /**
  * @author andrew00x
+ * @deprecated
  */
 public class ProjectTypeDescriptionRegistryTest {
 

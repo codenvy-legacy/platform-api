@@ -11,15 +11,17 @@
 package com.codenvy.api.project.newproj.server;
 
 
-import com.codenvy.api.project.newproj.ProjectType;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.server.ValueProviderFactory;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
 import com.google.inject.multibindings.Multibinder;
 import org.junit.After;
-import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
+
+import java.util.Set;
 
 
 /**
@@ -43,8 +45,9 @@ public class NewProjectTypeTest {
                 Multibinder<ValueProviderFactory> valueProviderMultibinder = Multibinder.newSetBinder(binder(), ValueProviderFactory.class);
                 valueProviderMultibinder.addBinding().to(MyVPFactory.class);
 
-                Multibinder<ProjectType> projectTypesMultibinder = Multibinder.newSetBinder(binder(), ProjectType.class);
+                Multibinder<ProjectType2> projectTypesMultibinder = Multibinder.newSetBinder(binder(), ProjectType2.class);
                 projectTypesMultibinder.addBinding().to(MyProjectType.class);
+
 
 
                 bind(ProjectTypeRegistry.class);
@@ -67,11 +70,17 @@ public class NewProjectTypeTest {
     @Test
     public void testFirst() throws Exception {
 
-        ProjectTypeRegistry reg = injector.getInstance(ProjectTypeRegistry.class);
 
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttribute("my:var").getValue().getString());
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getParents().size());
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttributes().size());
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+injector.getInstance(MyProjectType.class));
+
+        ProjectTypeRegistry reg = injector.getInstance(ProjectTypeRegistry.class);
+//
+//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttribute("var").getValue().getString());
+//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getParents().size());
+//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttributes().size());
+
+
+
 
 //        Assert.assertNotNull(folder.getChild("src/hello.c"));
 //        Assert.assertNotNull(folder.getChild("README"));

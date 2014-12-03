@@ -16,7 +16,10 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-/** @author Artem Zatsarynnyy */
+/** @author Artem Zatsarynnyy
+ *
+ * @deprecated
+ * */
 @Singleton
 public class ProjectTypeDescriptionsExtension implements ProjectTypeDescriptionExtension {
 

@@ -21,9 +21,9 @@ public interface ProjectType2 {
 
     String getDisplayName();
 
-    List<Attribute> getAttributes();
+    List<Attribute2> getAttributes();
 
-    Attribute getAttribute(String id);
+    Attribute2 getAttribute(String id);
 
     List <ProjectType2> getParents();
 

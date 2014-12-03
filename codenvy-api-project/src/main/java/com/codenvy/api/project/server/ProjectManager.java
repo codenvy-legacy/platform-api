@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.newproj.ProjectConfig;
 import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
@@ -53,24 +54,30 @@ public interface ProjectManager {
      */
     Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException;
 
-    /**
-     * Creates new project.
-     *
-     * @param workspace
-     *         id of workspace
-     * @param name
-     *         project's name
-     * @param projectDescription
-     *         project description
-     * @return newly created project
-     * @throws ConflictException
-     *         if operation causes conflict, e.g. name conflict if project with specified name already exists
-     * @throws ForbiddenException
-     *         if user which perform operation doesn't have required permissions
-     * @throws ServerException
-     *         if other error occurs
-     */
-    Project createProject(String workspace, String name, ProjectDescription projectDescription)
+//    /**
+//     * @deprecated
+//     *
+//     * Creates new project.
+//     *
+//     * @param workspace
+//     *         id of workspace
+//     * @param name
+//     *         project's name
+//     * @param projectDescription
+//     *         project description
+//     * @return newly created project
+//     * @throws ConflictException
+//     *         if operation causes conflict, e.g. name conflict if project with specified name already exists
+//     * @throws ForbiddenException
+//     *         if user which perform operation doesn't have required permissions
+//     * @throws ServerException
+//     *         if other error occurs
+//     */
+//    Project createProject(String workspace, String name, ProjectDescription projectDescription)
+//            throws ConflictException, ForbiddenException, ServerException;
+
+
+    Project createProject(String workspace, String name, ProjectConfig projectConfig)
             throws ConflictException, ForbiddenException, ServerException;
 
     /**
@@ -114,11 +121,12 @@ public interface ProjectManager {
      *
      * @see ProjectTypeDescriptionRegistry
      */
-    ProjectTypeDescriptionRegistry getTypeDescriptionRegistry();
+    //ProjectTypeDescriptionRegistry getTypeDescriptionRegistry();
 
     Map<String, ValueProviderFactory> getValueProviderFactories();
 
     VirtualFileSystemRegistry getVirtualFileSystemRegistry();
 
     ProjectTypeRegistry getProjectTypeRegistry();
+
 }

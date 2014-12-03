@@ -11,9 +11,10 @@
 package com.codenvy.api.project.server;
 
 /**
- * Describes Attribute that may be defined for project type.
+ * Describes Attribute2 that may be defined for project type.
  *
  * @author andrew00x
+ * @deprecated
  */
 public class AttributeDescription {
     private final String name;

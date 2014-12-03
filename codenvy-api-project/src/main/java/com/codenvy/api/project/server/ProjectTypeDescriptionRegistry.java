@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Constants;
+import com.codenvy.api.project.shared.Runners;
 import com.google.inject.name.Named;
 
 import javax.inject.Inject;
@@ -27,6 +29,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * ProjectDescriptionRegistry
  *
  * @author gazarenkov
+ * @deprecated
  */
 @Singleton
 public class ProjectTypeDescriptionRegistry {
@@ -123,11 +126,11 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType with the
+     * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType2 with the
      * same identifier already registered it will be overwritten.
      *
      * @param type
-     *         ProjectType
+     *         ProjectType2
      * @see ProjectType#getId()
      */
     public void registerProjectType(ProjectType type) {
@@ -135,11 +138,11 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Removes ProjectType from this registry.
+     * Removes ProjectType2 from this registry.
      *
      * @param typeId
      *         project type's id
-     * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     * @return removed ProjectType2 or {@code null} if ProjectType2 with specified {@code id} isn't registered
      */
     public ProjectType unregisterProjectType(String typeId) {
         predefinedAttributes.remove(typeId);
@@ -152,33 +155,33 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Gets ProjectType by id.
+     * Gets ProjectType2 by id.
      *
      * @param typeId
      *         project type's id
-     * @return ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+     * @return ProjectType2 or {@code null} if ProjectType2 with specified {@code id} isn't registered
      */
     public ProjectType getProjectType(String typeId) {
         return projectTypeRegistry.getProjectType(typeId);
     }
 
     /**
-     * Tests whether ProjectType with specified id is registered.
+     * Tests whether ProjectType2 with specified id is registered.
      *
      * @param typeId
      *         project type's id
-     * @return {@code true} if ProjectType with specified {@code id} is registered and {@code false} otherwise
+     * @return {@code true} if ProjectType2 with specified {@code id} is registered and {@code false} otherwise
      */
     public boolean isProjectTypeRegistered(String typeId) {
         return projectTypeRegistry.isProjectTypeRegistered(typeId);
     }
 
     /**
-     * Tests whether specified ProjectType is registered.
+     * Tests whether specified ProjectType2 is registered.
      *
      * @param type
      *         project type
-     * @return {@code true} if ProjectType is registered and {@code false} otherwise
+     * @return {@code true} if ProjectType2 is registered and {@code false} otherwise
      */
     public boolean isProjectTypeRegistered(ProjectType type) {
         return projectTypeRegistry.isProjectTypeRegistered(type);
@@ -195,11 +198,11 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Gets unmodifiable list of predefined attributes for specified {@code ProjectType}.
+     * Gets unmodifiable list of predefined attributes for specified {@code ProjectType2}.
      *
      * @param type
-     *         {@code ProjectType} for which need to get predefined attributes
-     * @return unmodifiable list of predefined attributes for specified {@code ProjectType}
+     *         {@code ProjectType2} for which need to get predefined attributes
+     * @return unmodifiable list of predefined attributes for specified {@code ProjectType2}
      */
     public List<Attribute> getPredefinedAttributes(ProjectType type) {
         final List<Attribute> attributes = predefinedAttributes.get(type.getId());
@@ -210,11 +213,11 @@ public class ProjectTypeDescriptionRegistry {
     }
 
     /**
-     * Gets unmodifiable list of attribute descriptions for specified {@code ProjectType}.
+     * Gets unmodifiable list of attribute descriptions for specified {@code ProjectType2}.
      *
      * @param type
-     *         {@code ProjectType} for which need to get attribute descriptions
-     * @return unmodifiable list of attribute descriptions for specified {@code ProjectType}
+     *         {@code ProjectType2} for which need to get attribute descriptions
+     * @return unmodifiable list of attribute descriptions for specified {@code ProjectType2}
      */
     public List<AttributeDescription> getAttributeDescriptions(ProjectType type) {
         final List<AttributeDescription> attributeDescription = attributeDescriptions.get(type.getId());
@@ -287,11 +290,11 @@ public class ProjectTypeDescriptionRegistry {
         }
 
         /**
-         * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType with
+         * Registers new project type. Identifier returned by method {@link ProjectType#getId()} is used as unique key. If ProjectType2 with
          * the same identifier already registered it will be overwritten.
          *
          * @param type
-         *         ProjectType
+         *         ProjectType2
          * @see ProjectType#getId()
          */
         void registerProjectType(ProjectType type) {
@@ -299,11 +302,11 @@ public class ProjectTypeDescriptionRegistry {
         }
 
         /**
-         * Removes ProjectType from this registry.
+         * Removes ProjectType2 from this registry.
          *
          * @param id
          *         project type's id
-         * @return removed ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+         * @return removed ProjectType2 or {@code null} if ProjectType2 with specified {@code id} isn't registered
          */
         ProjectType unregisterProjectType(String id) {
             if (id == null) {
@@ -313,11 +316,11 @@ public class ProjectTypeDescriptionRegistry {
         }
 
         /**
-         * Gets ProjectType by id.
+         * Gets ProjectType2 by id.
          *
          * @param id
          *         project type's id
-         * @return ProjectType or {@code null} if ProjectType with specified {@code id} isn't registered
+         * @return ProjectType2 or {@code null} if ProjectType2 with specified {@code id} isn't registered
          */
         ProjectType getProjectType(String id) {
             if (id == null) {
@@ -327,22 +330,22 @@ public class ProjectTypeDescriptionRegistry {
         }
 
         /**
-         * Tests whether ProjectType with specified id is registered.
+         * Tests whether ProjectType2 with specified id is registered.
          *
          * @param id
          *         project type's id
-         * @return {@code true} if ProjectType with specified {@code id} is registered and {@code false} otherwise
+         * @return {@code true} if ProjectType2 with specified {@code id} is registered and {@code false} otherwise
          */
         boolean isProjectTypeRegistered(String id) {
             return id != null && types.get(id) != null;
         }
 
         /**
-         * Tests whether specified ProjectType is registered.
+         * Tests whether specified ProjectType2 is registered.
          *
          * @param type
          *         project type
-         * @return {@code true} if ProjectType is registered and {@code false} otherwise
+         * @return {@code true} if ProjectType2 is registered and {@code false} otherwise
          */
         boolean isProjectTypeRegistered(ProjectType type) {
             return types.get(type.getId()) != null;

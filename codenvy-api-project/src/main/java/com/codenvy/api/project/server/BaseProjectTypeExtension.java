@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Constants;
+import com.codenvy.api.project.shared.Runners;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -21,6 +23,8 @@ import java.util.Map;
 /**
  * Add this project type for replace UnknownProjectType by user decision (e.g after cloning project) for avoid cyclic asking if keep only
  * UnknownProjectType. This is temporary solution maybe removed in future.
+ *
+ * @deprecated
  */
 @Singleton
 public class BaseProjectTypeExtension implements ProjectTypeExtension, ProjectTypeDescriptionExtension {

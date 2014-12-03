@@ -10,12 +10,16 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj;
 
+import com.codenvy.api.project.server.ValueStorageException;
+
 /**
  * @author gazarenkov
  */
 public interface Attribute2 {
 
     String getId();
+
+    String getName();
 
     String getProjectType();
 
@@ -25,6 +29,6 @@ public interface Attribute2 {
 
     boolean isVariable();
 
-    AttributeValue getValue();
+    AttributeValue getValue() throws ValueStorageException;
 
 }

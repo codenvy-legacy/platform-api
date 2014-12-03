@@ -20,25 +20,16 @@ import com.codenvy.api.core.rest.CodenvyJsonProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
-import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
-import com.codenvy.api.project.newproj.server.event.GetFileEventSubcriber;
-import com.codenvy.api.project.newproj.server.event.ProjectServiceEventSubscriberRegistry;
-import com.codenvy.api.project.shared.dto.GenerateDescriptor;
-import com.codenvy.api.project.shared.dto.ImportProject;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.ItemReference;
-import com.codenvy.api.project.shared.dto.NewProject;
-import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectReference;
-import com.codenvy.api.project.shared.dto.ProjectUpdate;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
-import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.project.newproj.Attribute2;
+import com.codenvy.api.project.newproj.AttributeValue;
+import com.codenvy.api.project.newproj.ProjectConfig;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;
+import com.codenvy.api.project.shared.dto.*;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.ContentStreamWriter;
-import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -47,6 +38,7 @@ import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.user.UserImpl;
 import com.codenvy.dto.server.DtoFactory;
@@ -78,19 +70,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
-
-import static com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 
 /**
  * @author andrew00x
@@ -115,18 +97,23 @@ public class ProjectServiceTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
-        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
-            }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Collections.emptyList();
-            }
-        });
+
+//        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
+//        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
+//            @Override
+//            public List<ProjectType> getProjectTypes() {
+//                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
+//            }
+//
+//            @Override
+//            public List<AttributeDescription> getAttributeDescriptions() {
+//                return Collections.emptyList();
+//            }
+//        });
+
+
+
         final EventService eventService = new EventService();
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
 
@@ -140,33 +127,56 @@ public class ProjectServiceTest {
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
-        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(new HashSet<com.codenvy.api.project.newproj.ProjectType>());
+        // PTs for test
+        AbstractProjectType chuck = new AbstractProjectType("chuck_project_type", "chuck_project_type") {
 
-        pm = new DefaultProjectManager(ptdr, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry);
-        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
-        ProjectDescription pd = new ProjectDescription(projectType);
-        pd.setDescription("my test project");
-        pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
-        pm.createProject(workspace, "my_project", pd);
+            {
+                attributes.add(new Constant("chuck_project_type", "x", "attr description",
+                        new AttributeValue(Arrays.asList("a", "b"))));
+            }
+
+        };
+
+        Set<ProjectType2> projTypes = new HashSet<>();
+        projTypes.add(new MyProjType());
+        projTypes.add(chuck);
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
+
+
+        pm = new DefaultProjectManager(Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService,
+                ptRegistry);
+
+        pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
+                new ArrayList<Attribute2>(), null, null));
+
+//        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
+//        ProjectDescription pd = new ProjectDescription(projectType);
+//        pd.setDescription("my test project");
+//        pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
+//        pm.createProject(workspace, "my_project1", pd);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
         generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
+
         HashSet<ProjectTypeResolver> resolvers = new HashSet<>();
         resolvers.add(new ProjectTypeResolver() {
 
             @Override
-            public boolean resolve(FolderEntry projectFolder) throws ServerException, ValueStorageException, InvalidValueException {
-                ProjectDescription description = new ProjectDescription();
-                description.setProjectType(projectType);
+            public boolean resolve(FolderEntry projectFolder) throws ServerException, ValueStorageException,
+                    InvalidValueException, ProjectTypeConstraintException {
+                ProjectConfig conf = new ProjectConfig("my proj", "my_project_type");
+                //ProjectDescription description = new ProjectDescription();
+                //description.setProjectType(projectType);
                 Project project = new Project(projectFolder, pm);
-                project.updateDescription(description);
+                project.updateConfig(conf);
+                //project.updateDescription(description);
                 return true;
             }
         });
         resolverRegistry = new ProjectTypeResolverRegistry(resolvers);
 
-
+        dependencies.addComponent(ProjectTypeRegistry.class, ptRegistry);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
@@ -174,7 +184,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
         dependencies.addComponent(EventService.class, eventService);
-        dependencies.addComponent(ProjectServiceEventSubscriberRegistry.class, new ProjectServiceEventSubscriberRegistry());
+        dependencies.addComponent(ProjectEventRegistry.class, new ProjectEventRegistry());
 
 
         ResourceBinder resources = new ResourceBinderImpl();
@@ -207,6 +217,12 @@ public class ProjectServiceTest {
     @Test
     @SuppressWarnings("unchecked")
     public void testGetProjects() throws Exception {
+
+        List p = pm.getProjects(workspace);
+
+        Assert.assertEquals(p.size(), 1);
+
+
         ContainerResponse response =
                 launcher.service("GET", "http://localhost:8080/api/project/my_ws", "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
@@ -218,33 +234,32 @@ public class ProjectServiceTest {
         Assert.assertEquals(projectReference.getUrl(), String.format("http://localhost:8080/api/project/%s/my_project", workspace));
         Assert.assertEquals(projectReference.getDescription(), "my test project");
         Assert.assertEquals(projectReference.getWorkspaceId(), workspace);
-        Assert.assertEquals(projectReference.getType(), "my_project_type");
-        Assert.assertEquals(projectReference.getTypeName(), "my project type");
         Assert.assertEquals(projectReference.getVisibility(), "public");
+        Assert.assertEquals(projectReference.getType(), "my_project_type");
+        //Assert.assertEquals(projectReference.getTypeName(), "my project type");
+
     }
 
     @Test
     @SuppressWarnings("unchecked")
     public void testGetModules() throws Exception {
-        pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_module_type", "my module type", "my_category"));
+
+        AbstractProjectType pt = new AbstractProjectType("testGetModules", "my module type") {
+
+            {
+                attributes.add(new Constant("testGetModules", "my_module_attribute", "attr description", "attribute value 1"));
             }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Collections.emptyList();
-            }
-        });
+        };
+        pm.getProjectTypeRegistry().registerProjectType(pt);
 
         Project myProject = pm.getProject(workspace, "my_project");
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
-        pd.setDescription("my test module");
-        pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
+
+        ProjectConfig config = new ProjectConfig("my test module", pt.getId());
+
         FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
         Project module = new Project(moduleFolder, pm);
-        module.updateDescription(pd);
+        module.updateConfig(config);
 
         ContainerResponse response = launcher.service("GET",
                                                       String.format("http://localhost:8080/api/project/%s/modules/my_project", workspace),
@@ -256,8 +271,8 @@ public class ProjectServiceTest {
         Assert.assertEquals(result.size(), 1);
         ProjectDescriptor moduleDescriptor = result.get(0);
         Assert.assertEquals(moduleDescriptor.getDescription(), "my test module");
-        Assert.assertEquals(moduleDescriptor.getType(), "my_module_type");
-        Assert.assertEquals(moduleDescriptor.getTypeName(), "my module type");
+        Assert.assertEquals(moduleDescriptor.getType(), "testGetModules");
+        //Assert.assertEquals(moduleDescriptor.getTypeName(), "my module type");
         Assert.assertEquals(moduleDescriptor.getVisibility(), "public");
         validateProjectLinks(moduleDescriptor);
     }
@@ -288,7 +303,7 @@ public class ProjectServiceTest {
 //        ContainerResponse response = launcher.service("GET", String.format("http://localhost:8080/api/project/%s/not_project", workspace),
 //                                                      "http://localhost:8080/api", null, null, null);
 //        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-//        ProjectDescriptor badProject = (ProjectDescriptor)response.getEntity();
+//        ProjectConfig badProject = (ProjectConfig)response.getEntity();
 //        Assert.assertNotNull(badProject);
 //        Assert.assertEquals(badProject.getName(), "not_project");
 //        Assert.assertEquals(badProject.getWorkspaceId(), workspace);
@@ -298,6 +313,8 @@ public class ProjectServiceTest {
 //        Assert.assertEquals(1, badProject.getProblems().get(0).getCode());
 //        validateProjectLinks(badProject);
 //    }
+
+
 
     @Test
     public void testGetProjectCheckUserPermissions() throws Exception {
@@ -313,25 +330,31 @@ public class ProjectServiceTest {
 
     @Test
     public void testGetModule() throws Exception {
-        pm.getTypeDescriptionRegistry().registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType("my_module_type", "my module type", "my_category"));
+
+
+        AbstractProjectType pt = new AbstractProjectType("my_module_type", "my module type") {
+
+            {
+                attributes.add(new Constant("my_module_type", "my_module_attribute", "attr description", "attribute value 1"));
             }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Collections.emptyList();
-            }
-        });
+        };
 
+        pm.getProjectTypeRegistry().registerProjectType(pt);
         Project myProject = pm.getProject(workspace, "my_project");
-        ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
-        pd.setDescription("my test module");
-        pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
+
+        ProjectConfig config = new ProjectConfig("my test module", pt.getId());
+
+
+        //ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
+        //pd.setDescription("my test module");
+        //pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
         FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
         Project module = new Project(moduleFolder, pm);
-        module.updateDescription(pd);
+
+        module.updateConfig(config);
+
+        //module.updateDescription(pd);
 
         ContainerResponse response =
                 launcher.service("GET", String.format("http://localhost:8080/api/project/%s/my_project/my_module", workspace),
@@ -362,12 +385,27 @@ public class ProjectServiceTest {
     public void testCreateProject() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        Map<String, List<String>> attributeValues = new LinkedHashMap<>();
-        attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
+
+        AbstractProjectType pt = new AbstractProjectType("testCreateProject", "my project type") {
+
+            {
+                attributes.add(new Constant("testCreateProject", "new project attribute", "attr description", "to be or not to be"));
+            }
+
+        };
+
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+
+
+//        Map<String, List<String>> attributeValues = new LinkedHashMap<>();
+//        attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
-                                          .withType("my_project_type")
+                                          .withType("testCreateProject")
                                           .withDescription("new project")
-                                          .withAttributes(attributeValues);
+                                          ;
+
+
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s?name=new_project", workspace),
                                                       "http://localhost:8080/api",
@@ -378,7 +416,7 @@ public class ProjectServiceTest {
         ProjectDescriptor result = (ProjectDescriptor)response.getEntity();
         Assert.assertNotNull(result);
         Assert.assertEquals(result.getDescription(), "new project");
-        Assert.assertEquals(result.getType(), "my_project_type");
+        Assert.assertEquals(result.getType(), "testCreateProject");
         Assert.assertEquals(result.getTypeName(), "my project type");
         Assert.assertEquals(result.getVisibility(), "public");
         Map<String, List<String>> attributes = result.getAttributes();
@@ -389,25 +427,36 @@ public class ProjectServiceTest {
 
         Project project = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(project);
-        ProjectDescription description = project.getDescription();
 
-        Assert.assertEquals(description.getDescription(), "new project");
-        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-        Attribute attribute = description.getAttribute("new project attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+
+        //ProjectDescription description = project.getDescription();
+
+        ProjectConfig config = project.getConfig(); //new ProjectConfig("new project", "testCreateProject");
+
+        Assert.assertEquals(config.getDescription(), "new project");
+        Assert.assertEquals(config.getTypeId(), "testCreateProject");
+//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
+        AttributeValue attributeVal = config.getAttributes().get("new project attribute");
+        Assert.assertNotNull(attributeVal);
+        Assert.assertEquals(attributeVal.getString(), "to be or not to be");
     }
+
+
 
     @Test
     public void testCreateModule() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        Map<String, List<String>> attributeValues = new LinkedHashMap<>();
-        attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
+
+       // Map<String, List<String>> attributeValues = new LinkedHashMap<>();
+        //attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("my_project_type")
-                                          .withDescription("new module")
-                                          .withAttributes(attributeValues);
+                                          .withDescription("new module");
+                                        //  .withAttributes(attributeValues);
+
+
+
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/my_project?name=new_module",
                                                                     workspace),
@@ -425,19 +474,25 @@ public class ProjectServiceTest {
         Map<String, List<String>> attributes = result.getAttributes();
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);
-        Assert.assertEquals(attributes.get("new module attribute"), Arrays.asList("to be or not to be"));
+        Assert.assertEquals(attributes.get("my_attribute"), Arrays.asList("attribute value 1"));
         validateProjectLinks(result);
 
         Project project = pm.getProject(workspace, "my_project/new_module");
         Assert.assertNotNull(project);
-        ProjectDescription description = project.getDescription();
 
-        Assert.assertEquals(description.getDescription(), "new module");
-        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-        Attribute attribute = description.getAttribute("new module attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+
+        ProjectConfig config = project.getConfig();
+
+        //ProjectDescription description = project.getDescription();
+
+        Assert.assertEquals(config.getDescription(), "new module");
+        Assert.assertEquals(config.getTypeId(), "my_project_type");
+       // Assert.assertEquals(description.getProjectType().getName(), "my project type");
+        AttributeValue attributeVal = config.getAttributes().get("my_attribute");
+
+        Assert.assertEquals(attributeVal.getString(), "attribute value 1");
     }
+
 
     @Test
     public void testCreateProjectUnknownProjectType() throws Exception {
@@ -457,45 +512,68 @@ public class ProjectServiceTest {
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       writer,
                                                       null);
-        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        Project project = pm.getProject(workspace, "new_project");
-        Assert.assertNotNull(project);
-        ProjectDescription description = project.getDescription();
 
-        Assert.assertEquals(description.getDescription(), "new project");
-        Assert.assertEquals(description.getProjectType().getId(), "new_project_type");
-        Assert.assertEquals(description.getProjectType().getName(), "new_project_type");
-        Attribute attribute = description.getAttribute("new project attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+        // PT is not registered, Unknown PT error thrown
+        Assert.assertEquals(response.getStatus(), 409);
+
+//        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+//        Project project = pm.getProject(workspace, "new_project");
+//        Assert.assertNotNull(project);
+//        ProjectDescription description = project.getDescription();
+//
+//        Assert.assertEquals(description.getDescription(), "new project");
+//        Assert.assertEquals(description.getProjectType().getId(), "new_project_type");
+//        Assert.assertEquals(description.getProjectType().getName(), "new_project_type");
+//        Attribute attribute = description.getAttribute("new project attribute");
+//        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
     }
+
 
     @Test
     public void testUpdateProject() throws Exception {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
+
+        AbstractProjectType pt = new AbstractProjectType("testUpdateProject", "my project type") {
+
+            {
+
+                attributes.add(new Variable("testUpdateProject", "my_attribute", "attr description", false));
+            }
+
+        };
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+        pm.createProject(workspace, "testUpdateProject", new ProjectConfig("created project", "testUpdateProject"));
+
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));
         ProjectUpdate descriptor = DtoFactory.getInstance().createDto(ProjectUpdate.class)
-                                             .withType("my_project_type")
-                                             .withDescription("updated project")
-                                             .withAttributes(attributeValues);
+                .withType("testUpdateProject")
+                .withDescription("updated project")
+                .withAttributes(attributeValues);
+
         ContainerResponse response = launcher.service("PUT",
-                                                      String.format("http://localhost:8080/api/project/%s/my_project", workspace),
+                                                      String.format("http://localhost:8080/api/project/%s/testUpdateProject", workspace),
                                                       "http://localhost:8080/api",
                                                       headers,
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        Project project = pm.getProject(workspace, "my_project");
-        Assert.assertNotNull(project);
-        ProjectDescription description = project.getDescription();
 
-        Assert.assertEquals(description.getDescription(), "updated project");
-        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-        Attribute attribute = description.getAttribute("my_attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+        ProjectDescriptor desc = (ProjectDescriptor)response.getEntity();
+
+        Project project = pm.getProject(workspace, "testUpdateProject");
+        Assert.assertNotNull(project);
+        ProjectConfig config = project.getConfig();
+
+        Assert.assertEquals(config.getDescription(), "updated project");
+        Assert.assertEquals(config.getTypeId(), "testUpdateProject");
+        //Assert.assertEquals(description.getProjectType().getName(), "my project type");
+        AttributeValue attributeVal = config.getAttributes().get("my_attribute");
+        Assert.assertNotNull(attributeVal);
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("to be or not to be"));
     }
+
 
     @Test
     public void testUpdateProjectInvalidPath() throws Exception {
@@ -807,8 +885,12 @@ public class ProjectServiceTest {
         Assert.assertNull(myProject.getBaseFolder().getChild("a/b"));
     }
 
+
+
     @Test
     public void testImportProject() throws Exception {
+
+
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
         zipOut.putNextEntry(new ZipEntry("folder1/"));
@@ -870,6 +952,7 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertTrue(descriptor.getProblems().isEmpty());
         Assert.assertEquals(descriptor.getDescription(), "import test");
         Assert.assertEquals(descriptor.getType(), "chuck_project_type");
         Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
@@ -935,7 +1018,7 @@ public class ProjectServiceTest {
 
         byte[] b = String.format("{\"project\":{\"name\":null,\"type\":\"%s\",\"attributes\":{},\"visibility\":\"%s\",\"description\":null," +
                                  "\"builders\":null,\"runners\":null},\"source\":{\"project\":{\"location\":null,\"type\":\"%s\"," +
-                                 "\"parameters\":{}},\"runners\":{}}}", "mytype", visibility, importType).getBytes();
+                                 "\"parameters\":{}},\"runners\":{}}}", "chuck_project_type", visibility, importType).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
@@ -1004,7 +1087,7 @@ public class ProjectServiceTest {
         ImportProject dto = DtoFactory.getInstance().createDto(ImportProject.class).withProject(DtoFactory.getInstance().createDto(NewProject.class)).withSource(DtoFactory.getInstance().createDto(Source.class).withProject(DtoFactory.getInstance().createDto(ImportSourceDescriptor.class)));
         System.out.println(dto.toString());
 
-        String myType = "superType";
+        String myType = "chuck_project_type";
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
@@ -1020,9 +1103,9 @@ public class ProjectServiceTest {
         Assert.assertEquals(descriptor.getType(), myType);
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getDescription());
-        Assert.assertNotNull(newProject.getDescription().getProjectType());
-        Assert.assertEquals(newProject.getDescription().getProjectType().getId(), myType);
+        Assert.assertNotNull(newProject.getConfig());
+//        Assert.assertNotNull(newProject.getConfig().getTypeId());
+//        Assert.assertEquals(newProject.getConfig().getTypeId(), myType);
     }
 
 //    @Test
@@ -1181,9 +1264,12 @@ public class ProjectServiceTest {
         Assert.assertEquals(descriptor.getType(), "blank");
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
-        Assert.assertNotNull(newProject.getDescription());
-        Assert.assertEquals("blank", newProject.getDescription().getProjectType().getId());
+        Assert.assertNotNull(newProject.getConfig());
+        Assert.assertEquals("blank", newProject.getConfig().getTypeId());
     }
+
+
+
 
     @Test
     public void testProjectTypeResolver() throws Exception {
@@ -1251,6 +1337,7 @@ public class ProjectServiceTest {
         Assert.assertNotNull(newProject);
     }
 
+
     @Test
     public void testImportZip() throws Exception {
         Project myProject = pm.getProject(workspace, "my_project");
@@ -1277,8 +1364,12 @@ public class ProjectServiceTest {
 
     @Test
     public void testGenerate() throws Exception {
-        pm.createProject(workspace, "new_project",
-                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
+
+//        pm.createProject(workspace, "new_project",
+//                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
+
+        pm.createProject(workspace, "new_project", new ProjectConfig("my proj", "my_project_type"));
+
         generatorRegistry.register(new ProjectGenerator() {
             @Override
             public String getId() {
@@ -1319,8 +1410,13 @@ public class ProjectServiceTest {
 
     @Test
     public void testGeneratePrivateProject() throws Exception {
-        pm.createProject(workspace, "new_project",
-                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
+
+//        pm.createProject(workspace, "new_project",
+//                         new ProjectDescription(new ProjectType("my_project_type", "my project type", "my_category")));
+
+        pm.createProject(workspace, "new_project", new ProjectConfig("my proj", "my_project_type"));
+
+
         generatorRegistry.register(new ProjectGenerator() {
             @Override
             public String getId() {
@@ -1360,6 +1456,7 @@ public class ProjectServiceTest {
         Assert.assertNotNull(newProject.getBaseFolder().getChild("b"));
         Assert.assertNotNull(newProject.getBaseFolder().getChild("test.txt"));
     }
+
 
     @Test
     public void testExportZip() throws Exception {
@@ -1501,7 +1598,7 @@ public class ProjectServiceTest {
         Principal principal = DtoFactory.getInstance().createDto(Principal.class)
                                         .withName("workspace/developer")
                                         .withType(Principal.Type.GROUP);
-        Assert.assertEquals(permissions.get(principal), Arrays.asList(BasicPermissions.ALL.value()));
+        Assert.assertEquals(permissions.get(principal), Arrays.asList(VirtualFileSystemInfo.BasicPermissions.ALL.value()));
 
         response = launcher.service("GET",
                                     String.format("http://localhost:8080/api/project/%s/my_project", workspace),
@@ -1979,4 +2076,16 @@ public class ProjectServiceTest {
     private void clearAcl(Project project) throws ServerException, ForbiddenException {
         project.getBaseFolder().getVirtualFile().updateACL(Collections.<AccessControlEntry>emptyList(), true, null);
     }
+
+
+    private class MyProjType extends AbstractProjectType {
+        private MyProjType() {
+
+            super("my_project_type", "my project type");
+            attributes.add(new Constant("my_project_type", "my_attribute", "Constant", "attribute value 1"));
+
+
+        }
+    }
+
 }

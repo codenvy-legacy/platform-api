@@ -25,7 +25,7 @@ public class MyProjectType extends AbstractProjectType {
         super("my", "my type");
 
         attributes.add(new Constant("my", "const", "Constant", "const_value"));
-        attributes.add(new Variable("my", "var", "Variable", true, myVPFactory.newInstance(null)));
+        attributes.add(new Variable("my", "var", "Variable", true/*, myVPFactory.newInstance(null)*/));
 
     }
 

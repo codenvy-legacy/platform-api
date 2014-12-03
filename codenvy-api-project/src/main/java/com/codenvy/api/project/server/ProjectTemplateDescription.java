@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
+
 import java.util.Map;
 
 /**
@@ -25,8 +28,8 @@ public class ProjectTemplateDescription {
     private final String              description;
     private final String              location;
     private final Map<String, String> parameters;
-    private final Builders            builders;
-    private final Runners             runners;
+    private final Builders builders;
+    private final Runners runners;
 
     /**
      * Create new ProjectTemplateDescription with default category eq @see defaultCategory.

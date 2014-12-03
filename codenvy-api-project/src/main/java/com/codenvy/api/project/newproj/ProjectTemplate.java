@@ -25,6 +25,6 @@ public interface ProjectTemplate  {
 
     ImportSourceDescriptor getSource();
 
-    ProjectDescriptor getProjectDescriptor();
+    ProjectConfig getProjectDescriptor();
 
 }

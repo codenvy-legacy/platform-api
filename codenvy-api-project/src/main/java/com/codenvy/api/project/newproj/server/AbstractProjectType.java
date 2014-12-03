@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj.server;
 
-import com.codenvy.api.project.newproj.Attribute;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectType;
+import com.codenvy.api.project.newproj.Attribute2;
+import com.codenvy.api.project.newproj.ProjectType2;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,21 +19,21 @@ import java.util.List;
 /**
  * @author gazarenkov
  */
-public abstract class AbstractProjectType implements ProjectType {
+public abstract class AbstractProjectType implements ProjectType2 {
 
 
     protected final String id;
     protected final String displayName;
-    protected final List<Attribute> attributes;
-    protected final List<ProjectType> parents;
+    protected final List<Attribute2> attributes;
+    protected final List<ProjectType2> parents;
     protected final List<String> runnerCategories;
     protected final List<String> builderCategories;
 
     protected AbstractProjectType(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
-        this.attributes = new ArrayList<Attribute>();
-        this.parents = new ArrayList<ProjectType>();
+        this.attributes = new ArrayList<Attribute2>();
+        this.parents = new ArrayList<ProjectType2>();
         this.runnerCategories = new ArrayList<String>();
         this.builderCategories = new ArrayList<String>();
 
@@ -52,12 +51,12 @@ public abstract class AbstractProjectType implements ProjectType {
     }
 
     @Override
-    public List<Attribute> getAttributes() {
+    public List<Attribute2> getAttributes() {
         return attributes;
     }
 
     @Override
-    public List<ProjectType> getParents() {
+    public List<ProjectType2> getParents() {
         return parents;
     }
 
@@ -65,7 +64,7 @@ public abstract class AbstractProjectType implements ProjectType {
     public boolean isTypeOf(String typeId) {
         if(this.id.equals(typeId))
             return true;
-        for(ProjectType type : getParents()) {
+        for(ProjectType2 type : getParents()) {
             if (type.getId().equals(typeId))
                 return true;
         }
@@ -73,13 +72,18 @@ public abstract class AbstractProjectType implements ProjectType {
     }
 
     @Override
-    public Attribute getAttribute(String id) {
-        for(Attribute attr : attributes) {
-            if(attr.getId().equals(id))
+    public Attribute2 getAttribute(String name) {
+        for(Attribute2 attr : attributes) {
+            if(attr.getName().equals(name))
                 return attr;
         }
 
         return null;
+    }
+
+    @Override
+    public List<String> getRunnerCategories() {
+        return runnerCategories;
     }
 }
 

@@ -14,6 +14,13 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.project.newproj.Attribute2;
+import com.codenvy.api.project.newproj.AttributeValue;
+import com.codenvy.api.project.newproj.ProjectConfig;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.AttributeDescriptor;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
@@ -69,47 +76,96 @@ public class DtoConverter {
                 runners == null ? null : fromDto(runners));
     }
 
-    public static ProjectDescription fromDto(ProjectUpdate dto, ProjectTypeDescriptionRegistry typeRegistry) throws ServerException {
+//    public static ProjectDescription fromDto(ProjectUpdate dto, ProjectTypeDescriptionRegistry typeRegistry) throws ServerException {
+//        final String typeId = dto.getType();
+//        ProjectType projectType;
+//        if (typeId == null) {
+//            // Treat type as blank type if type is not set in .codenvy/project.json
+//            projectType = ProjectType.BLANK;
+//        } else {
+//            projectType = typeRegistry.getProjectType(typeId);
+//            if (projectType == null) {
+//                // Type is unknown but set in codenvy/.project.json
+//                projectType = new ProjectType(typeId);
+//            }
+//        }
+//        final ProjectDescription projectDescription = new ProjectDescription(projectType);
+//        projectDescription.setDescription(dto.getDescription());
+//        final Map<String, List<String>> updateAttributes = dto.getAttributes();
+//        if (!updateAttributes.isEmpty()) {
+//            final List<Attribute> attributes = new ArrayList<>(updateAttributes.size());
+//            for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
+//                attributes.add(new Attribute(e.getKey(), e.getValue()));
+//            }
+//            projectDescription.setAttributes(attributes);
+//        }
+//        final BuildersDescriptor buildersDescriptor = dto.getBuilders();
+//        if (buildersDescriptor != null) {
+//            projectDescription.setBuilders(fromDto(buildersDescriptor));
+//        }
+//        final RunnersDescriptor runnersDescriptor = dto.getRunners();
+//        if (runnersDescriptor != null) {
+//            projectDescription.setRunners(fromDto(runnersDescriptor));
+//        }
+//        return projectDescription;
+//    }
+
+    public static ProjectConfig fromDto2(ProjectUpdate dto, ProjectTypeRegistry typeRegistry) throws ServerException,
+            ProjectTypeConstraintException, InvalidValueException, ValueStorageException {
         final String typeId = dto.getType();
-        ProjectType projectType;
+        ProjectType2 projectType;
         if (typeId == null) {
             // Treat type as blank type if type is not set in .codenvy/project.json
-            projectType = ProjectType.BLANK;
+            projectType = new BaseProjectType();
         } else {
             projectType = typeRegistry.getProjectType(typeId);
             if (projectType == null) {
-                // Type is unknown but set in codenvy/.project.json
-                projectType = new ProjectType(typeId);
+                throw new ProjectTypeConstraintException("Project Type not found "+typeId);
             }
         }
-        final ProjectDescription projectDescription = new ProjectDescription(projectType);
-        projectDescription.setDescription(dto.getDescription());
+
+
+
         final Map<String, List<String>> updateAttributes = dto.getAttributes();
+        final List<Attribute2> attributes = new ArrayList<>(updateAttributes.size());
+
         if (!updateAttributes.isEmpty()) {
-            final List<Attribute> attributes = new ArrayList<>(updateAttributes.size());
             for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
-                attributes.add(new Attribute(e.getKey(), e.getValue()));
+
+                Attribute2 attr = projectType.getAttribute(e.getKey());
+                if(attr != null)  {
+                    if(attr.isVariable()) {
+
+                        //ValueProvider2 vp = new Variable.DefaultValueProvider(new AttributeValue(e.getValue()));
+
+                        attributes.add(new Variable(attr.getProjectType(), attr.getName(), attr.getDescription(),
+                                attr.isRequired(), new AttributeValue(e.getValue())));
+                    } else {
+                        attributes.add(new Constant(attr.getProjectType(), attr.getName(), attr.getDescription(),
+                                new AttributeValue(e.getValue())));
+                    }
+
+                }
             }
-            projectDescription.setAttributes(attributes);
         }
-        final BuildersDescriptor buildersDescriptor = dto.getBuilders();
-        if (buildersDescriptor != null) {
-            projectDescription.setBuilders(fromDto(buildersDescriptor));
-        }
-        final RunnersDescriptor runnersDescriptor = dto.getRunners();
-        if (runnersDescriptor != null) {
-            projectDescription.setRunners(fromDto(runnersDescriptor));
-        }
-        return projectDescription;
+
+        return new ProjectConfig(dto.getDescription(), typeId, attributes,
+                fromDto(dto.getRunners()), fromDto(dto.getBuilders()));
     }
 
-    public static Builders fromDto(BuildersDescriptor dto) {
-        return new Builders(dto.getDefault());
-    }
+
 
     /*================================ Methods for conversion to DTO. ===============================*/
 
+    public static Builders fromDto(BuildersDescriptor dto) {
+        if(dto == null)
+            return null;
+        return new Builders(dto.getDefault());
+    }
+
     public static Runners fromDto(RunnersDescriptor dto) {
+        if(dto == null)
+            return null;
         final Runners runners = new Runners(dto.getDefault());
         for (Map.Entry<String, RunnerConfiguration> e : dto.getConfigs().entrySet()) {
             final RunnerConfiguration config = e.getValue();
@@ -206,46 +262,151 @@ public class DtoConverter {
                          .withLinks(generateFolderLinks(folder, uriBuilder));
     }
 
-    public static ProjectDescriptor toDescriptorDto(Project project, UriBuilder uriBuilder) {
+//    /**
+//     *
+//     * @deprecated
+//     */
+//    public static ProjectDescriptor toDescriptorDto(Project project, UriBuilder uriBuilder) {
+//        final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
+//        final DtoFactory dtoFactory = DtoFactory.getInstance();
+//        final ProjectDescriptor dto = dtoFactory.createDto(ProjectDescriptor.class);
+//        // Try to provide as much as possible information about project.
+//        // If get error then save information about error with 'problems' field in ProjectConfig.
+//        final String wsId = project.getWorkspace();
+//        final String wsName = environmentContext.getWorkspaceName();
+//        final String name = project.getName();
+//        final String path = project.getPath();
+//        dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
+//        ProjectDescription projectDescription = null;
+//        try {
+//            projectDescription = project.getDescription();
+//        } catch (ServerException | ValueStorageException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//            dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
+//        }
+//        if (projectDescription != null) {
+//            dto.withDescription(projectDescription.getDescription());
+//            final ProjectType projectType = projectDescription.getProjectType();
+//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
+//            final List<Attribute> attributes = projectDescription.getAttributes();
+//            final Map<String, List<String>> attributesMap = new LinkedHashMap<>(attributes.size());
+//            if (!attributes.isEmpty()) {
+//                for (Attribute attribute : attributes) {
+//                    try {
+//                        attributesMap.put(attribute.getName(), attribute.getValues());
+//                    } catch (ValueStorageException e) {
+//                        dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//                    }
+//                }
+//            }
+//            dto.withAttributes(attributesMap);
+//
+//            final Builders builders = projectDescription.getBuilders();
+//            if (builders != null) {
+//                dto.withBuilders(toDto(dtoFactory, builders));
+//            }
+//            final Runners runners = projectDescription.getRunners();
+//            if (runners != null) {
+//                dto.withRunners(toDto(dtoFactory, runners));
+//            }
+//        }
+//
+//        final User currentUser = environmentContext.getUser();
+//        List<AccessControlEntry> acl = null;
+//        try {
+//            acl = project.getPermissions();
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//        if (acl != null) {
+//            final List<String> permissions = new LinkedList<>();
+//            if (acl.isEmpty()) {
+//                // there is no any restriction at all
+//                permissions.add("all");
+//            } else {
+//                for (AccessControlEntry accessControlEntry : acl) {
+//                    final Principal principal = accessControlEntry.getPrincipal();
+//                    if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
+//                        || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
+//                        || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
+//
+//                        permissions.addAll(accessControlEntry.getPermissions());
+//                    }
+//                }
+//            }
+//            dto.withPermissions(permissions);
+//        }
+//
+//        try {
+//            dto.withCreationDate(project.getCreationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        try {
+//            dto.withModificationDate(project.getModificationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        try {
+//            dto.withVisibility(project.getVisibility());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, name).toString())
+//           .withLinks(generateProjectLinks(project, uriBuilder));
+//        if (wsName != null) {
+//            dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+//        }
+//        return dto;
+//    }
+
+    public static ProjectDescriptor toDescriptorDto2(Project project, UriBuilder uriBuilder, ProjectTypeRegistry ptRegistry)
+    throws InvalidValueException {
         final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final ProjectDescriptor dto = dtoFactory.createDto(ProjectDescriptor.class);
         // Try to provide as much as possible information about project.
-        // If get error then save information about error with 'problems' field in ProjectDescriptor.
+        // If get error then save information about error with 'problems' field in ProjectConfig.
         final String wsId = project.getWorkspace();
         final String wsName = environmentContext.getWorkspaceName();
         final String name = project.getName();
         final String path = project.getPath();
         dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
-        ProjectDescription projectDescription = null;
+
+        ProjectConfig config = null;
         try {
-            projectDescription = project.getDescription();
-        } catch (ServerException | ValueStorageException e) {
+            config = project.getConfig();
+        } catch (ServerException | ValueStorageException | ProjectTypeConstraintException e) {
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
             dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
         }
-        if (projectDescription != null) {
-            dto.withDescription(projectDescription.getDescription());
-            final ProjectType projectType = projectDescription.getProjectType();
-            dto.withType(projectType.getId()).withTypeName(projectType.getName());
-            final List<Attribute> attributes = projectDescription.getAttributes();
+
+        if (config != null) {
+            dto.withDescription(config.getDescription());
+            //final ProjectType2 projectType = config.getTypeId();
+            String typeId = config.getTypeId();
+            dto.withType(typeId).withTypeName(ptRegistry.getProjectType(typeId).getDisplayName());
+
+            final Map<String, AttributeValue> attributes = config.getAttributes();
+
             final Map<String, List<String>> attributesMap = new LinkedHashMap<>(attributes.size());
             if (!attributes.isEmpty()) {
-                for (Attribute attribute : attributes) {
-                    try {
-                        attributesMap.put(attribute.getName(), attribute.getValues());
-                    } catch (ValueStorageException e) {
-                        dto.getProblems().add(createProjectProblem(dtoFactory, e));
-                    }
+
+               for (String attrName : attributes.keySet()) {
+                 attributesMap.put(attrName, attributes.get(attrName).getList());
                 }
             }
             dto.withAttributes(attributesMap);
 
-            final Builders builders = projectDescription.getBuilders();
+
+            final Builders builders = config.getBuilders();
             if (builders != null) {
                 dto.withBuilders(toDto(dtoFactory, builders));
             }
-            final Runners runners = projectDescription.getRunners();
+            final Runners runners = config.getRunners();
             if (runners != null) {
                 dto.withRunners(toDto(dtoFactory, runners));
             }
@@ -267,8 +428,8 @@ public class DtoConverter {
                 for (AccessControlEntry accessControlEntry : acl) {
                     final Principal principal = accessControlEntry.getPrincipal();
                     if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
-                        || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
-                        || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
+                            || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
+                            || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
 
                         permissions.addAll(accessControlEntry.getPermissions());
                     }
@@ -296,12 +457,13 @@ public class DtoConverter {
         }
 
         dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, name).toString())
-           .withLinks(generateProjectLinks(project, uriBuilder));
+                .withLinks(generateProjectLinks(project, uriBuilder));
         if (wsName != null) {
             dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
         }
         return dto;
     }
+
 
     public static BuildersDescriptor toDto(Builders builders) {
         return toDto(DtoFactory.getInstance(), builders);
@@ -379,7 +541,59 @@ public class DtoConverter {
         return links;
     }
 
-    public static ProjectReference toReferenceDto(Project project, UriBuilder uriBuilder) {
+//    public static ProjectReference toReferenceDto(Project project, UriBuilder uriBuilder) {
+//        final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
+//        final DtoFactory dtoFactory = DtoFactory.getInstance();
+//        final ProjectReference dto = dtoFactory.createDto(ProjectReference.class);
+//        final String wsId = project.getWorkspace();
+//        final String wsName = environmentContext.getWorkspaceName();
+//        final String name = project.getName();
+//        final String path = project.getPath();
+//        dto.withName(name).withPath(path).withWorkspaceId(wsId).withWorkspaceName(wsName);
+//        dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
+//
+//        try {
+//
+//
+//            //final ProjectConfig projectConfig = project.getConfig();
+//            //dto.withDescription(projectConfig.getDescription()).withType(projectConfig.getTypeId());
+//            //final ProjectType2 projectType = projectConfig.getTypeId();
+//
+//            final ProjectDescription projectDescription = project.getDescription();
+//            dto.withDescription(projectDescription.getDescription());
+//            final ProjectType projectType = projectDescription.getProjectType();
+//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
+//        } catch (ServerException | ValueStorageException e) {
+//            dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        try {
+//            dto.withCreationDate(project.getCreationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        try {
+//            dto.withModificationDate(project.getModificationDate());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        try {
+//            dto.withVisibility(project.getVisibility());
+//        } catch (ServerException e) {
+//            dto.getProblems().add(createProjectProblem(dtoFactory, e));
+//        }
+//
+//        dto.withUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, name).toString());
+//        if (wsName != null) {
+//            dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+//        }
+//        return dto;
+//    }
+
+    public static ProjectReference toReferenceDto2(Project project, UriBuilder uriBuilder) throws InvalidValueException {
         final EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final ProjectReference dto = dtoFactory.createDto(ProjectReference.class);
@@ -391,11 +605,19 @@ public class DtoConverter {
         dto.withWorkspaceId(wsId).withWorkspaceName(wsName).withName(name).withPath(path);
 
         try {
-            final ProjectDescription projectDescription = project.getDescription();
-            dto.withDescription(projectDescription.getDescription());
-            final ProjectType projectType = projectDescription.getProjectType();
-            dto.withType(projectType.getId()).withTypeName(projectType.getName());
-        } catch (ServerException | ValueStorageException e) {
+
+
+            final ProjectConfig projectConfig = project.getConfig();
+            dto.withDescription(projectConfig.getDescription()).withType(projectConfig.getTypeId());
+
+
+            //final ProjectType2 projectType = projectConfig.getTypeId();
+
+//            final ProjectDescription projectDescription = project.getDescription();
+//            dto.withDescription(projectDescription.getDescription());
+//            final ProjectType projectType = projectDescription.getProjectType();
+//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
+        } catch (ServerException | ValueStorageException | ProjectTypeConstraintException e) {
             dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
         }

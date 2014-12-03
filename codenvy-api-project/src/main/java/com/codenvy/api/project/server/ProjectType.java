@@ -11,9 +11,10 @@
 package com.codenvy.api.project.server;
 
 /**
- * ProjectType is the named group of attributes for Project Description.
+ * ProjectType2 is the named group of attributes for Project Description.
  *
  * @author gazarenkov
+ * @deprecated
  */
 public final class ProjectType {
     public static final ProjectType BLANK = new ProjectType(com.codenvy.api.project.shared.Constants.BLANK_ID,
@@ -66,7 +67,7 @@ public final class ProjectType {
 
     @Override
     public String toString() {
-        return "ProjectType{" +
+        return "ProjectType2{" +
                "id='" + id + '\'' +
                ", name='" + name + '\'' +
                ", category='" + category + '\'' +

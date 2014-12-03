@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj.server;
 
-import com.codenvy.api.project.newproj.ProjectType;
-import com.codenvy.api.project.newproj.server.event.GetFileEvent;
-import com.codenvy.api.project.newproj.server.event.GetFileEventSubcriber;
+import com.codenvy.api.project.newproj.server.event.GetItemEvent;
+import com.codenvy.api.project.newproj.server.event.GetItemSubcriber;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -21,7 +20,7 @@ import javax.inject.Singleton;
  * @author gazarenkov
  */
 @Singleton
-public class MyGetFileSubscriber extends GetFileEventSubcriber {
+public class MyGetFileSubscriber extends GetItemSubcriber {
 
     @Inject
     public MyGetFileSubscriber(MyProjectType type) {
@@ -29,7 +28,7 @@ public class MyGetFileSubscriber extends GetFileEventSubcriber {
     }
 
     @Override
-    protected void execute(GetFileEvent event) {
+    protected void execute(GetItemEvent event) {
         System.out.println("EVENT >>>>>" + event.getProjectType().getId() + " --> " + event.getFile()/*.getVirtualFile().getProperties()*/);
     }
 }

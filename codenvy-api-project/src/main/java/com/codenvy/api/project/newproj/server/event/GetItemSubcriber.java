@@ -11,16 +11,16 @@
 package com.codenvy.api.project.newproj.server.event;
 
 import com.codenvy.api.core.notification.EventSubscriber;
-import com.codenvy.api.project.newproj.ProjectType;
+import com.codenvy.api.project.newproj.ProjectType2;
 
 /**
  * @author gazarenkov
  */
 public abstract class GetItemSubcriber implements EventSubscriber<GetItemEvent> {
 
-    protected  final ProjectType type;
+    protected  final ProjectType2 type;
 
-    protected GetItemSubcriber(ProjectType type) {
+    protected GetItemSubcriber(ProjectType2 type) {
         this.type = type;
     }
 

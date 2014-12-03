@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
+
 import javax.annotation.Nonnull;
 import java.util.List;
 import java.util.Map;
@@ -20,12 +23,13 @@ import java.util.Map;
  * Information about predefined attributes, templates and icons are optional.
  *
  * @author gazarenkov
+ * @deprecated
  */
 public interface ProjectTypeExtension {
-    /** Gets ProjectType registered with this {@code ProjectTypeExtension}. */
+    /** Gets ProjectType2 registered with this {@code ProjectTypeExtension}. */
     ProjectType getProjectType();
 
-    /** Gets list of predefined attributes for ProjectType registered with this {@code ProjectTypeExtension}.
+    /** Gets list of predefined attributes for ProjectType2 registered with this {@code ProjectTypeExtension}.
      * Can't be null. In case no attributes description must return empty list.
      * */
     @Nonnull
@@ -37,9 +41,9 @@ public interface ProjectTypeExtension {
     /** Gets runner configurations. */
     Runners getRunners();
 
-    /** Gets list of templates for ProjectType registered with this {@code ProjectTypeExtension}. */
+    /** Gets list of templates for ProjectType2 registered with this {@code ProjectTypeExtension}. */
     List<ProjectTemplateDescription> getTemplates();
     
-    /** Gets map of icons urls for ProjectType registered with this {@code ProjectTypeExtension}. */
+    /** Gets map of icons urls for ProjectType2 registered with this {@code ProjectTypeExtension}. */
     Map<String, String> getIconRegistry();
 }

@@ -26,6 +26,7 @@ import java.util.List;
  * ProjectDescriptionService
  *
  * @author gazarenkov
+ * @deprecated
  */
 @Path("project-type")
 public class ProjectTypeService extends Service {

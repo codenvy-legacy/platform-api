@@ -17,30 +17,25 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.Writer;
-import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /** @author andrew00x */
 public final class HttpServletProxyResponse implements HttpOutputMessage {
-    private final HttpServletResponse        httpServletResponse;
-    private final List<Pattern>              mimeTypePatterns;
-    private final List<Pair<String, String>> rewriteRules;
-    private       String                     contentType;
+    private final HttpServletResponse httpServletResponse;
+
+    private String                                   contentType;
+    private Map<Pattern, List<Pair<String, String>>> rewriteMap;
 
     public HttpServletProxyResponse(HttpServletResponse httpServletResponse) {
         this.httpServletResponse = httpServletResponse;
-        mimeTypePatterns = Collections.emptyList();
-        rewriteRules = Collections.emptyList();
     }
 
-    public HttpServletProxyResponse(HttpServletResponse httpServletResponse,
-                                    List<Pattern> mimeTypePatterns,
-                                    List<Pair<String, String>> rewriteRules) {
-        this.rewriteRules = rewriteRules;
-        this.mimeTypePatterns = mimeTypePatterns;
+    public HttpServletProxyResponse(HttpServletResponse httpServletResponse, Map<Pattern, List<Pair<String, String>>> rewriteMap) {
         this.httpServletResponse = httpServletResponse;
+        this.rewriteMap = rewriteMap;
     }
 
     @Override
@@ -71,25 +66,31 @@ public final class HttpServletProxyResponse implements HttpOutputMessage {
 
     @Override
     public OutputStream getOutputStream() throws IOException {
-        if (contentType != null) {
-            for (Pattern mimeTypePattern : mimeTypePatterns) {
-                Matcher matcher = mimeTypePattern.matcher(contentType);
+        if (contentType != null && rewriteMap != null) {
+            for (Map.Entry<Pattern, List<Pair<String, String>>> rewriteMapEntry : rewriteMap.entrySet()) {
+                Matcher matcher = rewriteMapEntry.getKey().matcher(contentType);
                 if (matcher.matches()) {
-                    return new CachingOutputStream(httpServletResponse);
+                    return new RewriteOutputStream(httpServletResponse, rewriteMapEntry.getValue());
                 }
             }
         }
         return httpServletResponse.getOutputStream();
     }
 
-    private class CachingOutputStream extends OutputStream {
+    public void setRewriteMap(Map<Pattern, List<Pair<String, String>>> rewriteMap) {
+        this.rewriteMap = rewriteMap;
+    }
 
-        final HttpServletResponse httpServletResponse;
+    private class RewriteOutputStream extends OutputStream {
+
+        final HttpServletResponse        httpServletResponse;
+        final List<Pair<String, String>> rewriteRules;
         ByteArrayOutputStream cache;
         Writer                writer;
 
-        CachingOutputStream(HttpServletResponse httpServletResponse) {
+        RewriteOutputStream(HttpServletResponse httpServletResponse, List<Pair<String, String>> rewriteRules) {
             this.httpServletResponse = httpServletResponse;
+            this.rewriteRules = rewriteRules;
         }
 
         @Override

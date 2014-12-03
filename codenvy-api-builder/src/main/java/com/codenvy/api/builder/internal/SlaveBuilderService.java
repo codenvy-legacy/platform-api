@@ -18,6 +18,7 @@ import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.builder.dto.ServerState;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
@@ -27,7 +28,10 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.ContentTypeGuesser;
 import com.codenvy.api.core.util.SystemInfo;
 import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.api.vfs.server.util.DeleteOnCloseFileInputStream;
 import com.codenvy.commons.lang.Size;
+import com.codenvy.commons.lang.TarUtils;
+import com.codenvy.commons.lang.ZipUtils;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
@@ -44,9 +48,11 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriBuilder;
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -159,9 +165,9 @@ public final class SlaveBuilderService extends Service {
     @GET
     @Path("browse/{builder}/{id}")
     @Produces(MediaType.TEXT_HTML)
-    public Response browse(@PathParam("builder") String builder,
-                           @PathParam("id") Long id,
-                           @DefaultValue(".") @QueryParam("path") String path) throws Exception {
+    public Response browseDirectory(@PathParam("builder") String builder,
+                                    @PathParam("id") Long id,
+                                    @DefaultValue(".") @QueryParam("path") String path) throws Exception {
         final Builder myBuilder = getBuilder(builder);
         final BuildTask task = myBuilder.getBuildTask(id);
         final java.io.File workDir = task.getConfiguration().getWorkDir();
@@ -190,7 +196,7 @@ public final class SlaveBuilderService extends Service {
                             parentChildren = parent.listFiles();
                         }
                         writer.print(indentation);
-                        final String upHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                        final String upHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory")
                                                                .replaceQueryParam("path", workDirPath.relativize(parentPath))
                                                                .build(task.getBuilder(), task.getId()).toString();
                         writer.printf("<li><a href='%s'><span class='file-browser-directory-open'>..</span></a></li>", upHref);
@@ -204,16 +210,15 @@ public final class SlaveBuilderService extends Service {
                             writer.print(indentation);
                             writer.print("<li>");
                             if (file.isFile()) {
-                                final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "view")
+                                final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "viewFile")
                                                                          .replaceQueryParam("path", filePath)
                                                                          .build(task.getBuilder(), task.getId()).toString();
                                 writer.printf("<a href='%s'><span class='file-browser-file-open'>%s</span></a>", openHref, name);
                                 writer.print("&nbsp;");
-                                final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "download")
+                                final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "downloadFile")
                                                                              .replaceQueryParam("path", filePath)
                                                                              .build(task.getBuilder(), task.getId()).toString();
-                                writer.printf("<a href='%s'><span class='file-browser-file-download'>%s</span></a>", downloadHref,
-                                              "download");
+                                writer.printf("<a href='%s'><span class='file-browser-file-download'>download</span></a>", downloadHref);
                                 writer.print("&nbsp;");
                                 writer.printf("Size: %s", Size.toHumanSize(file.length()));
                             } else if (file.isDirectory()) {
@@ -231,7 +236,7 @@ public final class SlaveBuilderService extends Service {
                                 if (children != null && children.length == 0) {
                                     writer.printf("<span class='file-browser-directory-open'>%s/</span></a>", name);
                                 } else {
-                                    final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                    final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory")
                                                                              .replaceQueryParam("path", filePath)
                                                                              .build(task.getBuilder(), task.getId()).toString();
                                     writer.printf("<a href='%s'><span class='file-browser-directory-open'>%s/</span></a>", openHref, name);
@@ -293,10 +298,10 @@ public final class SlaveBuilderService extends Service {
                     String name = file.getName();
                     java.nio.file.Path filePath = workDirPath.relativize(file.toPath()).normalize();
                     if (file.isFile()) {
-                        final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "view")
+                        final String openHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "viewFile")
                                                                  .replaceQueryParam("path", filePath)
                                                                  .build(task.getBuilder(), task.getId()).toString();
-                        final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "download")
+                        final String downloadHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "downloadFile")
                                                                      .replaceQueryParam("path", filePath)
                                                                      .build(task.getBuilder(), task.getId()).toString();
                         final ItemReference fileItem =
@@ -328,8 +333,8 @@ public final class SlaveBuilderService extends Service {
 
                         if (children == null || children.length != 0) {
                             final String childrenHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "listDirectory")
-                                                                     .replaceQueryParam("path", filePath)
-                                                                     .build(task.getBuilder(), task.getId()).toString();
+                                                                         .replaceQueryParam("path", filePath)
+                                                                         .build(task.getBuilder(), task.getId()).toString();
                             final List<Link> links = folderItem.getLinks();
                             links.add(dtoFactory.createDto(Link.class).withRel("children").withHref(childrenHref).withMethod("GET")
                                                 .withProduces(MediaType.APPLICATION_JSON));
@@ -346,9 +351,9 @@ public final class SlaveBuilderService extends Service {
 
     @GET
     @Path("download/{builder}/{id}")
-    public Response download(@PathParam("builder") String builder,
-                             @PathParam("id") Long id,
-                             @Required @QueryParam("path") String path) throws Exception {
+    public Response downloadFile(@PathParam("builder") String builder,
+                                 @PathParam("id") Long id,
+                                 @Required @QueryParam("path") String path) throws Exception {
         final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
         if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
@@ -365,10 +370,36 @@ public final class SlaveBuilderService extends Service {
     }
 
     @GET
+    @Path("download-all/{builder}/{id}")
+    public Response downloadResultArchive(@PathParam("builder") String builder,
+                                          @PathParam("id") Long id,
+                                          @DefaultValue("tar") @QueryParam("arch") String arch) throws Exception {
+        final List<File> results = getBuilder(builder).getBuildTask(id).getResult().getResults();
+        if (results.isEmpty()) {
+            throw new NotFoundException("Archive with build result is not available.");
+        }
+        File archFile;
+        if ("tar".equals(arch)) {
+            archFile = Files.createTempFile(String.format("%s-%d-", builder, id), ".tar").toFile();
+            TarUtils.tarFiles(archFile, 0, results.toArray(new File[results.size()]));
+        } else if ("zip".equals(arch)) {
+            archFile = Files.createTempFile(String.format("%s-%d-", builder, id), ".zip").toFile();
+            ZipUtils.zipFiles(archFile, results.toArray(new File[results.size()]));
+        } else {
+            throw new ConflictException(String.format("Unsupported archive type: %s", arch));
+        }
+        return Response.status(200)
+                       .header("Content-Disposition", String.format("attachment; filename=\"%s\"", archFile.getName()))
+                       .type(ContentTypeGuesser.guessContentType(archFile))
+                       .entity(new DeleteOnCloseFileInputStream(archFile))
+                       .build();
+    }
+
+    @GET
     @Path("view/{builder}/{id}")
-    public Response view(@PathParam("builder") String builder,
-                         @PathParam("id") Long id,
-                         @Required @QueryParam("path") String path) throws Exception {
+    public Response viewFile(@PathParam("builder") String builder,
+                             @PathParam("id") Long id,
+                             @Required @QueryParam("path") String path) throws Exception {
         final java.io.File workDir = getBuilder(builder).getBuildTask(id).getConfiguration().getWorkDir();
         final java.io.File target = new java.io.File(workDir, path);
         if (!(target.toPath().normalize().startsWith(workDir.toPath().normalize()))) {
@@ -398,14 +429,15 @@ public final class SlaveBuilderService extends Service {
                                                          : (result.isSuccessful() ? BuildStatus.SUCCESSFUL : BuildStatus.FAILED))
                                    : (task.isStarted() ? BuildStatus.IN_PROGRESS : BuildStatus.IN_QUEUE);
         final List<Link> links = new LinkedList<>();
-        links.add(DtoFactory.getInstance().createDto(Link.class)
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        links.add(dtoFactory.createDto(Link.class)
                             .withRel(Constants.LINK_REL_GET_STATUS)
                             .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "getStatus").build(builder, taskId).toString())
                             .withMethod("GET")
                             .withProduces(MediaType.APPLICATION_JSON));
 
         if (status == BuildStatus.IN_QUEUE || status == BuildStatus.IN_PROGRESS) {
-            links.add(DtoFactory.getInstance().createDto(Link.class)
+            links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_CANCEL)
                                 .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "cancel").build(builder, taskId).toString())
                                 .withMethod("POST")
@@ -413,45 +445,60 @@ public final class SlaveBuilderService extends Service {
         }
 
         if (status != BuildStatus.IN_QUEUE) {
-            links.add(DtoFactory.getInstance().createDto(Link.class)
+            links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_VIEW_LOG)
                                 .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "getLogs").build(builder, taskId).toString())
                                 .withMethod("GET")
                                 .withProduces(task.getBuildLogger().getContentType()));
-            links.add(DtoFactory.getInstance().createDto(Link.class)
+            links.add(dtoFactory.createDto(Link.class)
                                 .withRel(Constants.LINK_REL_BROWSE)
-                                .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browse").queryParam("path", "/")
+                                .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory").queryParam("path", "/")
                                                     .build(builder, taskId).toString())
                                 .withMethod("GET")
                                 .withProduces(MediaType.TEXT_HTML));
         }
 
         if (status == BuildStatus.SUCCESSFUL) {
-            for (java.io.File ru : result.getResults()) {
-                links.add(DtoFactory.getInstance().createDto(Link.class)
+            final List<File> results = result.getResults();
+            for (java.io.File ru : results) {
+                links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
-                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "download")
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "downloadFile")
                                                         .queryParam("path", workDirPath.relativize(ru.toPath()))
                                                         .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(ContentTypeGuesser.guessContentType(ru)));
+            }
+            if (!results.isEmpty()) {
+                links.add(dtoFactory.createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_DOWNLOAD_RESULTS_TARBALL)
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "downloadResultArchive")
+                                                        .queryParam("arch", "tar")
+                                                        .build(builder, taskId).toString())
+                                    .withMethod("GET"));
+                links.add(dtoFactory.createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_DOWNLOAD_RESULTS_ZIPBALL)
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "downloadResultArchive")
+                                                        .queryParam("arch", "zip")
+                                                        .build(builder, taskId).toString())
+                                    .withMethod("GET"));
             }
         }
 
         if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
             final java.io.File br = result.getBuildReport();
             if (br.isDirectory()) {
-                links.add(DtoFactory.getInstance().createDto(Link.class)
+                links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browse")
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory")
                                                         .queryParam("path", workDirPath.relativize(br.toPath()))
                                                         .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(MediaType.TEXT_HTML));
             } else {
-                links.add(DtoFactory.getInstance().createDto(Link.class)
+                links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
-                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "view")
+                                    .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "viewFile")
                                                         .queryParam("path", workDirPath.relativize(br.toPath()))
                                                         .build(builder, taskId).toString())
                                     .withMethod("GET")
@@ -459,7 +506,7 @@ public final class SlaveBuilderService extends Service {
             }
         }
 
-        return DtoFactory.getInstance().createDto(BuildTaskDescriptor.class)
+        return dtoFactory.createDto(BuildTaskDescriptor.class)
                          .withTaskId(taskId)
                          .withStatus(status)
                          .withLinks(links)

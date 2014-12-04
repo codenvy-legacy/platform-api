@@ -1121,7 +1121,8 @@ public class ProjectServiceTest {
         Assert.assertEquals(newProject.getDescription().getProjectType().getId(), "my_project_type");
     }
 
-//    @Test
+    //TODO : need add check for buiders and attributes
+    @Test
     public void testImportProjectWithRunners() throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
         ZipOutputStream zipOut = new ZipOutputStream(bout);
@@ -1130,13 +1131,17 @@ public class ProjectServiceTest {
         zipOut.write("to be or not to be".getBytes());
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_DIR + "/"));
         zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
-        zipOut.write(("{\"type\":\"chuck_project_type\"," +
+        zipOut.write(("{\"type\":\"my_project_type\"," +
                       "\"description\":\"import test\"," +
                       "\"attributes\":{\"x\": [\"a\",\"b\"]}}").getBytes());
         zipOut.close();
         final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
         final String importType = "_123_";
         final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for (ProjectTypeResolver resolver : resolvers) {//unregistered all resolvers
+            resolverRegistry.unregister(resolver);
+        }
         importerRegistry.register(new ProjectImporter() {
             @Override
             public String getId() {
@@ -1188,27 +1193,29 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"project\":{\"type\":\"%s\"},\"runners\":{\"/docker/%s\":{\"location\":\"%s\"}}}",
-                                 importType, envName, runnerRecipe.toURI().toURL()).getBytes();
+
+        byte[] b = String.format(
+                "{\"source\":{\"project\":{\"location\":\"kadjkj\",\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}," +
+                "\"project\":{\"name\":\"spring\",\"visibility\":\"public\",\"runners\":{\"configs\":{\"recommend\":{\"options\":{}," +
+                "\"variables\":{},\"ram\":256}},\"default\":\"system:/java/web/tomcat7\"},\"builders\":{\"default\":\"maven\"}," +
+                "\"type\":\"maven\",\"attributes\":{},\"description\":\"import test\"},\"variables\":[],\"v\":\"2.0\"}",
+                importType, envName, runnerRecipe.toURI().toURL()).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
         Assert.assertEquals(descriptor.getDescription(), "import test");
-        Assert.assertEquals(descriptor.getType(), "chuck_project_type");
+        Assert.assertEquals(descriptor.getType(), "my_project_type");
         Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
-
+        Assert.assertNotNull(descriptor.getRunners());
+        Assert.assertEquals(descriptor.getRunners().getDefault(), "system:/java/web/tomcat7");
         Project newProject = pm.getProject(workspace, "new_project");
         Assert.assertNotNull(newProject);
         VirtualFileEntry environments = newProject.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
         Assert.assertNotNull(environments);
         Assert.assertTrue(environments.isFolder());
-        VirtualFileEntry recipe = ((FolderEntry)environments).getChild(envName + "/Dockerfile");
-        Assert.assertNotNull(recipe);
-        Assert.assertTrue(recipe.isFile());
-        Assert.assertEquals(((FileEntry)recipe).getMediaType(), "text/x-docker");
-        Assert.assertEquals(((FileEntry)recipe).contentAsBytes(), recipeBytes);
+
     }
 
     @Test

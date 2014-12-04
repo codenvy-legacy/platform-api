@@ -725,6 +725,7 @@ public class ProjectService extends Service {
                     project = new Project(baseProjectFolder, projectManager);
                     project.updateDescription(providedDescription);
                 } else {
+                    ProjectDescription projectDescription = project.getDescription();
                     final String typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
                     ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(typeId);
                     if (projectType == null) {
@@ -733,6 +734,30 @@ public class ProjectService extends Service {
                                             .withMessage("Project type not registered so we set it as blank");
                     }
                     providedDescription.setProjectType(projectType);
+
+                    if (providedDescription.getBuilders() == null) {
+                        providedDescription.setBuilders(projectDescription.getBuilders());
+                    }
+                    if (providedDescription.getRunners() == null) {
+                        providedDescription.setRunners(projectDescription.getRunners());
+                    }
+                    if (providedDescription.getDescription() == null) {
+                        providedDescription.setDescription(projectDescription.getDescription());
+                    }
+
+                    List<Attribute> attributes = projectDescription.getAttributes();
+                    List<Attribute> updateAttributes = providedDescription.getAttributes();
+                    if (updateAttributes == null || updateAttributes.isEmpty()) {
+                        providedDescription.setAttributes(attributes);
+                    } else if (attributes != null && !attributes.isEmpty()) {
+                        for (Attribute attribute : attributes) {
+                            if (!updateAttributes.contains(attribute)) {
+                                updateAttributes.add(attribute);
+                            }
+                        }
+                        providedDescription.setAttributes(updateAttributes);
+                    }
+
                     project.updateDescription(providedDescription);
                 }
             } else if (project == null) {

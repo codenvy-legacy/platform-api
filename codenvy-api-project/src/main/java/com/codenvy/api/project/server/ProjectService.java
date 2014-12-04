@@ -23,7 +23,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.shared.EnvironmentId;
-import com.codenvy.api.project.shared.dto.GenerateDescriptor;
+import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.project.shared.dto.ImportProject;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -228,9 +228,9 @@ public class ProjectService extends Service {
             throws ConflictException, ForbiddenException, ServerException {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
-        final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
-        if (generateDescriptor != null) {
-            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getName());
+        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
+        if (generatorDescription != null) {
+            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
             if (generator != null) {
                 generator.generateProject(project.getBaseFolder(), newProject);
             }
@@ -310,9 +310,9 @@ public class ProjectService extends Service {
         final Project module = new Project(moduleFolder, projectManager);
         module.updateDescription(DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
 
-        final GenerateDescriptor generateDescriptor = newProject.getGenerateDescriptor();
-        if (generateDescriptor != null) {
-            final ProjectGenerator generator = generators.getGenerator(generateDescriptor.getName());
+        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
+        if (generatorDescription != null) {
+            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
             if (generator != null) {
                 generator.generateProject(module.getBaseFolder(), newProject);
             }

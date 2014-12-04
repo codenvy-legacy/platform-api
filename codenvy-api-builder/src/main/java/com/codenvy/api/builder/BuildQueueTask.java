@@ -16,7 +16,7 @@ import com.codenvy.api.builder.dto.BuilderMetric;
 import com.codenvy.api.builder.internal.Constants;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.core.rest.OutputProvider;
+import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.dto.server.DtoFactory;
@@ -206,18 +206,28 @@ public final class BuildQueueTask implements Cancellable {
                 // Special behaviour for download links.
                 // Download links may be multiple.
                 // Relative path to download file is in query parameter so copy query string from original URL.
-                final UriBuilder myUriBuilder = getUriBuilder();
-                myUriBuilder.path(BuilderService.class, "download");
-                final String originalUrl = copy.getHref();
-                final int q = originalUrl.indexOf('?');
-                if (q > 0) {
-                    myUriBuilder.replaceQuery(originalUrl.substring(q + 1));
-                }
+                final UriBuilder myUriBuilder = getUriBuilder().path(BuilderService.class, "downloadFile");
+                copyQueryStringInUriBuilder(copy.getHref(), myUriBuilder);
+                copy.setHref(myUriBuilder.build(request.getWorkspace(), id).toString());
+                rewritten.add(copy);
+            } else if (Constants.LINK_REL_DOWNLOAD_RESULTS_TARBALL.equals(link.getRel()) ||
+                       Constants.LINK_REL_DOWNLOAD_RESULTS_ZIPBALL.equals(link.getRel())) {
+                final Link copy = DtoFactory.getInstance().clone(link);
+                final UriBuilder myUriBuilder = getUriBuilder().path(BuilderService.class, "downloadResultArchive");
+                copyQueryStringInUriBuilder(copy.getHref(), myUriBuilder);
                 copy.setHref(myUriBuilder.build(request.getWorkspace(), id).toString());
                 rewritten.add(copy);
             }
         }
         return rewritten;
+    }
+
+    private void copyQueryStringInUriBuilder(String url, UriBuilder uriBuilder) {
+        final int q = url.indexOf('?');
+        final String queryString =  q > 0 ? url.substring(q + 1) : null;
+        if (queryString != null) {
+            uriBuilder.replaceQuery(queryString);
+        }
     }
 
     RemoteTask getRemoteTask() throws NotFoundException, BuilderException {
@@ -255,7 +265,7 @@ public final class BuildQueueTask implements Cancellable {
                '}';
     }
 
-    public void readLogs(OutputProvider output) throws BuilderException, IOException, NotFoundException {
+    public void readLogs(HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // Logs aren't available until build starts
             throw new BuilderException("Logs are not available. Task is not started yet.");
@@ -263,7 +273,7 @@ public final class BuildQueueTask implements Cancellable {
         getRemoteTask().readLogs(output);
     }
 
-    public void readReport(OutputProvider output) throws BuilderException, IOException, NotFoundException {
+    public void readReport(HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // Logs aren't available until build starts
             throw new BuilderException("Report is not available. Task is not started yet.");
@@ -271,11 +281,43 @@ public final class BuildQueueTask implements Cancellable {
         getRemoteTask().readReport(output);
     }
 
-    public void download(String path, OutputProvider output) throws BuilderException, IOException, NotFoundException {
+    public void downloadFile(String path, HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
         if (isWaiting()) {
             // There is nothing for download until build ends
-            throw new BuilderException("Downloads are not available. Task is not started yet.");
+            throw new BuilderException(String.format("File '%s' is not available. Task is not started yet.", path));
+        }
+        getRemoteTask().downloadFile(path, output);
+    }
+
+    public void downloadResultArchive(String archType, HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
+        if (isWaiting()) {
+            // There is nothing for download until build ends
+            throw new BuilderException("Results are not available. Task is not started yet.");
+        }
+        getRemoteTask().downloadResultArchive(archType, output);
+    }
+
+    public void readFile(String path, HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
+        if (isWaiting()) {
+            // There is nothing for download until build ends
+            throw new BuilderException(String.format("File '%s' is not available. Task is not started yet.", path));
         }
         getRemoteTask().readFile(path, output);
+    }
+
+    public void browseDirectory(String path, HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
+        if (isWaiting()) {
+            // There is nothing for download until build ends
+            throw new BuilderException(String.format("Directory '%s' is not available. Task is not started yet.", path));
+        }
+        getRemoteTask().browseDirectory(path, output);
+    }
+
+    public void listDirectory(String path, HttpOutputMessage output) throws BuilderException, IOException, NotFoundException {
+        if (isWaiting()) {
+            // There is nothing for download until build ends
+            throw new BuilderException(String.format("Directory '%s' is not available. Task is not started yet.", path));
+        }
+        getRemoteTask().listDirectory(path, output);
     }
 }

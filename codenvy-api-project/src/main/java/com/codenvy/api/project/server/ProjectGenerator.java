@@ -22,8 +22,11 @@ import com.codenvy.api.project.shared.dto.NewProject;
  * @author Artem Zatsarynnyy
  */
 public interface ProjectGenerator {
-    /** Unique id of project generator. */
+    /** ID of the project generator. Should be unique within project type ID. */
     String getId();
+
+    /** Returns ID of the project type for which this generator may generate content. */
+    String getProjectTypeId();
 
     /**
      * Generates project.

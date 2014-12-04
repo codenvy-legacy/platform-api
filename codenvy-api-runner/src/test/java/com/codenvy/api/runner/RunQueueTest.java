@@ -57,12 +57,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Queue;
 import java.util.Set;
 import java.util.concurrent.Callable;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 
 import static org.mockito.Matchers.any;
@@ -102,7 +101,7 @@ public class RunQueueTest {
     private WorkspaceDescriptor workspace;
     private EnvironmentContext  codenvyContext;
 
-    private Queue<RunnerEvent> events = new LinkedList<>();
+    private List<RunnerEvent> events = new CopyOnWriteArrayList<>();
 
     @BeforeMethod
     public void beforeMethod() throws Exception {

@@ -19,7 +19,6 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpOutputMessage;
-import com.codenvy.api.core.rest.OutputProvider;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
@@ -139,7 +138,7 @@ public class RemoteTask {
      * @throws BuilderException
      *         if other error occurs
      */
-    public void readLogs(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+    public void readLogs(HttpOutputMessage output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
         final Link link = descriptor.getLink(Constants.LINK_REL_VIEW_LOG);
         if (link == null) {
@@ -159,7 +158,7 @@ public class RemoteTask {
      *         if other error occurs
      * @see com.codenvy.api.builder.internal.BuildResult#getBuildReport()
      */
-    public void readReport(OutputProvider output) throws IOException, BuilderException, NotFoundException {
+    public void readReport(HttpOutputMessage output) throws IOException, BuilderException, NotFoundException {
         final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
         final Link link = descriptor.getLink(Constants.LINK_REL_VIEW_REPORT);
         if (link == null) {
@@ -169,7 +168,7 @@ public class RemoteTask {
     }
 
     /**
-     * Copy file to specified {@code output}.
+     * Download file to specified {@code output}.
      *
      * @param path
      *         path to build artifact
@@ -179,30 +178,68 @@ public class RemoteTask {
      *         if an i/o error occurs
      * @throws BuilderException
      *         if other error occurs
+     * @see com.codenvy.api.builder.internal.SlaveBuilderService#downloadFile(String, Long, String)
      * @see com.codenvy.api.builder.internal.BuildResult#getResults()
      */
-    public void readFile(String path, OutputProvider output) throws IOException, BuilderException {
+    public void downloadFile(String path, HttpOutputMessage output) throws IOException, BuilderException {
         readFromUrl(String.format("%s/download/%s/%d?path=%s", baseUrl, builder, taskId, path), output);
     }
 
-    void readFromUrl(String url, final OutputProvider output) throws IOException {
+    /**
+     * Read file to specified {@code output}.
+     *
+     * @param path
+     *         path to build artifact
+     * @param output
+     *         output for download content
+     * @throws IOException
+     *         if an i/o error occurs
+     * @throws BuilderException
+     *         if other error occurs
+     * @see com.codenvy.api.builder.internal.SlaveBuilderService#viewFile(String, Long, String)
+     * @see com.codenvy.api.builder.internal.BuildResult#getResults()
+     */
+    public void readFile(String path, HttpOutputMessage output) throws IOException, BuilderException {
+        readFromUrl(String.format("%s/view/%s/%d?path=%s", baseUrl, builder, taskId, path), output);
+    }
+
+    public void browseDirectory(String path, HttpOutputMessage output) throws IOException, BuilderException {
+        readFromUrl(String.format("%s/browse/%s/%d?path=%s", baseUrl, builder, taskId, path), output);
+    }
+
+    public void listDirectory(String path, HttpOutputMessage output) throws IOException, BuilderException {
+        readFromUrl(String.format("%s/tree/%s/%d?path=%s", baseUrl, builder, taskId, path), output);
+    }
+
+    public void downloadResultArchive(String archType, HttpOutputMessage output) throws IOException, BuilderException, NotFoundException {
+        final BuildTaskDescriptor descriptor = getBuildTaskDescriptor();
+        Link link = null;
+        if (archType.equals("zip")) {
+            link = descriptor.getLink(Constants.LINK_REL_DOWNLOAD_RESULTS_ZIPBALL);
+        } else if (archType.equals("tar")) {
+            link = descriptor.getLink(Constants.LINK_REL_DOWNLOAD_RESULTS_TARBALL);
+        }
+        if (link == null) {
+            throw new BuilderException(String.format("%s archive with build result is not available.", archType));
+        }
+        readFromUrl(link.getHref(), output);
+    }
+
+    private void readFromUrl(String url, final HttpOutputMessage output) throws IOException {
         final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
         conn.setConnectTimeout(60 * 1000);
         conn.setReadTimeout(60 * 1000);
         conn.setRequestMethod("GET");
         try {
-            if (output instanceof HttpOutputMessage) {
-                HttpOutputMessage httpOutput = (HttpOutputMessage)output;
-                httpOutput.setStatus(conn.getResponseCode());
-                final String contentType = conn.getContentType();
-                if (contentType != null) {
-                    httpOutput.setContentType(contentType);
-                }
-                // for download files
-                final String contentDisposition = conn.getHeaderField("Content-Disposition");
-                if (contentDisposition != null) {
-                    httpOutput.addHttpHeader("Content-Disposition", contentDisposition);
-                }
+            output.setStatus(conn.getResponseCode());
+            final String contentType = conn.getContentType();
+            if (contentType != null) {
+                output.setContentType(contentType);
+            }
+            // for download files
+            final String contentDisposition = conn.getHeaderField("Content-Disposition");
+            if (contentDisposition != null) {
+                output.addHttpHeader("Content-Disposition", contentDisposition);
             }
             ByteStreams.copy(new InputSupplier<InputStream>() {
                                  @Override

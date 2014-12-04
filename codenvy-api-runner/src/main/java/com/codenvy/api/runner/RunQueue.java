@@ -417,7 +417,8 @@ public class RunQueue {
                                              .withWorkspace(workspace)
                                              .withProject(project)
                                              .withProjectDescriptor(projectDescriptor)
-                                             .withUserName(user == null ? "" : user.getName());
+                                             .withUserName(user == null ? "" : user.getName())
+                                             .withUserToken(getUserToken());
         String environmentId = runOptions.getEnvironmentId();
         // Project configuration for runner.
         final RunnersDescriptor runners = projectDescriptor.getRunners();
@@ -541,13 +542,6 @@ public class RunQueue {
             buildTaskHolder.set(startBuild(builderService, project, buildOptions));
             callable = createTaskFor(matchedRunners, request, buildTaskHolder);
         } else {
-            final Link zipballLink = projectDescriptor.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
-            if (zipballLink != null) {
-                final String zipballLinkHref = zipballLink.getHref();
-                // Slave runner needs auth token to be able download zipped project from Project API.
-                final String token = getAuthenticationToken();
-                request.setDeploymentSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
-            }
             callable = createTaskFor(matchedRunners, request, buildTaskHolder);
         }
         final Long id = sequence.getAndIncrement();
@@ -564,8 +558,6 @@ public class RunQueue {
     private void resolveProjectRunnerEnvironments(String infra, RunRequest request, ProjectDescriptor projectDescriptor,
                                                   String envName, List<RemoteRunner> matchedRunners) throws RunnerException {
         final List<String> recipesUrls = new LinkedList<>();
-        // Slave runner needs auth token to be able download recipes from Project API.
-        final String token = getAuthenticationToken();
         for (ItemReference recipe : getProjectRunnerRecipes(projectDescriptor, envName)) {
             // interesting only about files!!
             if ("file".equals(recipe.getType())) {
@@ -574,7 +566,7 @@ public class RunQueue {
                     request.setRunner("docker");
                 }
                 final Link contentLink = recipe.getLink(com.codenvy.api.project.server.Constants.LINK_REL_GET_CONTENT);
-                recipesUrls.add(token != null ? String.format("%s?token=%s", contentLink.getHref(), token) : contentLink.getHref());
+                recipesUrls.add(contentLink.getHref());
             }
         }
         // If don't find any files that we are able to recognize as runner recipe.
@@ -921,7 +913,7 @@ public class RunQueue {
         return modified;
     }
 
-    private String getAuthenticationToken() {
+    private String getUserToken() {
         User user = EnvironmentContext.getCurrent().getUser();
         if (user != null) {
             return user.getToken();
@@ -1032,25 +1024,13 @@ public class RunQueue {
                             return null;
                         }
                     }
-                    buildDescriptor =
-                            HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
+                    buildDescriptor = HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
                     // to be able show current state of build process with RunQueueTask.
                     buildTaskHolder.set(buildDescriptor);
                     final BuildStatus buildStatus = buildDescriptor.getStatus();
                     if (buildStatus == BuildStatus.SUCCESSFUL) {
-                        final Link downloadLink =
-                                buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
-                        if (downloadLink == null) {
-                            throw new RunnerException("Unable start application. Application build is successful but there " +
-                                                      "is no URL for download result of build.");
-                        }
-                        final String downloadLinkHref = downloadLink.getHref();
-                        // Slave runner needs auth token to be able download binaries from Builder API.
-                        final String token = getAuthenticationToken();
-                        request.withDeploymentSourcesUrl(
-                                token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
-                        // get out from loop
-                        break;
+                        request.withBuildTaskDescriptor(buildDescriptor);
+                        break; // get out from loop
                     } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
                         String msg = "Unable start application. Build of application is failed or cancelled.";
                         final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
@@ -1060,8 +1040,7 @@ public class RunQueue {
                         throw new RunnerException(msg);
                     } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
                         // wait
-                        LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
-                                  request.getWorkspace());
+                        LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(), request.getWorkspace());
                     }
                 }
             }

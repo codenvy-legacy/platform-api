@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.dto.shared.DTO;
 
@@ -29,12 +30,12 @@ public interface RunRequest {
 
     RunRequest withId(long id);
 
-    /** Location of deployment sources. Deployment sources typically points to zip bundle of application that is ready to run. */
-    String getDeploymentSourcesUrl();
+    /** Describes build process if application was build before run task, e.g. for compilable languages. */
+    BuildTaskDescriptor getBuildTaskDescriptor();
 
-    void setDeploymentSourcesUrl(String url);
+    void setBuildTaskDescriptor(BuildTaskDescriptor buildDescriptor);
 
-    RunRequest withDeploymentSourcesUrl(String url);
+    RunRequest withBuildTaskDescriptor(BuildTaskDescriptor buildDescriptor);
 
     ProjectDescriptor getProjectDescriptor();
 
@@ -131,4 +132,10 @@ public interface RunRequest {
     RunRequest withUserName(String userName);
 
     void setUserName(String userName);
+
+    String getUserToken();
+
+    RunRequest withUserToken(String token);
+
+    void setUserToken(String token);
 }

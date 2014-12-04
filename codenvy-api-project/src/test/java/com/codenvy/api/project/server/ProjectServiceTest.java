@@ -367,6 +367,11 @@ public class ProjectServiceTest {
             }
 
             @Override
+            public String getProjectTypeId() {
+                return "my_project_type";
+            }
+
+            @Override
             public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
                     throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
@@ -432,6 +437,11 @@ public class ProjectServiceTest {
             @Override
             public String getId() {
                 return "my_generator";
+            }
+
+            @Override
+            public String getProjectTypeId() {
+                return "my_project_type";
             }
 
             @Override

@@ -230,7 +230,7 @@ public class ProjectService extends Service {
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
         if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName());
+            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
             if (generator != null) {
                 generator.generateProject(project.getBaseFolder(), newProject);
             }
@@ -312,7 +312,7 @@ public class ProjectService extends Service {
 
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
         if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName());
+            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
             if (generator != null) {
                 generator.generateProject(module.getBaseFolder(), newProject);
             }

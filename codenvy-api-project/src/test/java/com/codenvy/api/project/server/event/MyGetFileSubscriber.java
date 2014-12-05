@@ -8,7 +8,11 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.event;
+
+import com.codenvy.api.project.newproj.server.event.GetItemEvent;
+import com.codenvy.api.project.newproj.server.event.GetItemSubcriber;
+import com.codenvy.api.project.server.type.NewProjectTypeTest;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -17,16 +21,15 @@ import javax.inject.Singleton;
  * @author gazarenkov
  */
 @Singleton
-public class MyProjectType extends AbstractProjectType {
+public class MyGetFileSubscriber extends GetItemSubcriber {
 
     @Inject
-    public MyProjectType(MyVPFactory myVPFactory) {
-
-        super("my", "my type");
-
-        attributes.add(new Constant("my", "const", "Constant", "const_value"));
-        attributes.add(new Variable("my", "var", "Variable", true/*, myVPFactory.newInstance(null)*/));
-
+    public MyGetFileSubscriber(NewProjectTypeTest.MyProjectType type) {
+        super(type);
     }
 
+    @Override
+    protected void execute(GetItemEvent event) {
+        System.out.println("EVENT >>>>>" + event.getProjectType().getId() + " --> " + event.getFile()/*.getVirtualFile().getProperties()*/);
+    }
 }

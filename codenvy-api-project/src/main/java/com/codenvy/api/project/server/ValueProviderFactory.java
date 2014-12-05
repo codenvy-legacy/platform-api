@@ -17,8 +17,8 @@ package com.codenvy.api.project.server;
  */
 public interface ValueProviderFactory {
     /** Name of Attribute2 for which this factory may produce ValueProvider2. */
-    String getName();
+    //String getName();
 
     /** Create new instance of ValueProvider2. Project is used for access to low-level information about project. */
-    ValueProvider newInstance(Project project);
+    ValueProvider newInstance(String attributeId, Project project);
 }

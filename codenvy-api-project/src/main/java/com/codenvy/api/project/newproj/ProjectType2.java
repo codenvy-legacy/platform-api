@@ -23,7 +23,7 @@ public interface ProjectType2 {
 
     List<Attribute2> getAttributes();
 
-    Attribute2 getAttribute(String id);
+    Attribute2 getAttribute(String name);
 
     List <ProjectType2> getParents();
 

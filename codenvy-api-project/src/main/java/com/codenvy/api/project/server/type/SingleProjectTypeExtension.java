@@ -19,6 +19,7 @@ import java.util.List;
 
 /**
  * @author gazarenkov
+ * @deprecated
  */
 public abstract class SingleProjectTypeExtension implements ProjectTypeExtension, ProjectTypeDescriptionExtension {
     @Override

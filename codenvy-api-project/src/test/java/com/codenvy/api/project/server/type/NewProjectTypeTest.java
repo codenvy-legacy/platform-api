@@ -8,11 +8,12 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.type;
 
 
 import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.server.ValueProviderFactory;
+import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.server.*;
 import com.google.inject.AbstractModule;
 import com.google.inject.Guice;
 import com.google.inject.Injector;
@@ -21,7 +22,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.Set;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Arrays;
+import java.util.List;
 
 
 /**
@@ -71,13 +75,12 @@ public class NewProjectTypeTest {
     public void testFirst() throws Exception {
 
 
-        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+injector.getInstance(MyProjectType.class));
-
         ProjectTypeRegistry reg = injector.getInstance(ProjectTypeRegistry.class);
-//
-//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttribute("var").getValue().getString());
-//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getParents().size());
-//        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttributes().size());
+
+        //System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttribute("var").getValue()/*.getString()*/);
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getParents().size());
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+reg.getProjectType("my").getAttributes().size());
+        System.out.println(">>>>>>>>>>>>>>>>>>>>>> "+((Variable)reg.getProjectType("my").getAttribute("var")).getValueProviderFactory());
 
 
 
@@ -87,5 +90,57 @@ public class NewProjectTypeTest {
 //        Assert.assertNotNull(folder.getChild(".git"));
 //
 //        Assert.assertEquals("test git importer", new String(readme.contentAsBytes()));
+    }
+
+    /**
+     * @author gazarenkov
+     */
+    @Singleton
+    public static class MyVPFactory implements ValueProviderFactory {
+
+
+//        @Override
+//        public String getName() {
+//            return "var";
+//        }
+
+        @Override
+        public ValueProvider newInstance(String attributeId, Project project) {
+            return new MyValueProvider();
+
+        }
+
+        public static class MyValueProvider implements ValueProvider {
+
+
+            @Override
+            public List<String> getValues() throws ValueStorageException {
+                return Arrays.asList("gena");
+            }
+
+            @Override
+            public void setValues(List<String> value) throws ValueStorageException, InvalidValueException {
+
+            }
+
+        }
+    }
+
+    /**
+     * @author gazarenkov
+     */
+    @Singleton
+    public static class MyProjectType extends AbstractProjectType {
+
+        @Inject
+        public MyProjectType(MyVPFactory myVPFactory) {
+
+            super("my", "my type");
+
+            attributes.add(new Constant("my", "const", "Constant", "const_value"));
+            attributes.add(new Variable("my", "var", "Variable", true, myVPFactory));
+
+        }
+
     }
 }

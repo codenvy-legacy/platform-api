@@ -42,11 +42,7 @@ import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Helper methods for convert server essentials to DTO and back.
@@ -127,23 +123,24 @@ public class DtoConverter {
 
 
         final Map<String, List<String>> updateAttributes = dto.getAttributes();
-        final List<Attribute2> attributes = new ArrayList<>(updateAttributes.size());
+        //final List<Attribute2> attributes = new ArrayList<>(updateAttributes.size());
+        final HashMap <String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
+
 
         if (!updateAttributes.isEmpty()) {
             for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
 
                 Attribute2 attr = projectType.getAttribute(e.getKey());
                 if(attr != null)  {
-                    if(attr.isVariable()) {
-
-                        //ValueProvider2 vp = new Variable.DefaultValueProvider(new AttributeValue(e.getValue()));
-
-                        attributes.add(new Variable(attr.getProjectType(), attr.getName(), attr.getDescription(),
-                                attr.isRequired(), new AttributeValue(e.getValue())));
-                    } else {
-                        attributes.add(new Constant(attr.getProjectType(), attr.getName(), attr.getDescription(),
-                                new AttributeValue(e.getValue())));
-                    }
+                    attributes.put(attr.getName(), new AttributeValue(e.getValue()));
+//                    if(attr.isVariable()) {
+//
+//                        attributes.add(new Variable(attr.getProjectType(), attr.getName(), attr.getDescription(),
+//                                attr.isRequired(), new AttributeValue(e.getValue())));
+//                    } else {
+//                        attributes.add(new Constant(attr.getProjectType(), attr.getName(), attr.getDescription(),
+//                                new AttributeValue(e.getValue())));
+//                    }
 
                 }
             }

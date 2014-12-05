@@ -39,39 +39,66 @@ public class ProjectTest {
 
     private ProjectManager pm;
 
-    private List<String> calculateAttributeValueHolder;
+    private static List<String> calculateAttributeValueHolder = Collections.singletonList("hello");
 
     @BeforeMethod
     public void setUp() throws Exception {
 
-        Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
-            @Override
-            public String getName() {
-                return "my_project_type:calculated_attribute";
-            }
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
+//            @Override
+//            public String getName() {
+//                return "my_project_type:calculated_attribute";
+//            }
 
             @Override
-            public ValueProvider newInstance(Project project) {
+            public ValueProvider newInstance(String attributeId, Project project) {
                 return new ValueProvider() {
                     @Override
                     public List<String> getValues() {
-                        return Collections.singletonList("hello");
+
+                        System.out.println(" >>>> GET VALUE "+calculateAttributeValueHolder);
+                        return calculateAttributeValueHolder;
+                        //Collections.singletonList("hello");
                     }
 
                     @Override
                     public void setValues(List<String> value) {
 
-                        System.out.println(" >>>> SET VALUE "+value);
                         calculateAttributeValueHolder = value;
+                        System.out.println(" >>>> SET VALUE "+calculateAttributeValueHolder);
                     }
                 };
             }
-        });
+        };
+
+//        final Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
+////            @Override
+////            public String getName() {
+////                return "my_project_type:calculated_attribute";
+////            }
+//
+//            @Override
+//            public ValueProvider newInstance(String attributeId, Project project) {
+//                return new ValueProvider() {
+//                    @Override
+//                    public List<String> getValues() {
+//                        return Collections.singletonList("hello");
+//                    }
+//
+//                    @Override
+//                    public void setValues(List<String> value) {
+//
+//                        //System.out.println(" >>>> SET VALUE "+value);
+//                        calculateAttributeValueHolder = value;
+//                    }
+//                };
+//            }
+//        });
 
         AbstractProjectType pt = new AbstractProjectType("my_project_type", "my project type") {
 
             {
-                attributes.add(new Variable("my_project_type", "calculated_attribute", "attr description", true));
+                attributes.add(new Variable("my_project_type", "calculated_attribute", "attr description", true, vpf1));
                 attributes.add(new Variable("my_project_type", "my_property_1", "attr description", true));
                 attributes.add(new Variable("my_project_type", "my_property_2", "attr description", false));
             }
@@ -96,7 +123,7 @@ public class ProjectTest {
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
 
-        pm = new DefaultProjectManager(vpf, vfsRegistry, eventService, ptRegistry);
+        pm = new DefaultProjectManager(/*vpf,*/ vfsRegistry, eventService, ptRegistry);
 
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
@@ -118,12 +145,15 @@ public class ProjectTest {
     @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        Map<String, List<String>> attributes = new HashMap<>(2);
+        Map<String, List<String>> attributes = new HashMap<>(3);
+        //attributes.put("calculated_attribute", Arrays.asList("hello"));
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
-        new ProjectJson2().withType("my_project_type").withAttributes(attributes).save(myProject);
+        ProjectJson2 json = new ProjectJson2();
+        json.withType("my_project_type").withAttributes(attributes).save(myProject);
         //ProjectDescription myProjectDescription = myProject.getDescription();
 
+        System.out.println("JSON >> "+json.getAttributes());
 
         //System.out.println(">>    >>"+pm.getValueProviderFactories());
 
@@ -138,8 +168,10 @@ public class ProjectTest {
 
         Assert.assertEquals(myConfig.getAttributes().size(), 3);
 
+        AttributeValue attributeVal;
+
         Assert.assertNotNull(myConfig.getAttributes().get("calculated_attribute"));
-        AttributeValue attributeVal = myConfig.getAttributes().get("calculated_attribute");
+        attributeVal = myConfig.getAttributes().get("calculated_attribute");
         Assert.assertEquals(attributeVal.getList(), Arrays.asList("hello"));
 
         Assert.assertNotNull(myConfig.getAttributes().get("my_property_1"));

@@ -12,9 +12,7 @@ package com.codenvy.api.project.newproj.server;
 
 import com.codenvy.api.project.newproj.AbstractAttribute;
 import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.server.InvalidValueException;
-import com.codenvy.api.project.server.ValueProvider;
-import com.codenvy.api.project.server.ValueStorageException;
+import com.codenvy.api.project.server.*;
 
 
 /**
@@ -22,14 +20,16 @@ import com.codenvy.api.project.server.ValueStorageException;
  */
 public class Variable extends AbstractAttribute {
 
-    protected ValueProvider valueProvider = null;
+    protected ValueProviderFactory valueProviderFactory = null;
     protected AttributeValue value = null;
 
 
-    public Variable(String projectType, String name, String description, boolean required, ValueProvider valueProvider) {
+    public Variable(String projectType, String name, String description, boolean required,
+                    ValueProviderFactory valueProviderFactory) {
         this(projectType, name, description, required);
-        this.valueProvider = valueProvider;
+        this.valueProviderFactory = valueProviderFactory;
     }
+
 
     public Variable(String projectType, String name, String description, boolean required, AttributeValue value) {
         this(projectType, name, description, required);
@@ -41,15 +41,33 @@ public class Variable extends AbstractAttribute {
     }
 
     @Override
-    public final AttributeValue getValue() throws ValueStorageException {
-        return (valueProvider != null)?new AttributeValue(valueProvider.getValues()):value;
+    public AttributeValue getValue() throws ValueStorageException {
+        return value;
     }
 
-    public final void setValue(AttributeValue value) throws InvalidValueException, ValueStorageException {
-        if(valueProvider != null)
-            this.valueProvider.setValues(value.getList());
-        else
+
+    public final AttributeValue getValue(Project project) throws ValueStorageException {
+        if(valueProviderFactory != null) {
+            System.out.println("setValue >> "+getName()+" "+value.getList());
+            return new AttributeValue(valueProviderFactory.newInstance(getId(), project).getValues());
+        } else {
+            return value;
+        }
+        //return (valueProvider != null)?new AttributeValue(valueProvider.getValues()):value;
+    }
+
+    public final void setValue(AttributeValue value, Project project) throws InvalidValueException, ValueStorageException {
+        if(valueProviderFactory != null) {
+            System.out.println("setValue >> "+getName()+" "+value.getList());
+            this.valueProviderFactory.newInstance(getId(), project).setValues(value.getList());
+        } else
             this.value = value;
     }
+
+    public final ValueProviderFactory getValueProviderFactory() {
+        return valueProviderFactory;
+    }
+
+
 
 }

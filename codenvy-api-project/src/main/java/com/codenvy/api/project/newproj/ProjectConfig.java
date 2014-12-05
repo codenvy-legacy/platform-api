@@ -32,20 +32,20 @@ public class ProjectConfig {
     private Runners runners;
     private Builders builders;
 
-    public ProjectConfig(String description, String typeId, List<Attribute2> attributes, Runners runners,
-                         Builders builders) throws ValueStorageException {
-
-        this.description = description;
-        this.typeId = typeId;
-        this.attributes = new HashMap<>();
-        for(Attribute2 attr : attributes) {
-
-            this.attributes.put(attr.getName(), attr.getValue());
-        }
-        this.builders = (builders == null)?new Builders():builders;
-        this.runners = (runners == null)?new Runners():runners;
-
-    }
+//    public ProjectConfig(String description, String typeId, List<Attribute2> attributes, Runners runners,
+//                         Builders builders) throws ValueStorageException {
+//
+//        this.description = description;
+//        this.typeId = typeId;
+//        this.attributes = new HashMap<>();
+//        for(Attribute2 attr : attributes) {
+//
+//            this.attributes.put(attr.getName(), attr.getValue());
+//        }
+//        this.builders = (builders == null)?new Builders():builders;
+//        this.runners = (runners == null)?new Runners():runners;
+//
+//    }
 
     public ProjectConfig(String description, String typeId, Map<String, AttributeValue> attributes, Runners runners,
                          Builders builders) {

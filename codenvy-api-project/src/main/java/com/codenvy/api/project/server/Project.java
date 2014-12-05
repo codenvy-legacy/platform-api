@@ -23,14 +23,7 @@ import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * Server side representation for codenvy project.
@@ -88,15 +81,15 @@ public class Project {
     }
 
 
+//    public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
+//            InvalidValueException {
+//
+//        return doGetConfig();
+//
+//    }
+
+
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
-            InvalidValueException {
-
-        return doGetConfig();
-
-    }
-
-
-    private ProjectConfig doGetConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
         final ProjectJson2 projectJson = ProjectJson2.load(this);
@@ -107,24 +100,32 @@ public class Project {
             throw new ProjectTypeConstraintException("No Project Type registered for: " + projectJson.getType());
         }
 
-        //final List<Attribute2> copy = new ArrayList<>(type.getAttributes().size());
-        //copy.addAll(type.getAttributes());
 
-        final List<Attribute2> attributes = new ArrayList<>();
+        //final List<Attribute2> attributes = new ArrayList<>();
+
+        final Map<String, AttributeValue> attributes = new HashMap<>();
 
         for(Attribute2 attr : type.getAttributes()) {
 
             if(attr.isVariable()) {
                 Variable var = (Variable) attr;
-                final ValueProviderFactory factory = manager.getValueProviderFactories().get(attr.getId());
+
+                //Variable var = (Variable)type.getAttribute(attr.getName());
+
+                //System.out.println("GET CONFIG1 >> "+var.getName()+" "+var.getValue());
+
+                final ValueProviderFactory factory = var.getValueProviderFactory();
+                        //manager.getValueProviderFactories().get(attr.getId());
 
                 List <String> val;
                 if (factory != null) {
 
-                    val = factory.newInstance(this).getValues();
+                    val = factory.newInstance(var.getId(), this).getValues();
+
+                    //System.out.println("GET CONFIG2 >> "+var.getName()+" "+val);
 
                     if(val == null)
-                        throw new ProjectTypeConstraintException("Value Provider produced by Factory "+factory.getName()+" must not produce NULL value of variable "+var.getId());
+                        throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable "+var.getId());
                  } else {
                     val = projectJson.getAttributes().get(attr.getName());
                     //val = new AttributeValue(projectJson.getAttributeValues(attr.getName()));
@@ -135,15 +136,18 @@ public class Project {
                         throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable "+var.getId());
                     // else just not add it
                 } else {
-                    var.setValue(new AttributeValue(val));
-                    attributes.add(var);
+                    //System.out.println(">>>>>>>>>>>>>>");
+                    //var.setValue(new AttributeValue(val), this);
+                    //System.out.println("GET CONFIG3 >> "+var.getName()+" "+var.getValue()+" "+var.getValueProviderFactory() +" "+new AttributeValue(val).getList());
+                    attributes.put(var.getName(), new AttributeValue(val));
+                    //System.out.println(">>>>>>>>>>>>>>");
+                    //attributes.add(var);
                 }
 
             } else {  // Constant
 
-
-
-                attributes.add(attr);
+                attributes.put(attr.getName(), attr.getValue());
+                //attributes.add(attr);
             }
         }
 
@@ -298,7 +302,8 @@ public class Project {
             if(definition.isVariable()) {
                 Variable var = (Variable)definition;
 
-                final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(var.getId());
+                final ValueProviderFactory valueProviderFactory = var.getValueProviderFactory();
+                        //manager.getValueProviderFactories().get(var.getId());
 
                 //AttributeValue val = attributeUpdate.getValue();
 
@@ -306,7 +311,7 @@ public class Project {
                      throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
 
                 if(valueProviderFactory != null) {
-                    valueProviderFactory.newInstance(this).setValues(attributeValue.getList());
+                    valueProviderFactory.newInstance(var.getId(), this).setValues(attributeValue.getList());
                 }
                 projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
 //                else {

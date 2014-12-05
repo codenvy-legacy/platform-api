@@ -123,7 +123,7 @@ public interface ProjectManager {
      */
     //ProjectTypeDescriptionRegistry getTypeDescriptionRegistry();
 
-    Map<String, ValueProviderFactory> getValueProviderFactories();
+    //Map<String, ValueProviderFactory> getValueProviderFactories();
 
     VirtualFileSystemRegistry getVirtualFileSystemRegistry();
 

@@ -65,7 +65,7 @@ public class ProjectEventTest {
 
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
-        pm = new DefaultProjectManager(Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry);
+        pm = new DefaultProjectManager(/*Collections.<ValueProviderFactory>emptySet(),*/ vfsRegistry, eventService, ptRegistry);
 
         ProjectConfig config = new ProjectConfig("descr", "my_project_type");
 

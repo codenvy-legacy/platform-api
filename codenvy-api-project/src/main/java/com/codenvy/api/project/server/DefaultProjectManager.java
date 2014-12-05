@@ -60,8 +60,7 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Lock[]                                     miscLocks;
     private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
-    //private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
-    private final Map<String, ValueProviderFactory> valueProviderFactories;
+    //private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
@@ -71,19 +70,20 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @Inject
     @SuppressWarnings("unchecked")
-    public DefaultProjectManager(Set<ValueProviderFactory> valueProviderFactories,
+    public DefaultProjectManager(
+            //Set<ValueProviderFactory> valueProviderFactories,
                                  VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService,
                                  ProjectTypeRegistry projectTypeRegistry) {
 
         this.fileSystemRegistry = fileSystemRegistry;
-        this.valueProviderFactories = new HashMap<>();
+        //this.valueProviderFactories = new HashMap<>();
         this.eventService = eventService;
         this.projectTypeRegistry = projectTypeRegistry;
 
-        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
-            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
-        }
+//        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
+//            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
+//        }
         this.miscCaches = new Cache[CACHE_NUM];
         this.miscLocks = new Lock[CACHE_NUM];
         for (int i = 0; i < CACHE_NUM; i++) {
@@ -298,10 +298,10 @@ public final class DefaultProjectManager implements ProjectManager {
 //        return typeDescriptionRegistry;
 //    }
 
-    @Override
-    public Map<String, ValueProviderFactory> getValueProviderFactories() {
-        return valueProviderFactories;
-    }
+//    @Override
+//    public Map<String, ValueProviderFactory> getValueProviderFactories() {
+//        return valueProviderFactories;
+//    }
 
     @Override
     public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {

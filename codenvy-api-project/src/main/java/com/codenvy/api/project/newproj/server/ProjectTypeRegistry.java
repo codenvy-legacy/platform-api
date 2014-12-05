@@ -37,11 +37,6 @@ public class ProjectTypeRegistry {
     @Inject
     public ProjectTypeRegistry(Set<ProjectType2> projTypes) {
 
-
-
-//        if(!projTypes.contains(BASE_TYPE))
-//            projTypes.add(BASE_TYPE);
-
         if(!projTypes.contains(BASE_TYPE)) {
             allIds.add(BASE_TYPE.getId());
             projectTypes.put(BASE_TYPE.getId(), BASE_TYPE);
@@ -101,6 +96,9 @@ public class ProjectTypeRegistry {
             // make attributes with FQ ID: projectTypeId:attributeId
             //this.attributes.add(attr);
             //init
+//            if(attr.isVariable()) {
+//                //System.out.println("INIT >>>>> " + attr.getId() + " = "+((Variable)attr).valueProviderFactory);
+//            }
 
         }
 

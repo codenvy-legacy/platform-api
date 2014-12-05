@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server.event;
+package com.codenvy.api.project.server.event;
 
 import com.codenvy.api.project.newproj.server.AbstractProjectType;
 import com.codenvy.api.project.newproj.server.Constant;

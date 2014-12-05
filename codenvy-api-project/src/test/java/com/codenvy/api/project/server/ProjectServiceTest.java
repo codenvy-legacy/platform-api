@@ -99,21 +99,6 @@ public class ProjectServiceTest {
     public void setUp() throws Exception {
 
 
-//        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
-//        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
-//            @Override
-//            public List<ProjectType> getProjectTypes() {
-//                return Arrays.asList(new ProjectType("my_project_type", "my project type", "my_category"));
-//            }
-//
-//            @Override
-//            public List<AttributeDescription> getAttributeDescriptions() {
-//                return Collections.emptyList();
-//            }
-//        });
-
-
-
         final EventService eventService = new EventService();
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
 
@@ -143,11 +128,11 @@ public class ProjectServiceTest {
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
 
 
-        pm = new DefaultProjectManager(Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService,
+        pm = new DefaultProjectManager(/*Collections.<ValueProviderFactory>emptySet(),*/ vfsRegistry, eventService,
                 ptRegistry);
 
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
-                new ArrayList<Attribute2>(), null, null));
+                new HashMap<String, AttributeValue>(), null, null));
 
 //        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
 //        ProjectDescription pd = new ProjectDescription(projectType);

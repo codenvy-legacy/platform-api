@@ -10,16 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
-import static java.util.Collections.singletonList;
-import static java.util.Collections.singletonMap;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.testng.Assert.assertEquals;
-
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
@@ -69,6 +59,16 @@ import java.nio.file.Files;
 import java.util.Arrays;
 import java.util.HashMap;
 
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
+import static java.util.Collections.singletonList;
+import static java.util.Collections.singletonMap;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.testng.Assert.assertEquals;
+
 /**
  * Tests for {@link com.codenvy.api.factory.dto.Factory}
  *
@@ -100,7 +100,7 @@ public class FactoryBuilderTest {
     @Test(dataProvider = "jsonprovider")
     public void shouldBeAbleToParserJsonV1_1(String json) {
 
-        Factory factory = dto.createDtoFromJson(json, Factory.class);
+        dto.createDtoFromJson(json, Factory.class);
         //System.out.println(FactoryBuilder.buildEncoded(factory));
     }
 
@@ -415,7 +415,7 @@ public class FactoryBuilderTest {
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "setByServerParamsProvider",
-            expectedExceptionsMessageRegExp = "You have provided an invalid parameter .* for this version of Factory parameters.*")
+          expectedExceptionsMessageRegExp = "You have provided an invalid parameter .* for this version of Factory parameters.*")
     public void shouldNotAllowUsingParamsThatCanBeSetOnlyByServer(Factory factory)
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, ENCODED);
@@ -435,62 +435,61 @@ public class FactoryBuilderTest {
 
     @Test
     public void shouldBeAbleToConvert2_0ActionsToNewFormat2_1() throws ApiException {
+        Factory given = dto.createDto(Factory.class).withV("2.0")
+                           .withSource(dto.createDto(Source.class)
+                                          .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                          .withType("git")
+                                                          .withLocation("location")
+                                                          .withParameters(singletonMap("key", "value")))
+                                          .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
+                                                                                 .withLocation("location")
+                                                                                 .withParameters(singletonMap("key", "value")))))
+                           .withProject(dto.createDto(NewProject.class)
+                                           .withType("type")
+                                           .withAttributes(singletonMap("key", singletonList("value")))
+                                           .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
+                                           .withDescription("description")
+                                           .withName("name")
+                                           .withRunners(dto.createDto(RunnersDescriptor.class)
+                                                           .withDefault("default")
+                                                           .withConfigs(
+                                                                   singletonMap("key", dto.createDto(RunnerConfiguration.class)
+                                                                                          .withRam(768)
+                                                                                          .withOptions(
+                                                                                                  singletonMap("key", "value"))
+                                                                                          .withVariables(
+                                                                                                  singletonMap("key", "value")))))
+                                           .withVisibility("private"))
+                           .withCreator(dto.createDto(Author.class)
+                                           .withAccountId("accountId")
+                                           .withEmail("email")
+                                           .withName("name"))
+                           .withPolicies(dto.createDto(Policies.class)
+                                            .withRefererHostname("referrer")
+                                            .withValidSince(123l)
+                                            .withValidUntil(123l))
+                           .withActions(dto.createDto(Actions.class)
+                                           .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
+                                                                             .withFiles(singletonList("file"))
+                                                                             .withEntries(singletonList(
+                                                                                     dto.createDto(Variable.class)
+                                                                                        .withFind("find")
+                                                                                        .withReplace("replace")
+                                                                                        .withReplacemode("mode")))))
 
-        Factory given = (Factory)dto.createDto(Factory.class).withV("2.0")
-                                    .withSource(dto.createDto(Source.class)
-                                                   .withProject(dto.createDto(ImportSourceDescriptor.class)
-                                                                   .withType("git")
-                                                                   .withLocation("location")
-                                                                   .withParameters(singletonMap("key", "value")))
-                                                   .withRunners(singletonMap("runEnv", dto.createDto(RunnerSource.class)
-                                                                                          .withLocation("location")
-                                                                                          .withParameters(singletonMap("key", "value")))))
-                                    .withProject(dto.createDto(NewProject.class)
-                                                    .withType("type")
-                                                    .withAttributes(singletonMap("key", singletonList("value")))
-                                                    .withBuilders(dto.createDto(BuildersDescriptor.class).withDefault("default"))
-                                                    .withDescription("description")
-                                                    .withName("name")
-                                                    .withRunners(dto.createDto(RunnersDescriptor.class)
-                                                                    .withDefault("default")
-                                                                    .withConfigs(
-                                                                            singletonMap("key", dto.createDto(RunnerConfiguration.class)
-                                                                                                   .withRam(768)
-                                                                                                   .withOptions(
-                                                                                                           singletonMap("key", "value"))
-                                                                                                   .withVariables(
-                                                                                                           singletonMap("key", "value")))))
-                                                    .withVisibility("private"))
-                                    .withCreator(dto.createDto(Author.class)
-                                                    .withAccountId("accountId")
-                                                    .withEmail("email")
-                                                    .withName("name"))
-                                    .withPolicies(dto.createDto(Policies.class)
-                                                     .withRefererHostname("referrer")
-                                                     .withValidSince(123l)
-                                                     .withValidUntil(123l))
-                                    .withActions(dto.createDto(Actions.class)
-                                                    .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
-                                                                                      .withFiles(singletonList("file"))
-                                                                                      .withEntries(singletonList(
-                                                                                              dto.createDto(Variable.class)
-                                                                                                 .withFind("find")
-                                                                                                 .withReplace("replace")
-                                                                                                 .withReplacemode("mode")))))
-
-                                                    .withOpenFile("openFile")
-                                                    .withWarnOnClose(true)
-                                                    .withWelcome(dto.createDto(WelcomePage.class)
-                                                                    .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                                          .withContenturl("url")
-                                                                                          .withIconurl("url")
-                                                                                          .withNotification("notification")
-                                                                                          .withTitle("title"))
-                                                                    .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                                             .withContenturl("url")
-                                                                                             .withIconurl("url")
-                                                                                             .withNotification("notification")
-                                                                                             .withTitle("title"))));
+                                           .withOpenFile("openFile")
+                                           .withWarnOnClose(true)
+                                           .withWelcome(dto.createDto(WelcomePage.class)
+                                                           .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                 .withContenturl("url")
+                                                                                 .withIconurl("url")
+                                                                                 .withNotification("notification")
+                                                                                 .withTitle("title"))
+                                                           .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
+                                                                                    .withContenturl("url")
+                                                                                    .withIconurl("url")
+                                                                                    .withNotification("notification")
+                                                                                    .withTitle("title"))));
 
         Factory expected = (Factory)dto.createDto(Factory.class).withV("2.1")
                                        .withSource(dto.createDto(Source.class)
@@ -527,29 +526,15 @@ public class FactoryBuilderTest {
                                                         .withRefererHostname("referrer")
                                                         .withValidSince(123l)
                                                         .withValidUntil(123l))
-                                       .withActions(dto.createDto(Actions.class)
-                                                       .withFindReplace(singletonList(dto.createDto(ReplacementSet.class)
-                                                                                         .withFiles(singletonList("file"))
-                                                                                         .withEntries(singletonList(
-                                                                                                 dto.createDto(Variable.class)
-                                                                                                    .withFind("find")
-                                                                                                    .withReplace("replace")
-                                                                                                    .withReplacemode("mode")))))
-
-                                                       .withOpenFile("openFile")
-                                                       .withWarnOnClose(true)
-                                                       .withWelcome(dto.createDto(WelcomePage.class)
-                                                                       .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                                             .withContenturl("url")
-                                                                                             .withIconurl("url")
-                                                                                             .withNotification("notification")
-                                                                                             .withTitle("title"))
-                                                                       .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
-                                                                                                .withContenturl("url")
-                                                                                                .withIconurl("url")
-                                                                                                .withNotification("notification")
-                                                                                                .withTitle("title"))))
                                        .withIde(dto.createDto(Ide.class)
+                                                   .withOnAppLoaded(dto.createDto(OnAppLoaded.class)
+                                                                       .withActions(Arrays.asList(
+                                                                               dto.createDto(Action.class)
+                                                                                  .withId("findReplace")
+                                                                                  .withProperties(ImmutableMap.of(
+                                                                                          "in", "file",
+                                                                                          "find", "find",
+                                                                                          "replace", "replace")))))
                                                    .withOnAppClosed(
                                                            dto.createDto(OnAppClosed.class)
                                                               .withActions(
@@ -557,18 +542,8 @@ public class FactoryBuilderTest {
                                                    .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
                                                                            .withActions(Arrays.asList(
                                                                                    dto.createDto(Action.class)
-                                                                                      .withId("findReplace")
-                                                                                      .withProperties(
-                                                                                              ImmutableMap.of(
-                                                                                                      "in",
-                                                                                                      "file",
-                                                                                                      "find", "find",
-                                                                                                      "replace", "replace"
-                                                                                                             )),
-                                                                                   dto.createDto(Action.class)
                                                                                       .withId("openfile")
-                                                                                      .withProperties(singletonMap("file", "openFile"))
-                                                                                                     ))
+                                                                                      .withProperties(singletonMap("file", "openFile"))))
                                                                            .withParts(singletonList(dto.createDto(Part.class)
                                                                                                        .withId("welcomePanel")
                                                                                                        .withProperties(ImmutableMap
@@ -586,11 +561,8 @@ public class FactoryBuilderTest {
                                                                                                                                     "url")
                                                                                                                                .put("nonAuthenticatedContentUrl",
                                                                                                                                     "url")
-
-
                                                                                                                                .build()))
                                                                                      )));
-
 
         assertEquals(factoryBuilder.convertToLatest(given), expected);
     }
@@ -912,6 +884,5 @@ public class FactoryBuilderTest {
 
         factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
-
 
 }

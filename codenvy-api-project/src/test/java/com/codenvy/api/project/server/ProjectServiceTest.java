@@ -1121,7 +1121,6 @@ public class ProjectServiceTest {
         Assert.assertEquals(newProject.getDescription().getProjectType().getId(), "my_project_type");
     }
 
-    //TODO : need add check for buiders and attributes
     @Test
     public void testImportProjectWithRunners() throws Exception {
         ByteArrayOutputStream bout = new ByteArrayOutputStream();
@@ -1181,33 +1180,20 @@ public class ProjectServiceTest {
             }
         });
 
-        java.io.File runnerRecipe =
-                new java.io.File(new java.io.File(Thread.currentThread().getContextClassLoader().getResource(".").toURI()).getParentFile(),
-                                 "recipe");
-        byte[] recipeBytes = "# runner recipe\n".getBytes();
-        try (java.io.FileOutputStream w = new java.io.FileOutputStream(runnerRecipe)) {
-            w.write(recipeBytes);
-        }
-
-        String envName = "my_env_1";
-
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
         byte[] b = String.format(
-                "{\"source\":{\"project\":{\"location\":\"kadjkj\",\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}," +
+                "{\"source\":{\"project\":{\"location\":\"host.com/some/path\",\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}," +
                 "\"project\":{\"name\":\"spring\",\"visibility\":\"public\",\"runners\":{\"configs\":{\"recommend\":{\"options\":{}," +
                 "\"variables\":{},\"ram\":256}},\"default\":\"system:/java/web/tomcat7\"},\"builders\":{\"default\":\"maven\"}," +
                 "\"type\":\"maven\",\"attributes\":{},\"description\":\"import test\"},\"variables\":[],\"v\":\"2.0\"}",
-                importType, envName, runnerRecipe.toURI().toURL()).getBytes();
+                importType).getBytes();
         ContainerResponse response = launcher.service("POST",
                                                       String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
                                                       "http://localhost:8080/api", headers, b, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        Assert.assertEquals(descriptor.getDescription(), "import test");
-        Assert.assertEquals(descriptor.getType(), "my_project_type");
-        Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
         Assert.assertNotNull(descriptor.getRunners());
         Assert.assertEquals(descriptor.getRunners().getDefault(), "system:/java/web/tomcat7");
         Project newProject = pm.getProject(workspace, "new_project");
@@ -1216,6 +1202,171 @@ public class ProjectServiceTest {
         Assert.assertNotNull(environments);
         Assert.assertTrue(environments.isFolder());
 
+    }
+
+    @Test
+    public void testImportProjectWithBuilders() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_DIR + "/"));
+        zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
+        zipOut.write(("{\"type\":\"my_project_type\"," +
+                      "\"description\":\"import test\"," +
+                      "\"attributes\":{\"x\": [\"a\",\"b\"]}}").getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for (ProjectTypeResolver resolver : resolvers) {//unregistered all resolvers
+            resolverRegistry.unregister(resolver);
+        }
+        importerRegistry.register(new ProjectImporter() {
+            @Override
+            public String getId() {
+                return importType;
+            }
+
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
+            @Override
+            public String getDescription() {
+                return "Chuck importer";
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ConflictException, ServerException, ForbiddenException {
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumerFactory importOutputConsumerFactory)
+                    throws ConflictException, ServerException, ForbiddenException {
+                // Don't really use location in this test.
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
+                folderHolder.set(baseFolder);
+            }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
+            }
+        });
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        byte[] b = String.format(
+                "{\"source\":{\"project\":{\"location\":\"host.com/some/path\",\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}," +
+                "\"project\":{\"name\":\"spring\",\"visibility\":\"public\",\"runners\":{},\"builders\":{\"default\":\"maven\"}," +
+                "\"type\":\"maven\",\"attributes\":{},\"description\":\"import test\"},\"variables\":[],\"v\":\"2.0\"}",
+                importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(descriptor.getBuilders());
+        Assert.assertEquals(descriptor.getBuilders().getDefault(), "maven");
+        Project newProject = pm.getProject(workspace, "new_project");
+        Assert.assertNotNull(newProject);
+        VirtualFileEntry environments = newProject.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+        Assert.assertNotNull(environments);
+        Assert.assertTrue(environments.isFolder());
+
+    }
+
+    @Test
+    public void testImportProjectWithAttributes() throws Exception {
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+        ZipOutputStream zipOut = new ZipOutputStream(bout);
+        zipOut.putNextEntry(new ZipEntry("folder1/"));
+        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
+        zipOut.write("to be or not to be".getBytes());
+        zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_DIR + "/"));
+        zipOut.putNextEntry(new ZipEntry(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
+        zipOut.write(("{\"type\":\"my_project_type\"," +
+                      "\"description\":\"import test\"," +
+                      "\"attributes\":{\"x\": [\"a\",\"b\"]}}").getBytes());
+        zipOut.close();
+        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
+        final String importType = "_123_";
+        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
+        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
+        for (ProjectTypeResolver resolver : resolvers) {//unregistered all resolvers
+            resolverRegistry.unregister(resolver);
+        }
+        importerRegistry.register(new ProjectImporter() {
+            @Override
+            public String getId() {
+                return importType;
+            }
+
+
+            @Override
+            public boolean isInternal() {
+                return false;
+            }
+
+            @Override
+            public String getDescription() {
+                return "Chuck importer";
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
+                    throws ConflictException, ServerException, ForbiddenException {
+                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
+            }
+
+            @Override
+            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
+                                      LineConsumerFactory importOutputConsumerFactory)
+                    throws ConflictException, ServerException, ForbiddenException {
+                // Don't really use location in this test.
+                baseFolder.getVirtualFile().unzip(zip, true, 0);
+                folderHolder.set(baseFolder);
+            }
+
+
+            @Override
+            public ImporterCategory getCategory() {
+                return ImporterCategory.ARCHIVE;
+            }
+        });
+
+        Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", Arrays.asList("application/json"));
+
+        byte[] b = String.format(
+                "{\"source\":{\"project\":{\"location\":\"host.com/some/path\",\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}," +
+                "\"project\":{\"name\":\"spring\",\"visibility\":\"public\",\"runners\":{\"configs\":{\"recommend\":{\"options\":{}," +
+                "\"variables\":{},\"ram\":256}},\"default\":\"system:/java/web/tomcat7\"},\"builders\":{\"default\":\"maven\"}," +
+                "\"type\":\"maven\",\"attributes\":{\"y\": [\"q\",\"z\"]},\"description\":\"import test\"},\"variables\":[],\"v\":\"2.0\"}",
+                importType).getBytes();
+        ContainerResponse response = launcher.service("POST",
+                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
+                                                      "http://localhost:8080/api", headers, b, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
+        Assert.assertNotNull(descriptor.getAttributes());
+        Assert.assertEquals(descriptor.getAttributes().get("x"), Arrays.asList("a", "b"));
+        Assert.assertEquals(descriptor.getAttributes().get("y"), Arrays.asList("q", "z"));
+        Project newProject = pm.getProject(workspace, "new_project");
+        Assert.assertNotNull(newProject);
+        VirtualFileEntry environments = newProject.getBaseFolder().getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
+        Assert.assertNotNull(environments);
+        Assert.assertTrue(environments.isFolder());
     }
 
     @Test

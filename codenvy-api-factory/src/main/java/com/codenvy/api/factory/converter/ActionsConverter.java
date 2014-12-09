@@ -88,7 +88,7 @@ public class ActionsConverter implements LegacyConverter {
         if (openFile != null) {
             addToOnProjectOpened(factory,
                                  singletonList(dto.createDto(Action.class)
-                                                  .withId("openfile")
+                                                  .withId("openFile")
                                                   .withProperties(singletonMap("file", openFile))),
                                  null);
         }
@@ -113,7 +113,7 @@ public class ActionsConverter implements LegacyConverter {
 
         final Boolean warnOnClose = actions.getWarnOnClose();
         if (warnOnClose != null && warnOnClose) {
-            addToOnAppClosed(factory, singletonList(dto.createDto(Action.class).withId("warnonclose")), null);
+            addToOnAppClosed(factory, singletonList(dto.createDto(Action.class).withId("warnOnClose")), null);
         }
 
         factory.setActions(null);

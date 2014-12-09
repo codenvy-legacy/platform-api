@@ -108,7 +108,7 @@ public class ActionsConverter implements LegacyConverter {
                     }
                 }
             }
-            addToOnAppLoaded(factory, replacementActions, null);
+            addToOnProjectOpened(factory, replacementActions, null);
         }
 
         final Boolean warnOnClose = actions.getWarnOnClose();
@@ -117,32 +117,6 @@ public class ActionsConverter implements LegacyConverter {
         }
 
         factory.setActions(null);
-    }
-
-    private void addToOnAppLoaded(Factory factory, List<Action> actions, List<Part> parts) {
-        OnAppLoaded onAppLoaded = factory.getIde().getOnAppLoaded();
-        if (onAppLoaded == null) {
-            onAppLoaded = dto.createDto(OnAppLoaded.class);
-            factory.getIde().setOnAppLoaded(onAppLoaded);
-        }
-
-        if (actions != null) {
-            List<Action> currentActions = onAppLoaded.getActions();
-            if (currentActions == null) {
-                currentActions = new ArrayList<>();
-                onAppLoaded.setActions(currentActions);
-            }
-            currentActions.addAll(actions);
-        }
-
-        if (parts != null) {
-            List<Part> currentParts = onAppLoaded.getParts();
-            if (currentParts == null) {
-                currentParts = new ArrayList<>();
-                onAppLoaded.setParts(currentParts);
-            }
-            currentParts.addAll(parts);
-        }
     }
 
     private void addToOnAppClosed(Factory factory, List<Action> actions, List<Part> parts) {

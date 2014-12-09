@@ -19,6 +19,8 @@ import java.util.Map;
  * Data transfer object (DTO) for com.codenvy.api.project.shared.ProjectTypeDescription.
  *
  * @author andrew00x
+ *
+ * @deprecated
  */
 @DTO
 public interface ProjectTypeDescriptor {

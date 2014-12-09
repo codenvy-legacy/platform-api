@@ -24,12 +24,12 @@ public class ProjectTypeValidator {
 
     public static void validate(ProjectDescriptor project, ProjectTypeDescriptor typeDescriptor) throws InvalidValueException {
 
-        // Do we have all mandatory attributes?
-        for(AttributeDescriptor descr : typeDescriptor.getAttributeDescriptors()) {
-            if(!project.getAttributes().containsKey(descr.getName()) /*&& it is required */)
-                throw new InvalidValueException("No attribute found "+descr.getName());
-
-        }
+//        // Do we have all mandatory attributes?
+//        for(AttributeDescriptor descr : typeDescriptor.getAttributeDescriptors()) {
+//            if(!project.getAttributes().containsKey(descr.getName()) /*&& it is required */)
+//                throw new InvalidValueException("No attribute found "+descr.getName());
+//
+//        }
 
         // Do not we try to rewrite predefined attributes
 //        for(com.codenvy.api.project.shared.Attribute2 attr : project.getAttributes()) {

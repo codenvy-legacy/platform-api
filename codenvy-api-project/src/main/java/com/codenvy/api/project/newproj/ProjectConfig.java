@@ -27,46 +27,31 @@ public class ProjectConfig {
 
     private String description;
     private String typeId;
-    //private List<Attribute2> attributes;
     private Map<String, AttributeValue> attributes;
     private Runners runners;
     private Builders builders;
-
-//    public ProjectConfig(String description, String typeId, List<Attribute2> attributes, Runners runners,
-//                         Builders builders) throws ValueStorageException {
-//
-//        this.description = description;
-//        this.typeId = typeId;
-//        this.attributes = new HashMap<>();
-//        for(Attribute2 attr : attributes) {
-//
-//            this.attributes.put(attr.getName(), attr.getValue());
-//        }
-//        this.builders = (builders == null)?new Builders():builders;
-//        this.runners = (runners == null)?new Runners():runners;
-//
-//    }
+    private List <String> mixinTypes;
 
     public ProjectConfig(String description, String typeId, Map<String, AttributeValue> attributes, Runners runners,
-                         Builders builders) {
+                         Builders builders, List <String> mixinTypes) {
 
         this.description = description;
         this.typeId = typeId;
         this.attributes = attributes;
-        //this.attributes = (attributes == null)?new HashMap<String, AttributeValue>():attributes;
         this.builders = (builders == null)?new Builders():builders;
         this.runners = (runners == null)?new Runners():runners;
+        this.mixinTypes = (mixinTypes == null)?new ArrayList<String>():mixinTypes;
 
     }
 
     public ProjectConfig(String description, String typeId) {
 
-        this(description, typeId, new HashMap<String, AttributeValue>(), new Runners(), new Builders());
+        this(description, typeId, new HashMap<String, AttributeValue>(), new Runners(), new Builders(), new ArrayList<String>());
 
     }
 
     public ProjectConfig() {
-        this("", BaseProjectType.ID, new HashMap<String, AttributeValue>(), new Runners(), new Builders());
+        this("", BaseProjectType.ID, new HashMap<String, AttributeValue>(), new Runners(), new Builders(), new ArrayList<String>());
     }
 
 
@@ -82,18 +67,6 @@ public class ProjectConfig {
         return attributes;
     }
 
-//    public Attribute2 getAttribute(String name) {
-//
-//        for(Attribute2 a : attributes) {
-//            if (a.getName().equals(name))
-//                return a;
-//        }
-//
-//        return null;
-//
-//    }
-
-
     public Runners getRunners() {
         return runners;
     }
@@ -102,4 +75,7 @@ public class ProjectConfig {
         return builders;
     }
 
+    public List<String> getMixinTypes() {
+        return mixinTypes;
+    }
 }

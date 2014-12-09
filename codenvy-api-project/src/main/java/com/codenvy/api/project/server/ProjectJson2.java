@@ -125,6 +125,7 @@ public class ProjectJson2 {
     private Runners runners;
     private String                    description;
     private Map<String, List<String>> attributes;
+    private List <String> mixinTypes;
 
     public ProjectJson2() {
     }
@@ -228,6 +229,19 @@ public class ProjectJson2 {
 
     public ProjectJson2 withDescription(String description) {
         this.description = description;
+        return this;
+    }
+
+    public List<String> getMixinTypes() {
+        return mixinTypes;
+    }
+
+    public void setMixinTypes(List <String> mixinTypes) {
+        this.mixinTypes = mixinTypes;
+    }
+
+    public ProjectJson2 withMixinTypes(List <String> mixinTypes) {
+        this.mixinTypes = mixinTypes;
         return this;
     }
 }

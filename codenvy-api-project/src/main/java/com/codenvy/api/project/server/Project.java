@@ -81,14 +81,6 @@ public class Project {
     }
 
 
-//    public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
-//            InvalidValueException {
-//
-//        return doGetConfig();
-//
-//    }
-
-
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
@@ -109,11 +101,6 @@ public class Project {
 
             if(attr.isVariable()) {
                 Variable var = (Variable) attr;
-
-                //Variable var = (Variable)type.getAttribute(attr.getName());
-
-                //System.out.println("GET CONFIG1 >> "+var.getName()+" "+var.getValue());
-
                 final ValueProviderFactory factory = var.getValueProviderFactory();
                         //manager.getValueProviderFactories().get(attr.getId());
 
@@ -136,12 +123,8 @@ public class Project {
                         throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable "+var.getId());
                     // else just not add it
                 } else {
-                    //System.out.println(">>>>>>>>>>>>>>");
-                    //var.setValue(new AttributeValue(val), this);
-                    //System.out.println("GET CONFIG3 >> "+var.getName()+" "+var.getValue()+" "+var.getValueProviderFactory() +" "+new AttributeValue(val).getList());
                     attributes.put(var.getName(), new AttributeValue(val));
-                    //System.out.println(">>>>>>>>>>>>>>");
-                    //attributes.add(var);
+
                 }
 
             } else {  // Constant
@@ -152,130 +135,14 @@ public class Project {
         }
 
         return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
-                attributes, projectJson.getRunners(), projectJson.getBuilders());
+                attributes, projectJson.getRunners(), projectJson.getBuilders(), projectJson.getMixinTypes());
 
     }
 
 
-
-
-//    /**
-//     * Gets project meta-information.
-//     * @deprecated
-//     **/
-//    public ProjectDescription getDescription() throws ServerException, ValueStorageException {
-//        // Copy attributes after merging to be independent to type of ValueProvider2. ProjectDescription contains attributes that may use
-//        // different ValueProviders. After we have all attributes copy them with DefaultValueProvider. Caller gets description of project
-//        // update some attributes or(and) type of project than caller sends description back with method updateDescription.
-//        final ProjectDescription projectDescription = doGetDescription();
-//        final List<Attribute> attributes = projectDescription.getAttributes();
-//        final List<Attribute> copy = new ArrayList<>(attributes.size());
-//        for (Attribute attribute : attributes) {
-//            copy.add(new Attribute(attribute));
-//        }
-//        projectDescription.clearAttributes();
-//        projectDescription.setAttributes(copy);
-//        return projectDescription;
-//    }
-//
-//    private ProjectDescription doGetDescription() throws ServerException {
-//        final ProjectJson2 projectJson = ProjectJson2.load(this);
-//        final String typeId = projectJson.getType();
-//        ProjectType projectType;
-//        if (typeId == null) {
-//            // Treat type as blank type if type is not set in .codenvy/project.json
-//            projectType = ProjectType.BLANK;
-//        } else {
-//            projectType = manager.getTypeDescriptionRegistry().getProjectType(typeId);
-//            if (projectType == null) {
-//                // Type is unknown but set in codenvy/.project.json
-//                projectType = new ProjectType(typeId);
-//            }
-//        }
-//        final ProjectDescription projectDescription =
-//                new ProjectDescription(projectType, projectJson.getBuilders(), projectJson.getRunners());
-//        projectDescription.setDescription(projectJson.getDescription());
-//
-//        final List<Attribute> tmp = new LinkedList<>();
-//
-//        // Merge project's attributes.
-//        // 1. predefined
-//        for (Attribute attribute : manager.getTypeDescriptionRegistry().getPredefinedAttributes(projectType)) {
-//            tmp.add(attribute);
-//        }
-//        projectDescription.setAttributes(tmp);
-//        tmp.clear();
-//
-//        // 2. "calculated"
-//        for (AttributeDescription attributeDescription : manager.getTypeDescriptionRegistry().getAttributeDescriptions(projectType)) {
-//            final ValueProviderFactory factory = manager.getValueProviderFactories().get(attributeDescription.getName());
-//            if (factory != null) {
-//                tmp.add(new Attribute(attributeDescription.getName(), factory.newInstance(this)));
-//            }
-//        }
-//        projectDescription.setAttributes(tmp);
-//        tmp.clear();
-//
-//        // 3. persistent
-//        for (Map.Entry<String, List<String>> e : projectJson.getAttributes().entrySet()) {
-//            tmp.add(new Attribute(e.getKey(), e.getValue()));
-//        }
-//        projectDescription.setAttributes(tmp);
-//        tmp.clear();
-//
-//        return projectDescription;
-//    }
-//
-//    /**
-//     * Updates project meta-information.
-//     * @deprecated
-//     *
-//     */
-//    public final void updateDescription(ProjectDescription update) throws ServerException, ValueStorageException, InvalidValueException {
-//        ProjectDescription thisProjectDescription;
-//        try {
-//            thisProjectDescription = doGetDescription();
-//        } catch (ServerException e) { // in case we have problem with reading/parsing project.json file we going to create new one
-//            thisProjectDescription = new ProjectDescription();
-//        }
-//        final ProjectJson2 projectJson = new ProjectJson2();
-//        projectJson.setType(update.getProjectType().getId());
-//        projectJson.setBuilders(update.getBuilders());
-//        projectJson.setRunners(update.getRunners());
-//        projectJson.setDescription(update.getDescription());
-//        for (Attribute attributeUpdate : update.getAttributes()) {
-//            final String attributeName = attributeUpdate.getName();
-//            Attribute thisAttribute = thisProjectDescription.getAttribute(attributeName);
-//            if (thisAttribute == null) {
-//                final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(attributeName);
-//                if (valueProviderFactory == null) {
-//                    // New attribute without special behaviour - setPreferences it in properties.
-//                    projectJson.getAttributes().put(attributeName, attributeUpdate.getValues());
-//                } else {
-//                    thisAttribute = new Attribute(attributeName, valueProviderFactory.newInstance(this));
-//                    thisAttribute.setValues(attributeUpdate.getValues());
-//                }
-//            } else {
-//                // Don't store attributes as properties of project if have specific ValueProvider2.
-//                if (manager.getValueProviderFactories().get(attributeName) == null) {
-//                    // If don't have special ValueProvider2 then store attribute as project's property.
-//                    projectJson.getAttributes().put(attributeName, attributeUpdate.getValues());
-//                } else {
-//                    thisAttribute.setValues(attributeUpdate.getValues());
-//                }
-//            }
-//        }
-//        projectJson.save(this);
-//    }
-
     public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
             ProjectTypeConstraintException, InvalidValueException {
 
-//
-//        final ProjectJson2 projectJson;
-//        if(ProjectJson2.isReadable(this)) {
-//            projectJson =
-//        }
 
         final ProjectJson2 projectJson = new ProjectJson2();
 
@@ -297,8 +164,6 @@ public class Project {
                 //throw new ProjectTypeConstraintException("No attribute " + attributeName + " defined in Project Type " + type.getId());
             }
 
-
-
             if(definition.isVariable()) {
                 Variable var = (Variable)definition;
 
@@ -314,20 +179,13 @@ public class Project {
                     valueProviderFactory.newInstance(var.getId(), this).setValues(attributeValue.getList());
                 }
                 projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
-//                else {
-//                    //throw new ProjectTypeConstraintException("Attribute value factory not found for "+var.getId());
-//                    //
-//                    projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
-//                }
 
-                //var.setValue(val);
-
-
-            } else { // Constant
-
-                // Silently ignore
-                //projectJson.getAttributes().put(attributeUpdate.getName(), attributeUpdate.getValue().getList());
             }
+//            else { // Constant
+//
+//                // Silently ignore
+//                //projectJson.getAttributes().put(attributeUpdate.getName(), attributeUpdate.getValue().getList());
+//            }
 
         }
 

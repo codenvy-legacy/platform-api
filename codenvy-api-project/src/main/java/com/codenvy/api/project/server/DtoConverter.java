@@ -11,6 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ApiException;
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
@@ -21,19 +22,7 @@ import com.codenvy.api.project.newproj.ProjectType2;
 import com.codenvy.api.project.newproj.server.*;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
-import com.codenvy.api.project.shared.dto.AttributeDescriptor;
-import com.codenvy.api.project.shared.dto.BuildersDescriptor;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.ItemReference;
-import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectImporterDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectProblem;
-import com.codenvy.api.project.shared.dto.ProjectReference;
-import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectUpdate;
-import com.codenvy.api.project.shared.dto.RunnerConfiguration;
-import com.codenvy.api.project.shared.dto.RunnersDescriptor;
+import com.codenvy.api.project.shared.dto.*;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -133,21 +122,13 @@ public class DtoConverter {
                 Attribute2 attr = projectType.getAttribute(e.getKey());
                 if(attr != null)  {
                     attributes.put(attr.getName(), new AttributeValue(e.getValue()));
-//                    if(attr.isVariable()) {
-//
-//                        attributes.add(new Variable(attr.getProjectType(), attr.getName(), attr.getDescription(),
-//                                attr.isRequired(), new AttributeValue(e.getValue())));
-//                    } else {
-//                        attributes.add(new Constant(attr.getProjectType(), attr.getName(), attr.getDescription(),
-//                                new AttributeValue(e.getValue())));
-//                    }
 
                 }
             }
         }
 
         return new ProjectConfig(dto.getDescription(), typeId, attributes,
-                fromDto(dto.getRunners()), fromDto(dto.getBuilders()));
+                fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
     }
 
 
@@ -173,39 +154,38 @@ public class DtoConverter {
         return runners;
     }
 
-    public static ProjectTypeDescriptor toTypeDescriptor(ProjectType projectType,
-                                                         ProjectTypeDescriptionRegistry typeRegistry) {
+
+    public static ProjectTypeDefinition toTypeDescriptor2(ProjectType2 projectType) {
+
         final DtoFactory dtoFactory = DtoFactory.getInstance();
-        final ProjectTypeDescriptor descriptor = dtoFactory.createDto(ProjectTypeDescriptor.class)
-                                                           .withType(projectType.getId())
-                                                           .withTypeName(projectType.getName())
-                                                           .withTypeCategory(projectType.getCategory());
-        final List<AttributeDescription> typeAttributes = typeRegistry.getAttributeDescriptions(projectType);
-        if (!typeAttributes.isEmpty()) {
-            final List<AttributeDescriptor> typeAttribute = new ArrayList<>(typeAttributes.size());
-            for (AttributeDescription attributeDescription : typeAttributes) {
-                typeAttribute.add(dtoFactory.createDto(AttributeDescriptor.class).withName(attributeDescription.getName()));
+        final ProjectTypeDefinition definition = dtoFactory.createDto(ProjectTypeDefinition.class)
+                .withId(projectType.getId())
+                .withDisplayName(projectType.getDisplayName())
+                .withRunnerCategories(projectType.getRunnerCategories());
+
+        final List<AttributeDescriptor> typeAttributes = new ArrayList<>();
+        for (Attribute2 attr : projectType.getAttributes()) {
+
+            List <String> valueList = null;
+
+            try {
+                if(attr.getValue() != null)
+                  valueList = attr.getValue().getList();
+            } catch (ValueStorageException e) {
             }
-            descriptor.setAttributeDescriptors(typeAttribute);
+//            if(valueList == null)
+//                valueList = new ArrayList<>();
+
+            typeAttributes.add(dtoFactory.createDto(AttributeDescriptor.class)
+                    .withName(attr.getName())
+                    .withDescription(attr.getDescription())
+                    .withRequired(attr.isRequired())
+                    .withVariable(attr.isVariable())
+                    .withValues(valueList));
         }
-        final List<ProjectTemplateDescription> typeTemplates = typeRegistry.getTemplates(projectType);
-        if (!typeTemplates.isEmpty()) {
-            final List<ProjectTemplateDescriptor> templateDescriptors = new ArrayList<>(typeTemplates.size());
-            for (ProjectTemplateDescription template : typeTemplates) {
-                templateDescriptors.add(toTemplateDescriptor(dtoFactory, template));
-            }
-            descriptor.setTemplates(templateDescriptors);
-        }
-        descriptor.setIconRegistry(typeRegistry.getIconRegistry(projectType));
-        Builders builders = typeRegistry.getBuilders(projectType);
-        if (builders != null) {
-            descriptor.setBuilders(toDto(builders));
-        }
-        Runners runners = typeRegistry.getRunners(projectType);
-        if (runners != null) {
-            descriptor.setRunners(toDto(runners));
-        }
-        return descriptor;
+        definition.setAttributeDescriptors(typeAttributes);
+
+        return definition;
     }
 
     public static ProjectTemplateDescriptor toTemplateDescriptor(ProjectTemplateDescription projectTemplate) {

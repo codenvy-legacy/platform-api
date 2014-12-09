@@ -116,8 +116,8 @@ public class ProjectServiceTest {
         AbstractProjectType chuck = new AbstractProjectType("chuck_project_type", "chuck_project_type") {
 
             {
-                attributes.add(new Constant("chuck_project_type", "x", "attr description",
-                        new AttributeValue(Arrays.asList("a", "b"))));
+                addConstantDefinition("x", "attr description",
+                        new AttributeValue(Arrays.asList("a", "b")));
             }
 
         };
@@ -132,7 +132,7 @@ public class ProjectServiceTest {
                 ptRegistry);
 
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
-                new HashMap<String, AttributeValue>(), null, null));
+                new HashMap<String, AttributeValue>(), null, null, null));
 
 //        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
 //        ProjectDescription pd = new ProjectDescription(projectType);
@@ -232,7 +232,7 @@ public class ProjectServiceTest {
         AbstractProjectType pt = new AbstractProjectType("testGetModules", "my module type") {
 
             {
-                attributes.add(new Constant("testGetModules", "my_module_attribute", "attr description", "attribute value 1"));
+                addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
             }
 
         };
@@ -320,7 +320,7 @@ public class ProjectServiceTest {
         AbstractProjectType pt = new AbstractProjectType("my_module_type", "my module type") {
 
             {
-                attributes.add(new Constant("my_module_type", "my_module_attribute", "attr description", "attribute value 1"));
+                addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
             }
 
         };
@@ -374,7 +374,7 @@ public class ProjectServiceTest {
         AbstractProjectType pt = new AbstractProjectType("testCreateProject", "my project type") {
 
             {
-                attributes.add(new Constant("testCreateProject", "new project attribute", "attr description", "to be or not to be"));
+                addConstantDefinition("new_project_attribute", "attr description", "to be or not to be");
             }
 
         };
@@ -407,7 +407,7 @@ public class ProjectServiceTest {
         Map<String, List<String>> attributes = result.getAttributes();
         Assert.assertNotNull(attributes);
         Assert.assertEquals(attributes.size(), 1);
-        Assert.assertEquals(attributes.get("new project attribute"), Arrays.asList("to be or not to be"));
+        Assert.assertEquals(attributes.get("new_project_attribute"), Arrays.asList("to be or not to be"));
         validateProjectLinks(result);
 
         Project project = pm.getProject(workspace, "new_project");
@@ -421,7 +421,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(config.getDescription(), "new project");
         Assert.assertEquals(config.getTypeId(), "testCreateProject");
 //        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-        AttributeValue attributeVal = config.getAttributes().get("new project attribute");
+        AttributeValue attributeVal = config.getAttributes().get("new_project_attribute");
         Assert.assertNotNull(attributeVal);
         Assert.assertEquals(attributeVal.getString(), "to be or not to be");
     }
@@ -522,8 +522,7 @@ public class ProjectServiceTest {
         AbstractProjectType pt = new AbstractProjectType("testUpdateProject", "my project type") {
 
             {
-
-                attributes.add(new Variable("testUpdateProject", "my_attribute", "attr description", false));
+                addVariableDefinition("my_attribute", "attr description", false);
             }
 
         };
@@ -2067,8 +2066,7 @@ public class ProjectServiceTest {
         private MyProjType() {
 
             super("my_project_type", "my project type");
-            attributes.add(new Constant("my_project_type", "my_attribute", "Constant", "attribute value 1"));
-
+            addConstantDefinition("my_attribute", "Constant", "attribute value 1");
 
         }
     }

@@ -11,8 +11,8 @@
 package com.codenvy.api.project.server.event;
 
 import com.codenvy.api.project.newproj.server.event.GetItemEvent;
-import com.codenvy.api.project.newproj.server.event.GetItemSubcriber;
-import com.codenvy.api.project.server.type.NewProjectTypeTest;
+import com.codenvy.api.project.newproj.server.event.GetItemHandler;
+import com.codenvy.api.project.server.type.ProjectTypeTest;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -21,10 +21,10 @@ import javax.inject.Singleton;
  * @author gazarenkov
  */
 @Singleton
-public class MyGetFileSubscriber extends GetItemSubcriber {
+public class MyGetFileSubscriber extends GetItemHandler {
 
     @Inject
-    public MyGetFileSubscriber(NewProjectTypeTest.MyProjectType type) {
+    public MyGetFileSubscriber(ProjectTypeTest.MyProjectType type) {
         super(type);
     }
 

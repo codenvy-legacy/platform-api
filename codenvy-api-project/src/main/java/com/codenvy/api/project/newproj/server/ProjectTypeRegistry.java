@@ -19,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.*;
+import java.util.regex.Pattern;
 
 /**
  * @author gazarenkov
@@ -29,6 +30,8 @@ public class ProjectTypeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectTypeRegistry.class);
 
     public static final ProjectType2 BASE_TYPE = new BaseProjectType();
+
+    private final static Pattern NAME_PATTERN = Pattern.compile("[^a-zA-Z0-9-_]");
 
     private final Map<String, ProjectType2> projectTypes = new HashMap<>();
 
@@ -43,13 +46,26 @@ public class ProjectTypeRegistry {
         }
 
         for(ProjectType2 pt : projTypes) {
-            allIds.add(pt.getId());
+            if(pt.getId() != null && !pt.getId().isEmpty()) {
+                allIds.add(pt.getId());
+
+                // add Base Type as a parent if not pointed
+                if (pt.getParents() != null && pt.getParents().isEmpty() && !pt.getId().equals(BASE_TYPE.getId())) {
+                    LOG.debug("BASE added as parent of: " + pt.getId());
+                    pt.getParents().add(BASE_TYPE);
+                }
+            }
         }
 
         for(ProjectType2 pt : projTypes) {
-
-            if(init(pt))
-               this.projectTypes.put(pt.getId(), pt);
+            if(pt.getId() != null && !pt.getId().isEmpty()) {
+                try {
+                    init(pt);
+                    this.projectTypes.put(pt.getId(), pt);
+                } catch (ProjectTypeConstraintException e) {
+                    LOG.error(e.getMessage());
+                }
+            }
         }
 
     }
@@ -65,91 +81,67 @@ public class ProjectTypeRegistry {
     // maybe for test only?
     public void registerProjectType(ProjectType2 projectType) throws ProjectTypeConstraintException {
 
-        if(init(projectType))
-            this.projectTypes.put(projectType.getId(), projectType);
-        else
-            throw new ProjectTypeConstraintException("Could not register project type: "+ projectType.getId());
+        init(projectType);
+        this.projectTypes.put(projectType.getId(), projectType);
 
     }
 
 
-    private boolean init(ProjectType2 pt) {
+    private void init(ProjectType2 pt) throws ProjectTypeConstraintException {
 
         if(pt.getId() == null || pt.getId().isEmpty()) {
-            return false;
+            throw new ProjectTypeConstraintException("Could not register Project Type with null or empty ID: " + pt.getClass().getName());
         }
-            //throw new NullPointerException("Project Type ID is null or empty for "+pt.getClass().getName());
 
-        // TODO check constraints on ID spelling (no spaces, only alphanumeric)?
-
+        // ID spelling (no spaces, only alphanumeric)
+        if(NAME_PATTERN.matcher(pt.getId()).find()) {
+            throw new ProjectTypeConstraintException("Could not register Project Type with invalid ID (only Alphanumeric, dash and underscore allowed): " +pt.getClass().getName()+ " ID: '"+pt.getId()+"'");
+        }
 
         if(pt.getDisplayName() == null || pt.getDisplayName().isEmpty()) {
-            return false;
+            throw new ProjectTypeConstraintException("Could not register Project Type with null or empty display name: " +pt.getId());
         }
-
-            //throw new NullPointerException("Project Type Display Name is null or empty for "+pt.getClass().getName());
-
 
         for (Attribute2 attr : pt.getAttributes()) {
 
-            // TODO check attribute name spelling (no spaces, only alphanumeric)?
-            // make attributes with FQ ID: projectTypeId:attributeId
-            //this.attributes.add(attr);
-            //init
-//            if(attr.isVariable()) {
-//                //System.out.println("INIT >>>>> " + attr.getId() + " = "+((Variable)attr).valueProviderFactory);
-//            }
-
+            // ID spelling (no spaces, only alphanumeric)
+            if(NAME_PATTERN.matcher(attr.getName()).find()) {
+                throw new ProjectTypeConstraintException("Could not register Project Type with invalid attribute Name (only Alphanumeric, dash and underscore allowed): " +attr.getClass().getName()+ " ID: '"+attr.getId()+"'");
+            }
         }
-
-
-
-        // add Base Type as a parent if not pointed
-        if(pt.getParents() !=null && pt.getParents().isEmpty() && !pt.getId().equals(BASE_TYPE.getId()))
-            pt.getParents().add(BASE_TYPE);
-
-
-
-
 
         // look for parents
         for(ProjectType2 parent : pt.getParents()) {
             if(!allIds.contains(parent.getId())) {
-                return false;
+                throw new ProjectTypeConstraintException("Could not register Project Type: "+pt.getId()+" : Unregistered parent Type: "+parent.getId());
             }
         }
 
-        try {
-            initAttributesRecursively(pt.getAttributes(), pt);
-        } catch (ProjectTypeConstraintException e) {
-            LOG.error(e.getMessage());
-        }
+        initAttributesRecursively(pt, pt);
 
         // Builders and Runners
-
-
-        return true;
 
     }
 
 
-    private void initAttributesRecursively(List <Attribute2> attributes, ProjectType2 type)
+    private void initAttributesRecursively(ProjectType2 myType, ProjectType2 type)
             throws ProjectTypeConstraintException {
 
         for(ProjectType2 supertype : type.getParents()) {
 
             for(Attribute2 attr : supertype.getAttributes()) {
-                for(Attribute2 attr2 : attributes) {
-                    if(attr.getName().equals(attr2.getName())) {
-                        throw new ProjectTypeConstraintException("Attribute name conflict. Attribute "+
-                                attr.getName()+ " can not be used in the project type "+attr.getProjectType()+
-                                " as it's already defined in supertype "+attr2.getProjectType());
+
+                // check attribute names
+                for(Attribute2 attr2 : myType.getAttributes()) {
+                    if(attr.getName().equals(attr2.getName()) && !attr.getProjectType().equals(attr2.getProjectType())) {
+                        throw new ProjectTypeConstraintException("Attribute name conflict. Project type "+
+                                myType.getId() + " could not be registered as attribute declaration "+ attr.getName()+
+                                " is duplicated in its ancestor(s).");
                     }
                 }
-                attributes.add(attr);
+                ((AbstractProjectType)myType).addAttributeDefinition(attr);
             }
-            //attributes.addAll(supertype.getAttributes());
-            initAttributesRecursively(attributes, supertype);
+            initAttributesRecursively(myType, supertype);
         }
 
     }

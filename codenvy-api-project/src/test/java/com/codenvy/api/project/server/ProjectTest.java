@@ -56,7 +56,7 @@ public class ProjectTest {
                     @Override
                     public List<String> getValues() {
 
-                        System.out.println(" >>>> GET VALUE "+calculateAttributeValueHolder);
+                        //System.out.println(" >>>> GET VALUE "+calculateAttributeValueHolder);
                         return calculateAttributeValueHolder;
                         //Collections.singletonList("hello");
                     }
@@ -65,7 +65,7 @@ public class ProjectTest {
                     public void setValues(List<String> value) {
 
                         calculateAttributeValueHolder = value;
-                        System.out.println(" >>>> SET VALUE "+calculateAttributeValueHolder);
+                        //System.out.println(" >>>> SET VALUE "+calculateAttributeValueHolder);
                     }
                 };
             }
@@ -98,9 +98,9 @@ public class ProjectTest {
         AbstractProjectType pt = new AbstractProjectType("my_project_type", "my project type") {
 
             {
-                attributes.add(new Variable("my_project_type", "calculated_attribute", "attr description", true, vpf1));
-                attributes.add(new Variable("my_project_type", "my_property_1", "attr description", true));
-                attributes.add(new Variable("my_project_type", "my_property_2", "attr description", false));
+                addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
             }
 
         };
@@ -196,7 +196,7 @@ public class ProjectTest {
         attrs.put("my_property_1", new AttributeValue("updated value 1"));
         attrs.put("new_my_property_2", new AttributeValue("new value 2"));
 
-        ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null);
+        ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null, null);
         //myConfig.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
         //Assert.assertTrue(myConfig.getAttribute("calculated_attribute").isVariable());
         //((Variable)myConfig.getAttribute("calculated_attribute")).setValue(new AttributeValue("updated calculated_attribute"));

@@ -43,7 +43,7 @@ public class ProjectEventTest {
         AbstractProjectType pt = new AbstractProjectType("my_project_type", "my proj type") {
 
             {
-                attributes.add(new Constant("my_project_type", "my_attribute", "attr description", "attribute value 1"));
+                addConstantDefinition("my_attribute", "attr description", "attribute value 1");
             }
 
         };

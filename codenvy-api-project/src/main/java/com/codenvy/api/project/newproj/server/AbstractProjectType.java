@@ -11,10 +11,11 @@
 package com.codenvy.api.project.newproj.server;
 
 import com.codenvy.api.project.newproj.Attribute2;
+import com.codenvy.api.project.newproj.AttributeValue;
 import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.server.ValueProviderFactory;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 
 /**
  * @author gazarenkov
@@ -22,17 +23,17 @@ import java.util.List;
 public abstract class AbstractProjectType implements ProjectType2 {
 
 
-    protected final String id;
-    protected final String displayName;
-    protected final List<Attribute2> attributes;
-    protected final List<ProjectType2> parents;
+    private final String id;
+    private final String displayName;
+    private final Map<String, Attribute2> attributes;
+    private final List<ProjectType2> parents;
     protected final List<String> runnerCategories;
     protected final List<String> builderCategories;
 
     protected AbstractProjectType(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
-        this.attributes = new ArrayList<Attribute2>();
+        this.attributes = new HashMap<>();
         this.parents = new ArrayList<ProjectType2>();
         this.runnerCategories = new ArrayList<String>();
         this.builderCategories = new ArrayList<String>();
@@ -52,7 +53,7 @@ public abstract class AbstractProjectType implements ProjectType2 {
 
     @Override
     public List<Attribute2> getAttributes() {
-        return attributes;
+        return new ArrayList<>(attributes.values());
     }
 
     @Override
@@ -73,17 +74,42 @@ public abstract class AbstractProjectType implements ProjectType2 {
 
     @Override
     public Attribute2 getAttribute(String name) {
-        for(Attribute2 attr : attributes) {
-            if(attr.getName().equals(name))
-                return attr;
-        }
-
-        return null;
+        return attributes.get(name);
     }
 
     @Override
     public List<String> getRunnerCategories() {
         return runnerCategories;
     }
+
+
+    protected void addConstantDefinition(String name, String description, AttributeValue value) {
+        attributes.put(name, new Constant(id, name, description, value));
+    }
+
+    protected void addConstantDefinition(String name, String description, String value) {
+        attributes.put(name, new Constant(id, name, description, value));
+    }
+
+    protected void addVariableDefinition(String name, String description, boolean required) {
+        attributes.put(name, new Variable(id, name, description, required));
+    }
+
+    protected void addVariableDefinition(String name, String description, boolean required, AttributeValue value) {
+        attributes.put(name, new Variable(id, name, description, required, value));
+    }
+
+    protected void addVariableDefinition(String name, String description, boolean required, ValueProviderFactory factory) {
+        attributes.put(name, new Variable(id, name, description, required, factory));
+    }
+
+    protected void addAttributeDefinition(Attribute2 attr) {
+        attributes.put(attr.getName(), attr);
+    }
+
+    protected void addParent(ProjectType2 parent) {
+        parents.add(parent);
+    }
+
 }
 

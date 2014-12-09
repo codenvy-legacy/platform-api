@@ -46,6 +46,15 @@ public class AttributeValue {
         values.addAll(list);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+
+        if(obj instanceof AttributeValue) {
+            return this.values.equals(((AttributeValue)obj).getList());
+        }
+        return false;
+    }
+
     //ValueType getType();
 
 }

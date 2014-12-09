@@ -16,11 +16,11 @@ import com.codenvy.api.project.newproj.ProjectType2;
 /**
  * @author gazarenkov
  */
-public abstract class GetItemSubcriber implements EventSubscriber<GetItemEvent> {
+public abstract class GetItemHandler implements EventSubscriber<GetItemEvent> {
 
     protected  final ProjectType2 type;
 
-    protected GetItemSubcriber(ProjectType2 type) {
+    protected GetItemHandler(ProjectType2 type) {
         this.type = type;
     }
 

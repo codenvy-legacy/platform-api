@@ -24,7 +24,7 @@ import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.newproj.ProjectConfig;
 import com.codenvy.api.project.newproj.server.event.GetItemEvent;
-import com.codenvy.api.project.newproj.server.event.GetItemSubcriber;
+import com.codenvy.api.project.newproj.server.event.GetItemHandler;
 import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GenerateDescriptor;
@@ -971,7 +971,7 @@ public class ProjectService extends Service {
 
         //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, projectPath(path))+" "+ this.projectServiceEventSubscriberRegistry.getGetItemSubcribers().size());
 
-        for(GetItemSubcriber subs : this.projectServiceEventSubscriberRegistry.getGetItemSubcribers()) {
+        for(GetItemHandler subs : this.projectServiceEventSubscriberRegistry.getGetItemSubcribers()) {
 
 
             //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, path));

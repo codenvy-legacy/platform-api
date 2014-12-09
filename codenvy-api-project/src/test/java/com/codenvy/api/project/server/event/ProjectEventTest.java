@@ -26,31 +26,7 @@ public class ProjectEventTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-//        EventService eventService = new EventService();
-//
-//
-//        VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
-//        final MemoryFileSystemProvider memoryFileSystemProvider =
-//                new MemoryFileSystemProvider("my_ws", eventService, new VirtualFileSystemUserContext() {
-//                    @Override
-//                    public VirtualFileSystemUser getVirtualFileSystemUser() {
-//                        return new VirtualFileSystemUser(vfsUserName, vfsUserGroups);
-//                    }
-//                }, vfsRegistry);
-//
-//
-//        vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-//
-//        Set<com.codenvy.api.project.newproj.ProjectType2> pts = new HashSet<>();
-//        pts.add(new MyProjectType());
-//        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(pts);
-//
-//        pm = new DefaultProjectManager(null, Collections.<ValueProviderFactory>emptySet(), vfsRegistry, eventService, ptRegistry, Collections.<ValueProviderFactory2>emptySet());
-//
-//        ProjectDescription pd = new ProjectDescription(new ProjectType2("my_project_type", "my project type", "my_category"));
-//        pd.setDescription("my test project");
-//        pd.setAttributes(Arrays.asList(new Attribute2("my_attribute", "attribute value 1")));
-//        pm.createProject("my_ws", "my_project", pd);
+
 
     }
 
@@ -65,8 +41,7 @@ public class ProjectEventTest {
 
             super("my", "my type");
 
-            attributes.add(new Constant("my", "const", "Constant", "const_value"));
-
+            addConstantDefinition("const", "Constant", "const_value");
 
         }
 

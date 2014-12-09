@@ -12,6 +12,8 @@ package com.codenvy.api.project.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
  * Data transfer object (DTO) for com.codenvy.api.project.shared.AttributeDescription
  *
@@ -24,4 +26,29 @@ public interface AttributeDescriptor {
     void setName(String name);
 
     AttributeDescriptor withName(String name);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    AttributeDescriptor withDescription(String description);
+
+    boolean getRequired();
+
+    void setRequired(boolean required);
+
+    AttributeDescriptor withRequired(boolean required);
+
+    boolean getVariable();
+
+    void setVariable(boolean variable);
+
+    AttributeDescriptor withVariable(boolean variable);
+
+    List<String> getValues();
+
+    void setValues(List<String> values);
+
+    AttributeDescriptor withValues(List<String> values);
+
 }

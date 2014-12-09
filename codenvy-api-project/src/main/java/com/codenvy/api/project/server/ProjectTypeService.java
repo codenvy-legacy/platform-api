@@ -12,6 +12,9 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
+import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.shared.dto.ProjectTypeDefinition;
 import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 
 import javax.inject.Inject;
@@ -23,28 +26,27 @@ import java.util.LinkedList;
 import java.util.List;
 
 /**
- * ProjectDescriptionService
+ * ProjectTypeService
  *
  * @author gazarenkov
- * @deprecated
  */
 @Path("project-type")
 public class ProjectTypeService extends Service {
 
-    private ProjectTypeDescriptionRegistry registry;
+    private ProjectTypeRegistry registry;
 
     @Inject
-    public ProjectTypeService(ProjectTypeDescriptionRegistry registry) {
+    public ProjectTypeService(ProjectTypeRegistry registry) {
         this.registry = registry;
     }
 
     @GenerateLink(rel = Constants.LINK_REL_PROJECT_TYPES)
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectTypeDescriptor> getProjectTypes() {
-        final List<ProjectTypeDescriptor> types = new LinkedList<>();
-        for (ProjectType type : registry.getRegisteredTypes()) {
-            types.add(DtoConverter.toTypeDescriptor(type, registry));
+    public List<ProjectTypeDefinition> getProjectTypes() {
+        final List<ProjectTypeDefinition> types = new LinkedList<>();
+        for (ProjectType2 type : registry.getProjectTypes()) {
+            types.add(DtoConverter.toTypeDescriptor2(type));
         }
         return types;
     }

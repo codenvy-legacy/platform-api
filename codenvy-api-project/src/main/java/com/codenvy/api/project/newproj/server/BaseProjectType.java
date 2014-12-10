@@ -23,7 +23,6 @@ public class BaseProjectType extends AbstractProjectType {
     public BaseProjectType() {
         super(ID, "Blank");
         addVariableDefinition("vcs", "VCS", false);
-        //this.attributes.add(new Variable(this.getId(), "vcs", "VCS", false));
     }
 
 }

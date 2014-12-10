@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj;
 
-import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ValueStorageException;
 
 /**

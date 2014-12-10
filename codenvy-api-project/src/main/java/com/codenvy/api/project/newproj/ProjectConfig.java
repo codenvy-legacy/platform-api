@@ -11,7 +11,6 @@
 package com.codenvy.api.project.newproj;
 
 import com.codenvy.api.project.newproj.server.BaseProjectType;
-import com.codenvy.api.project.server.ValueStorageException;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 

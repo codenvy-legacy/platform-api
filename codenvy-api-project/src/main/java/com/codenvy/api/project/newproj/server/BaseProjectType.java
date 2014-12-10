@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj.server;
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
 
 /**

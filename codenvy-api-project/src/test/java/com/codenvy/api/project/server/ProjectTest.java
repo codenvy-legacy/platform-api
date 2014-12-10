@@ -45,10 +45,6 @@ public class ProjectTest {
     public void setUp() throws Exception {
 
         final ValueProviderFactory vpf1 = new ValueProviderFactory() {
-//            @Override
-//            public String getName() {
-//                return "my_project_type:calculated_attribute";
-//            }
 
             @Override
             public ValueProvider newInstance(String attributeId, Project project) {
@@ -71,29 +67,6 @@ public class ProjectTest {
             }
         };
 
-//        final Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
-////            @Override
-////            public String getName() {
-////                return "my_project_type:calculated_attribute";
-////            }
-//
-//            @Override
-//            public ValueProvider newInstance(String attributeId, Project project) {
-//                return new ValueProvider() {
-//                    @Override
-//                    public List<String> getValues() {
-//                        return Collections.singletonList("hello");
-//                    }
-//
-//                    @Override
-//                    public void setValues(List<String> value) {
-//
-//                        //System.out.println(" >>>> SET VALUE "+value);
-//                        calculateAttributeValueHolder = value;
-//                    }
-//                };
-//            }
-//        });
 
         AbstractProjectType pt = new AbstractProjectType("my_project_type", "my project type") {
 

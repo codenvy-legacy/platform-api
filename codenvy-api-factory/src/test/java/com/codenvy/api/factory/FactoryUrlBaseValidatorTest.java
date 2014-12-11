@@ -245,7 +245,7 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateOrgid(factory);
     }
 
-    @Test(expectedExceptions = ApiException.class, expectedExceptionsMessageRegExp = "You are not authorized to use this orgid.")
+    @Test(expectedExceptions = ApiException.class, expectedExceptionsMessageRegExp = "You are not authorized to use this accountId.")
     public void shouldNotValidateIfFactoryOwnerIsNotOrgidOwner()
             throws ApiException, ParseException {
         Member wronMember = member;
@@ -411,7 +411,7 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test(dataProvider = "trackedFactoryParameterWithoutOrgIdProvider",
             expectedExceptions = ConflictException.class,
-            expectedExceptionsMessageRegExp = "(?s)You do not have a valid orgID. Your Factory configuration has a parameter that.*")
+            expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountID. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
 

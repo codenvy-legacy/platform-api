@@ -131,7 +131,7 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateOrgid(Factory factory) throws ApiException {
-        // validate orgid
+        // validate accountid
         String orgid;
         String userid;
         // TODO do we need check if user is temporary?
@@ -162,10 +162,10 @@ public abstract class FactoryUrlBaseValidator {
                         }
                     }
                     if (!isOwner) {
-                        throw new ConflictException("You are not authorized to use this orgid.");
+                        throw new ConflictException("You are not authorized to use this accountId.");
                     }
                 } catch (NotFoundException | ServerException e) {
-                    throw new ConflictException("You are not authorized to use this orgid.");
+                    throw new ConflictException("You are not authorized to use this accountId.");
                 }
             }
         }

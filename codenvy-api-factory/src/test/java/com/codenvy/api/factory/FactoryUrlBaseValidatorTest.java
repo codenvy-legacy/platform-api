@@ -411,7 +411,7 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test(dataProvider = "trackedFactoryParameterWithoutOrgIdProvider",
             expectedExceptions = ConflictException.class,
-            expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountID. Your Factory configuration has a parameter that.*")
+            expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountId. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
 

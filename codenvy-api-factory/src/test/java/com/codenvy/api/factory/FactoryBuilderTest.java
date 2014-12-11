@@ -343,7 +343,7 @@ public class FactoryBuilderTest {
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "TFParamsProvider",
-            expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId.*")
+            expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId.*")
     public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(Factory factory)
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, ENCODED);
@@ -779,7 +779,7 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
 
-    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid orgId. .*")
+    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId. .*")
     public void shouldThrowExceptionOnValidationV2_0WithTrackedParamsWithoutAccountIdIfOnPremisesIsDisabled() throws Exception {
         factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, false);
 

@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.annotations.Valid;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -45,8 +46,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 /**
  * RESTful frontend for BuildQueue.
@@ -69,7 +73,7 @@ public class BuilderService extends Service {
                   position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 500, message = "Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_BUILD)
     @POST
     @Path("/build")
@@ -90,20 +94,25 @@ public class BuilderService extends Service {
                   position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 500, message = "Server Error")})
     @GenerateLink(rel = Constants.LINK_REL_DEPENDENCIES_ANALYSIS)
     @POST
     @Path("/dependencies")
     @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
     public BuildTaskDescriptor dependencies(@ApiParam(value = "Workspace ID", required = true)
                                             @PathParam("ws-id") String workspace,
                                             @ApiParam(value = "Project name", required = true)
                                             @Required @Description("project name") @QueryParam("project") String project,
                                             @ApiParam(value = "Analysis type. If dropped, list is used by default", defaultValue = "list",
-                                                      allowableValues = "copy,list")
-                                            @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType)
+                                                    allowableValues = "copy,list, copy-sources")
+                                            @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType,
+                                            @ApiParam(
+                                                    value = "Build options. Here you specify optional build options like skip tests, " +
+                                                            "build targets etc.")
+                                            @Description("build options") BuildOptions options)
             throws Exception {
-        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext()).getDescriptor();
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext(), options).getDescriptor();
     }
 
     @ApiOperation(value = "Get project build tasks",
@@ -113,7 +122,7 @@ public class BuilderService extends Service {
                   position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
+            @ApiResponse(code = 500, message = "Server Error")})
     @GET
     @Path("/builds")
     @Produces(MediaType.APPLICATION_JSON)
@@ -157,7 +166,8 @@ public class BuilderService extends Service {
                   position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
     @Path("/status/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -175,7 +185,8 @@ public class BuilderService extends Service {
                   position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
     @POST
     @Path("/cancel/{id}")
     @Produces(MediaType.APPLICATION_JSON)
@@ -193,7 +204,8 @@ public class BuilderService extends Service {
                   position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
     @Path("/logs/{id}")
     public void getLogs(@ApiParam(value = "Workspace ID", required = true)
@@ -211,7 +223,8 @@ public class BuilderService extends Service {
                   position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GET
     @Path("/report/{id}")
     public void getReport(@ApiParam(value = "Workspace ID", required = true)
@@ -223,33 +236,118 @@ public class BuilderService extends Service {
         buildQueue.getTask(id).readReport(new HttpServletProxyResponse(httpServletResponse));
     }
 
-    @ApiOperation(value = "Download build artifact",
-                  notes = "Download build artifact",
-                  position = 7)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+    private static final Pattern JSON_CONTENT_TYPE_PATTERN = Pattern.compile("^application/json(\\s*;.*)?$");
+    private static final Pattern HTML_CONTENT_TYPE_PATTERN = Pattern.compile("^text/htm(l)?(\\s*;.*)?$");
+
     @GET
-    @Path("/download/{id}")
-    public void download(@ApiParam(value = "Workspace ID", required = true)
-                         @PathParam("ws-id") String workspace,
-                         @ApiParam(value = "Build ID", required = true)
+    @Path("browse/{id}")
+    public void browseDirectory(@PathParam("ws-id") String workspace,
+                                @PathParam("id") Long id,
+                                @DefaultValue(".") @QueryParam("path") String path,
+                                @Context HttpServletResponse httpServletResponse) throws Exception {
+        final BuildQueueTask myTask = buildQueue.getTask(id);
+        final RemoteTask myRemoteTask = myTask.getRemoteTask();
+        if (myRemoteTask == null) {
+            return;
+        }
+        final String myBaseUri = getServiceContext().getServiceUriBuilder().build(workspace).toString();
+        final String from = String.format("%s/(browse|download|view)/%s/%d",
+                                          myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(), myRemoteTask.getId());
+        final String to = String.format("%s/$1/%d", myBaseUri, myTask.getId());
+        final List<Pair<String, String>> urlRewriteRules = new ArrayList<>(1);
+        urlRewriteRules.add(Pair.of(from, to));
+        // Response write directly to the servlet request stream
+        final HttpServletProxyResponse proxyResponse = new HttpServletProxyResponse(httpServletResponse,
+                                                                                    Collections.singletonMap(
+                                                                                            HTML_CONTENT_TYPE_PATTERN,
+                                                                                            urlRewriteRules));
+        myRemoteTask.browseDirectory(path, proxyResponse);
+    }
+
+    @GET
+    @Path("/view/{id}")
+    public void viewFile(@PathParam("ws-id") String workspace,
                          @PathParam("id") Long id,
-                         @ApiParam(value = "Path to a project as /target/{BuildArtifactName}", required = true)
                          @Required @QueryParam("path") String path,
                          @Context HttpServletResponse httpServletResponse) throws Exception {
         // Response write directly to the servlet request stream
-        buildQueue.getTask(id).download(path, new HttpServletProxyResponse(httpServletResponse));
+        buildQueue.getTask(id).readFile(path, new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @GET
+    @Path("tree/{id}")
+    public void listDirectory(@PathParam("ws-id") String workspace,
+                              @PathParam("id") Long id,
+                              @DefaultValue(".") @QueryParam("path") String path,
+                              @Context HttpServletResponse httpServletResponse) throws Exception {
+        final BuildQueueTask myTask = buildQueue.getTask(id);
+        final RemoteTask myRemoteTask = myTask.getRemoteTask();
+        if (myRemoteTask == null) {
+            return;
+        }
+        final String myBaseUri = getServiceContext().getServiceUriBuilder().build(workspace).toString();
+        final String from = String.format("%s/(tree|download|view)/%s/%d",
+                                          myRemoteTask.getBaseRemoteUrl(), myRemoteTask.getBuilder(), myRemoteTask.getId());
+        final String to = String.format("%s/$1/%d", myBaseUri, myTask.getId());
+        final List<Pair<String, String>> urlRewriteRules = new ArrayList<>(1);
+        urlRewriteRules.add(Pair.of(from, to));
+        // Response write directly to the servlet request stream
+        final HttpServletProxyResponse proxyResponse = new HttpServletProxyResponse(httpServletResponse,
+                                                                                    Collections.singletonMap(
+                                                                                            JSON_CONTENT_TYPE_PATTERN,
+                                                                                            urlRewriteRules));
+        myRemoteTask.listDirectory(path, proxyResponse);
+    }
+
+    @ApiOperation(value = "Download build artifact",
+            notes = "Download build artifact",
+            position = 7)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
+    @GET
+    @Path("/download/{id}")
+    public void downloadFile(@ApiParam(value = "Workspace ID", required = true)
+                             @PathParam("ws-id") String workspace,
+                             @ApiParam(value = "Build ID", required = true)
+                             @PathParam("id") Long id,
+                             @ApiParam(value = "Path to a build artifact as /target/{BuildArtifactName}", required = true)
+                             @Required @QueryParam("path") String path,
+                             @Context HttpServletResponse httpServletResponse) throws Exception {
+        // Response write directly to the servlet request stream
+        buildQueue.getTask(id).downloadFile(path, new HttpServletProxyResponse(httpServletResponse));
+    }
+
+    @ApiOperation(value = "Download all build artifact as tar or zip archive",
+            notes = "Download all build artifacts as tar or zip archive",
+            position = 8)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
+    @GET
+    @Path("/download-all/{id}")
+    public void downloadResultArchive(@ApiParam(value = "Workspace ID", required = true)
+                                      @PathParam("ws-id") String workspace,
+                                      @ApiParam(value = "Build ID", required = true)
+                                      @PathParam("id") Long id,
+                                      @ApiParam(value = "Archive type", defaultValue = "tar", allowableValues = "tar,zip")
+                                      @Required @QueryParam("arch") String arch,
+                                      @Context HttpServletResponse httpServletResponse) throws Exception {
+        // Response write directly to the servlet request stream
+        buildQueue.getTask(id).downloadResultArchive(arch, new HttpServletProxyResponse(httpServletResponse));
     }
 
     @ApiOperation(value = "Get all builders",
-                  notes = "Get information on all registered builders",
-                  response = BuilderDescriptor.class,
-                  responseContainer = "List",
-                  position = 8)
+            notes = "Get information on all registered builders",
+            response = BuilderDescriptor.class,
+            responseContainer = "List",
+            position = 9)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 404, message = "Not Found")})
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Server error")})
     @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_BUILDERS)
     @GET
     @Produces(MediaType.APPLICATION_JSON)

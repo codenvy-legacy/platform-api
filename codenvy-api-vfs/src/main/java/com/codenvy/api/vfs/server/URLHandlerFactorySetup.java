@@ -13,6 +13,9 @@ package com.codenvy.api.vfs.server;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -71,6 +74,21 @@ public class URLHandlerFactorySetup {
             } catch (MalformedURLException e) {
                 throw new RuntimeException(e.getMessage(), e);
             }
+        }
+    }
+
+    @Singleton
+    static class Initializer {
+        final VirtualFileSystemRegistry registry;
+
+        @Inject
+        Initializer(VirtualFileSystemRegistry registry) {
+            this.registry = registry;
+        }
+
+        @PostConstruct
+        void init() {
+            URLHandlerFactorySetup.setup(registry);
         }
     }
 

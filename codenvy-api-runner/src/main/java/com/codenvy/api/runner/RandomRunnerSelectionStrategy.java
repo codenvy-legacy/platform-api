@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.runner;
 
+import javax.inject.Singleton;
 import java.util.List;
 import java.util.Random;
 
@@ -18,6 +19,7 @@ import java.util.Random;
  *
  * @author Sergii Kabashniuk
  */
+@Singleton
 public class RandomRunnerSelectionStrategy implements RunnerSelectionStrategy {
     private final Random random = new Random();
 

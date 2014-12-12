@@ -18,7 +18,9 @@ import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerServerDescriptor;
 import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.api.runner.internal.Constants;
 
@@ -50,7 +52,16 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         this.infra = infra;
     }
 
-    public String getAssignedWorkspace() {
+    public String getAssignedWorkspace() throws RunnerException {
+        if (assignedWorkspace == null) {
+            try {
+                return ((RunnerServerDescriptor)getServiceDescriptor()).getAssignedWorkspace();
+            } catch (IOException e) {
+                throw new RunnerException(e);
+            } catch (ServerException e) {
+                throw new RunnerException(e.getServiceError());
+            }
+        }
         return assignedWorkspace;
     }
 
@@ -58,7 +69,16 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         this.assignedWorkspace = assignedWorkspace;
     }
 
-    public String getAssignedProject() {
+    public String getAssignedProject() throws RunnerException {
+        if (assignedProject == null) {
+            try {
+                return ((RunnerServerDescriptor)getServiceDescriptor()).getAssignedProject();
+            } catch (IOException e) {
+                throw new RunnerException(e);
+            } catch (ServerException e) {
+                throw new RunnerException(e.getServiceError());
+            }
+        }
         return assignedProject;
     }
 
@@ -66,8 +86,8 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         this.assignedProject = assignedProject;
     }
 
-    public boolean isDedicated() {
-        return assignedWorkspace != null;
+    public boolean isDedicated() throws RunnerException {
+        return getAssignedWorkspace() != null;
     }
 
     public RemoteRunner getRemoteRunner(String name) throws RunnerException {
@@ -121,5 +141,10 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
             throw new RunnerException(e.getServiceError());
         }
+    }
+
+    @Override
+    protected Class<? extends ServiceDescriptor> getServiceDescriptorClass() {
+        return RunnerServerDescriptor.class;
     }
 }

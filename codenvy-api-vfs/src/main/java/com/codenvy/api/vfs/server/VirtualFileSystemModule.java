@@ -29,5 +29,6 @@ public class VirtualFileSystemModule extends AbstractModule {
         bind(ContentStreamWriter.class);
         bind(RequestValidator.class).toProvider(Providers.<RequestValidator>of(null));
         bind(VirtualFileSystemFactory.class);
+        bind(URLHandlerFactorySetup.Initializer.class).asEagerSingleton();
     }
 }

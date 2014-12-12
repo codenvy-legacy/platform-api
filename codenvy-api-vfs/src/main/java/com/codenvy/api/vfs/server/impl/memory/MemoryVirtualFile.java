@@ -504,11 +504,16 @@ public class MemoryVirtualFile implements VirtualFile {
             }
         }
         if (child != null) {
-            if (child.hasPermission(BasicPermissions.READ.value(), false)) {
-                return child;
+            if (!child.getPath().endsWith(".codenvy/misc.xml")) {
+                // Don't check permissions for file "misc.xml" in folder ".codenvy". Dirty huck :( but seems simplest solution for now.
+                // Need to work with 'misc.xml' independently to user.
+                if (!child.hasPermission(BasicPermissions.READ.value(), false)) {
+                    throw new ForbiddenException(String.format("We were unable to get an item '%s'.  " +
+                                                               "You do not have the correct permissions to complete this operation. ",
+                                                               getPath()));
+                }
             }
-            throw new ForbiddenException(String.format("We were unable to get an item '%s'.  " +
-                                                       "You do not have the correct permissions to complete this operation. ", getPath()));
+            return child;
         }
         return null;
     }
@@ -553,9 +558,14 @@ public class MemoryVirtualFile implements VirtualFile {
         if (!isFile()) {
             throw new ForbiddenException(String.format("We were unable to update the content. Item '%s' is not a file. ", getPath()));
         }
-        if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("We were unable to update item '%s'." +
-                                                       " You do not have the correct permissions to complete this operation.", getPath()));
+        if (!getPath().endsWith(".codenvy/misc.xml")) {
+            // Don't check permissions when update file ".codenvy/misc.xml". Dirty huck :( but seems simplest solution for now.
+            // Need to work with 'misc.xml' independently to user.
+            if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
+                throw new ForbiddenException(String.format("We were unable to update item '%s'." +
+                                                           " You do not have the correct permissions to complete this operation.",
+                                                           getPath()));
+            }
         }
         if (isFile() && !validateLockTokenIfLocked(lockToken)) {
             throw new ForbiddenException(
@@ -962,7 +972,7 @@ public class MemoryVirtualFile implements VirtualFile {
     }
 
     @Override
-    public void unzip(InputStream zipped, boolean overwrite) throws ForbiddenException, ServerException {
+    public void unzip(InputStream zipped, boolean overwrite, int stripNumber) throws ForbiddenException, ServerException {
         checkExist();
         if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
             throw new ForbiddenException(String.format("We were unable to import a ZIP file to '%s' as part of the import." +
@@ -979,7 +989,16 @@ public class MemoryVirtualFile implements VirtualFile {
             ZipEntry zipEntry;
             while ((zipEntry = zip.getNextEntry()) != null) {
                 VirtualFile current = this;
-                final Path relPath = Path.fromString(zipEntry.getName());
+                Path relPath = Path.fromString(zipEntry.getName());
+
+                if (stripNumber > 0) {
+                    int currentLevel = relPath.elements().length;
+                    if (currentLevel <= stripNumber) {
+                        continue;
+                    }
+                    relPath = relPath.subPath(stripNumber);
+                }
+
                 final String name = relPath.getName();
                 if (relPath.length() > 1) {
                     // create all required parent directories
@@ -998,6 +1017,7 @@ public class MemoryVirtualFile implements VirtualFile {
                         MemoryVirtualFile folder = newFolder((MemoryVirtualFile)current, name);
                         ((MemoryVirtualFile)current).addChild(folder);
                         mountPoint.putItem(folder);
+                        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), folder.getPath(), true));
                     }
                 } else {
                     current.getChild(name);
@@ -1015,10 +1035,12 @@ public class MemoryVirtualFile implements VirtualFile {
                             throw new ForbiddenException(String.format("File '%s' already exists. ", file.getPath()));
                         }
                         file.updateContent(noCloseZip, null);
+                        mountPoint.getEventService().publish(new UpdateContentEvent(mountPoint.getWorkspaceId(), file.getPath()));
                     } else {
                         file = newFile((MemoryVirtualFile)current, name, noCloseZip, ContentTypeGuesser.guessContentType(name));
                         ((MemoryVirtualFile)current).addChild(file);
                         mountPoint.putItem((MemoryVirtualFile)file);
+                        mountPoint.getEventService().publish(new CreateEvent(mountPoint.getWorkspaceId(), file.getPath(), false));
                     }
                 }
                 zip.closeEntry();
@@ -1110,8 +1132,12 @@ public class MemoryVirtualFile implements VirtualFile {
         if (!isFolder()) {
             throw new ForbiddenException("Unable create new file. Item specified as parent is not a folder. ");
         }
-        if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
-            throw new ForbiddenException(String.format("Unable create new file in '%s'. Operation not permitted. ", getPath()));
+        if (!".codenvy".equals(getName()) && !"misc.xml".equals(name)) {
+            // Don't check permissions when create file "misc.xml" in folder ".codenvy". Dirty huck :( but seems simplest solution for now.
+            // Need to work with 'misc.xml' independently to user.
+            if (!hasPermission(BasicPermissions.WRITE.value(), true)) {
+                throw new ForbiddenException(String.format("Unable create new file in '%s'. Operation not permitted. ", getPath()));
+            }
         }
         final MemoryVirtualFile newFile;
         try {

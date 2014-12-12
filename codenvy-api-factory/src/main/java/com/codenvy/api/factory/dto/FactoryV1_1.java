@@ -11,6 +11,7 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -177,13 +178,13 @@ public interface FactoryV1_1 extends FactoryV1_0 {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "variables", deprecatedSince = V2_0)
     @Deprecated
-    List<Variable> getVariables();
+    List<ReplacementSet> getVariables();
 
     @Deprecated
-    void setVariables(List<Variable> variable);
+    void setVariables(List<ReplacementSet> variable);
 
     @Deprecated
-    FactoryV1_1 withVariables(List<Variable> variable);
+    FactoryV1_1 withVariables(List<ReplacementSet> variable);
 
     /**
      * @return The time when the factory becomes valid (in milliseconds, from Unix epoch, no timezone)

@@ -8,33 +8,26 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.dto;
+package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 /**
- * Configuration for replacement. Contains part of text to search and another to replace one.
- *
- * @author Sergii Kabashniuk
+ * @author Sergii Leschenko
  */
 @DTO
-public interface Replacement {
-    String getFind();
+public interface UpdateResourcesDescriptor {
+    void setWorkspaceId(String workspaceId);
 
-    void setFind(String find);
+    String getWorkspaceId();
 
-    Replacement withFind(String find);
+    UpdateResourcesDescriptor withWorkspaceId(String workspaceId);
 
-    String getReplace();
+    Map<String, String> getResources();
 
-    void setReplace(String replace);
+    void setResources(Map<String, String> resources);
 
-    Replacement withReplace(String replace);
-
-    String getReplacemode();
-
-    void setReplacemode(String replacemode);
-
-    Replacement withReplacemode(String replacemode);
-
+    UpdateResourcesDescriptor withResources(Map<String, String> resources);
 }

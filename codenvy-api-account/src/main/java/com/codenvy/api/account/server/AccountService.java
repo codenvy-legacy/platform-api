@@ -12,13 +12,14 @@ package com.codenvy.api.account.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.shared.dto.BillingDescriptor;
 import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
@@ -29,9 +30,9 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
-import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.account.shared.dto.SubscriptionAttributesDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -41,8 +42,8 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.User;
+import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
@@ -81,9 +82,10 @@ import java.util.List;
 import java.util.Set;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static java.util.Collections.singletonList;
-
+import static com.codenvy.commons.lang.Size.parseSize;
+import static com.codenvy.commons.lang.Size.parseSizeToMegabytes;
 import static java.lang.String.format;
+import static java.util.Collections.singletonList;
 
 /**
  * Account API
@@ -101,6 +103,7 @@ public class AccountService extends Service {
     private final SubscriptionServiceRegistry     registry;
     private final PaymentService                  paymentService;
     private final PlanDao                         planDao;
+    private final ResourcesManager                resourcesManager;
     private final SubscriptionAttributesValidator subscriptionAttributesValidator;
 
     @Inject
@@ -109,12 +112,14 @@ public class AccountService extends Service {
                           SubscriptionServiceRegistry registry,
                           PaymentService paymentService,
                           PlanDao planDao,
+                          ResourcesManager resourcesManager,
                           SubscriptionAttributesValidator subscriptionAttributesValidator) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
         this.paymentService = paymentService;
         this.planDao = planDao;
+        this.resourcesManager = resourcesManager;
         this.subscriptionAttributesValidator = subscriptionAttributesValidator;
     }
 
@@ -731,10 +736,12 @@ public class AccountService extends Service {
         subscriptionAttributesValidator.validate(newSubscriptionAttributes);
         service.beforeCreateSubscription(subscription);
 
-        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) && !securityContext.isUserInRole("system/admin")) {
+        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) &&
+            !securityContext.isUserInRole("system/admin") &&
+            !securityContext.isUserInRole("system/manager")) {
             throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
         }
-        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin")) {
+        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
             throw new ConflictException("User not authorized to add this subscription, please contact support");
         }
 
@@ -761,6 +768,9 @@ public class AccountService extends Service {
         }
 
         service.afterCreateSubscription(subscription);
+
+        LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
+
         return Response.status(Response.Status.CREATED)
                        .entity(toDescriptor(subscription, securityContext, roles))
                        .build();
@@ -791,7 +801,7 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/subscriptions/{subscriptionId}")
-    @RolesAllowed({"user", "system/admin"})
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
                                    @PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
             throws ApiException {
@@ -801,7 +811,8 @@ public class AccountService extends Service {
         }
         final SubscriptionAttributes attributes = accountDao.getSubscriptionAttributes(subscriptionId);
 
-        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId());
+        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId(),
+                 toRemove.getAccountId());
 
         if ("true".equals(attributes.getBilling().getUsePaymentSystem())) {
             try {
@@ -920,6 +931,68 @@ public class AccountService extends Service {
         return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
                          .withPlanId(subscriptionTemplate.getPlanId())
                          .withAccountId(subscriptionTemplate.getAccountId());
+    }
+
+    /**
+     * Redistributes resources between workspaces
+     *
+     * @param id
+     *         account id
+     * @param updateResourcesDescriptors
+     *         descriptor of resources for updating
+     * @throws ForbiddenException
+     *         when account hasn't permission for setting attribute in workspace
+     * @throws NotFoundException
+     *         when account or workspace with given id doesn't exist
+     * @throws ConflictException
+     *         when account hasn't required Saas subscription
+     *         or user want to use more RAM than he has
+     * @throws ServerException
+     */
+    @ApiOperation(value = "Redistributes resources",
+                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/admin.",
+                  position = 17)
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Conflict Error"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @POST
+    @Path("/{id}/resources")
+    @RolesAllowed({"account/owner", "system/manager", "system/admin"})
+    @Consumes(MediaType.APPLICATION_JSON)
+    public void redistributeResources(@ApiParam(value = "Account ID", required = true)
+                                      @PathParam("id") String id,
+                                      @ApiParam(value = "Resources description", required = true)
+                                      @Required
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors,
+                                      @Context SecurityContext securityContext) throws ForbiddenException,
+                                                                                       ConflictException,
+                                                                                       NotFoundException,
+                                                                                       ServerException {
+        if (securityContext.isUserInRole("system/admin")) {
+            //redistributing resources without limitation of RAM
+            resourcesManager.redistributeResources(id, updateResourcesDescriptors);
+            return;
+        }
+
+        //getting allowed RAM
+        final List<Subscription> saasSubscriptions = accountDao.getSubscriptions(id, "Saas");
+        if (saasSubscriptions.isEmpty()) {
+            throw new ConflictException("Account hasn't Saas subscription");
+        }
+        if (saasSubscriptions.size() > 1) {
+            throw new ConflictException("Account has more than 1 Saas subscription");
+        }
+        final Subscription saas = saasSubscriptions.get(0);
+
+        if ("Community".equals(saas.getProperties().get("Package"))) {
+            throw new ConflictException("Users who have community subscription can't distribute resources");
+        }
+        final int allowedRAM = (int)parseSizeToMegabytes(saas.getProperties().get("RAM"));
+
+        resourcesManager.redistributeResources(id, allowedRAM, updateResourcesDescriptors);
     }
 
     /**

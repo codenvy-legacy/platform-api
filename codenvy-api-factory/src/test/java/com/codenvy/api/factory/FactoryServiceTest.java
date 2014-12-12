@@ -11,6 +11,8 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
@@ -18,12 +20,12 @@ import com.codenvy.api.factory.dto.Button;
 import com.codenvy.api.factory.dto.ButtonAttributes;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.ProjectAttributes;
-import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.factory.dto.Variable;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.Source;
+import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.lang.Pair;
@@ -99,7 +101,7 @@ public class FactoryServiceTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator()));
+        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator(), false));
         factoryService = new FactoryService("https://codenvy.com/api",
                                             factoryStore,
                                             createValidator,
@@ -231,14 +233,17 @@ public class FactoryServiceTest {
         Response response =
                 given().when().queryParam("v", "1.1").queryParam("vcs", "git").queryParam("vcsurl", "git@github.com:codenvy/cloud-ide.git")
                        .queryParam("variables",
-                                   ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(Variable.class)) + "]")).get(
-                        SERVICE_PATH + "/nonencoded");
+                                   ("[" + DtoFactory.getInstance().toJson(DtoFactory.getInstance().createDto(ReplacementSet.class)) + "]"))
+                       .get(SERVICE_PATH + "/nonencoded");
 
         // then
         Factory factory = DtoFactory.getInstance().createDtoFromJson(response.asInputStream(), Factory.class);
         assertEquals(DtoFactory.getInstance().createDto(Factory.class)
-                               .withVariables(Arrays.asList(DtoFactory.getInstance().createDto(Variable.class))).withV(
-                        "1.1").withVcs("git").withVcsurl("git@github.com:codenvy/cloud-ide.git"), factory);
+                               .withVariables(Arrays.asList(DtoFactory.getInstance().createDto(ReplacementSet.class)))
+                               .withV("1.1")
+                               .withVcs("git")
+                               .withVcsurl("git@github.com:codenvy/cloud-ide.git"),
+                     factory);
     }
 
 
@@ -489,7 +494,7 @@ public class FactoryServiceTest {
     public void shouldReturnStatus409OnSaveFactoryIfImageHasUnsupportedMediaType() throws Exception {
         // given
         Factory factoryUrl = DtoFactory.getInstance().createDto(Factory.class);
-        factoryUrl.setId(CORRECT_FACTORY_ID);
+        //factoryUrl.setId(CORRECT_FACTORY_ID);
         factoryUrl.setCommitid("12345679");
         factoryUrl.setVcs("git");
         factoryUrl.setV("1.1");
@@ -864,7 +869,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
 
         assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
-                     "Enable to generate markdown snippet with empty factory style");
+                     "Unable to generate markdown snippet with empty factory style");
     }
 
     @Test
@@ -885,7 +890,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=markdown");
 
         assertEquals(DtoFactory.getInstance().createDtoFromJson(response.getBody().asInputStream(), ServiceError.class).getMessage(),
-                     "Enable to generate markdown snippet with nologo button and empty color");
+                     "Unable to generate markdown snippet with nologo button and empty color");
     }
 
     @Test
@@ -930,6 +935,18 @@ public class FactoryServiceTest {
     private String getServerUrl(ITestContext context) {
         String serverPort = String.valueOf(context.getAttribute(EverrestJetty.JETTY_PORT));
         return "http://localhost:" + serverPort;
+    }
+
+    @Test
+    public void shouldRespondNotFoundIfProjectIsNotExist() throws ServerException, ForbiddenException {
+
+        given().//
+                expect().//
+                statusCode(404).//
+                when().//
+                get(SERVICE_PATH + "/ws/projectName" );
+        verify(projectManager).getProject(eq("ws"), eq("projectName"));
+
     }
 
     @Test

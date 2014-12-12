@@ -13,6 +13,7 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -73,25 +74,25 @@ import java.util.List;
 import java.util.Map;
 
 import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static java.lang.Boolean.parseBoolean;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static java.util.Arrays.asList;
-import static java.util.Collections.singletonMap;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.ID_LENGTH;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_CREATE_TEMP_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_CREATE_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CONCRETE_USER_WORKSPACES;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_MEMBERSHIP;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_CURRENT_USER_WORKSPACES;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACES_BY_ACCOUNT;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_BY_NAME;
-import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE;
+import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static java.lang.Boolean.parseBoolean;
+import static java.util.Arrays.asList;
+import static java.util.Collections.singletonMap;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.status;
 
 /**
@@ -181,15 +182,24 @@ public class WorkspaceService extends Service {
             validateAttributes(newWorkspace.getAttributes());
         }
         final Account account = accountDao.getById(newWorkspace.getAccountId());
+
         //check user has access to add new workspace
-        if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
+        if (!context.isUserInRole("system/admin")) {
             ensureCurrentUserOwnerOf(account);
-            final String multiWs = account.getAttributes().get("codenvy:multi-ws");
-            final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
-            if (!parseBoolean(multiWs) && !existedWorkspaces.isEmpty()) {
-                throw new ForbiddenException("You don't have access to create more workspaces");
-            }
         }
+
+        final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
+        if (!existedWorkspaces.isEmpty()) {
+            if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
+                final String multiWs = account.getAttributes().get("codenvy:multi-ws");
+                if (!parseBoolean(multiWs)) {
+                    throw new ForbiddenException("You don't have access to create more workspaces");
+                }
+            }
+
+            newWorkspace.getAttributes().put("codenvy:role", "extra");
+        }
+
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(false)
@@ -310,7 +320,9 @@ public class WorkspaceService extends Service {
                                                                                 ServerException,
                                                                                 ForbiddenException {
         final Workspace workspace = workspaceDao.getById(id);
-        if (!context.isUserInRole("workspace/developer") && !context.isUserInRole("workspace/admin")) {
+        if (!context.isUserInRole("account/owner") &&
+            !context.isUserInRole("workspace/developer") &&
+            !context.isUserInRole("workspace/admin")) {
             // tmp_workspace_cloned_from_private_repo - gives information
             // whether workspace was clone from private repository or not. It can be use
             // by temporary workspace sharing filter for user that are not workspace/admin
@@ -362,7 +374,9 @@ public class WorkspaceService extends Service {
                                                                                   ForbiddenException {
         requiredNotNull(name, "Workspace name");
         final Workspace workspace = workspaceDao.getByName(name);
-        if (!context.isUserInRole("workspace/developer") && !context.isUserInRole("workspace/admin")) {
+        if (!context.isUserInRole("account/owner") &&
+            !context.isUserInRole("workspace/developer") &&
+            !context.isUserInRole("workspace/admin")) {
             // tmp_workspace_cloned_from_private_repo - gives information
             // whether workspace was clone from private repository or not. It can be use
             // by temporary workspace sharing filter for user that are not workspace/admin
@@ -411,7 +425,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal server error")})
     @POST
     @Path("/{id}")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     @Consumes(APPLICATION_JSON)
     @Produces(APPLICATION_JSON)
     public WorkspaceDescriptor update(@ApiParam(value = "Workspace ID")
@@ -464,7 +478,7 @@ public class WorkspaceService extends Service {
     @GET
     @Path("/find/account")
     @GenerateLink(rel = LINK_REL_GET_WORKSPACES_BY_ACCOUNT)
-    @RolesAllowed("user")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
     public List<WorkspaceDescriptor> getWorkspacesByAccount(@ApiParam(value = "Account ID", required = true)
                                                             @Required
@@ -512,7 +526,7 @@ public class WorkspaceService extends Service {
                 final Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
                 memberships.add(toDescriptor(member, workspace, context));
             } catch (NotFoundException nfEx) {
-                LOG.error("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), currentUser().getId());
+                LOG.error("Workspace {} doesn't exist but user {} refers to it. ", member.getWorkspaceId(), currentUser().getId());
             }
         }
         return memberships;
@@ -562,7 +576,7 @@ public class WorkspaceService extends Service {
                 final Workspace workspace = workspaceDao.getById(member.getWorkspaceId());
                 memberships.add(toDescriptor(member, workspace, context));
             } catch (NotFoundException nfEx) {
-                LOG.error("Workspace %s doesn't exist but user %s refers to it. ", member.getWorkspaceId(), userId);
+                LOG.error("Workspace {} doesn't exist but user {} refers to it. ", member.getWorkspaceId(), userId);
             }
         }
         return memberships;
@@ -593,12 +607,14 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}/members")
-    @RolesAllowed({"workspace/admin", "workspace/developer", "system/admin", "system/manager"})
+    @RolesAllowed({"workspace/admin", "workspace/developer", "account/owner", "system/admin", "system/manager"})
     @Produces(APPLICATION_JSON)
     public List<MemberDescriptor> getMembers(@ApiParam(value = "Workspace ID")
                                              @PathParam("id")
                                              String wsId,
-                                             @Context SecurityContext context) throws NotFoundException, ServerException {
+                                             @Context SecurityContext context) throws NotFoundException,
+                                                                                      ServerException,
+                                                                                      ForbiddenException {
         final Workspace workspace = workspaceDao.getById(wsId);
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         final List<MemberDescriptor> descriptors = new ArrayList<>(members.size());
@@ -668,7 +684,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/attribute")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     public void removeAttribute(@ApiParam(value = "Workspace ID")
                                 @PathParam("id")
                                 String wsId,
@@ -740,13 +756,14 @@ public class WorkspaceService extends Service {
             //if workspace doesn't contain members then member that is been added
             //should be added with roles 'workspace/admin' and 'workspace/developer'
             newMembership.setRoles(asList("workspace/admin", "workspace/developer"));
-
         } else {
             requiredNotNull(newMembership.getRoles(), "Roles");
             if (newMembership.getRoles().isEmpty()) {
                 throw new ConflictException("Roles should not be empty");
             }
-            if (!context.isUserInRole("workspace/admin") && !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember"))) {
+            if (!context.isUserInRole("workspace/admin") &&
+                !parseBoolean(workspace.getAttributes().get("allowAnyoneAddMember")) &&
+                !isCurrentUserAccountOwnerOf(wsId)) {
                 throw new ForbiddenException("Access denied");
             }
         }
@@ -784,7 +801,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}/members/{userid}")
-    @RolesAllowed("workspace/admin")
+    @RolesAllowed({"account/owner", "workspace/admin", "account/owner"})
     public void removeMember(@ApiParam(value = "Workspace ID")
                              @PathParam("id")
                              String wsId,
@@ -793,7 +810,8 @@ public class WorkspaceService extends Service {
                              String userId,
                              @Context SecurityContext context) throws NotFoundException,
                                                                       ServerException,
-                                                                      ConflictException {
+                                                                      ConflictException,
+                                                                      ForbiddenException {
         final List<Member> members = memberDao.getWorkspaceMembers(wsId);
         //search for member
         Member target = null;
@@ -835,10 +853,19 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
     @Path("/{id}")
-    @RolesAllowed({"workspace/admin", "system/admin"})
+    @RolesAllowed({"account/owner", "workspace/admin", "system/admin"})
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
+        Workspace workspaceToDelete = workspaceDao.getById(wsId);
+        if (!workspaceToDelete.isTemporary() && !workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
+            //checking active Saas subscription
+            List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
+            if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
+                //checking primary workspace
+                throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
+            }
+        }
         workspaceDao.remove(wsId);
     }
 
@@ -877,8 +904,9 @@ public class WorkspaceService extends Service {
         final UriBuilder baseUriBuilder = getServiceContext().getBaseUriBuilder();
         final List<Link> links = new LinkedList<>();
 
-        if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer")) {
-
+        if (context.isUserInRole("account/owner") ||
+            context.isUserInRole("workspace/admin") ||
+            context.isUserInRole("workspace/developer")) {
             links.add(createLink("GET",
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "getMembers")
@@ -888,7 +916,7 @@ public class WorkspaceService extends Service {
                                  APPLICATION_JSON,
                                  LINK_REL_GET_WORKSPACE_MEMBERS));
         }
-        if (context.isUserInRole("workspace/admin")) {
+        if (context.isUserInRole("account/owner") || context.isUserInRole("workspace/admin")) {
             links.add(createLink("DELETE",
                                  serviceUriBuilder.clone()
                                                   .path(getClass(), "removeMember")
@@ -976,7 +1004,7 @@ public class WorkspaceService extends Service {
                                  LINK_REL_GET_CURRENT_USER_MEMBERSHIP));
         }
         if (context.isUserInRole("workspace/admin") || context.isUserInRole("workspace/developer") ||
-            context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
+            context.isUserInRole("system/admin") || context.isUserInRole("system/manager") || context.isUserInRole("account/owner")) {
             links.add(createLink("GET",
                                  uriBuilder.clone().
                                          path(getClass(), "getByName")
@@ -1003,7 +1031,7 @@ public class WorkspaceService extends Service {
                                  APPLICATION_JSON,
                                  LINK_REL_GET_WORKSPACE_MEMBERS));
         }
-        if (context.isUserInRole("workspace/admin") || context.isUserInRole("system/admin")) {
+        if (context.isUserInRole("account/owner") || context.isUserInRole("workspace/admin") || context.isUserInRole("system/admin")) {
             links.add(createLink("DELETE",
                                  uriBuilder.clone()
                                            .path(getClass(), "remove")
@@ -1060,6 +1088,21 @@ public class WorkspaceService extends Service {
             }
         }
         throw new ConflictException("You can create workspace associated only with your own account");
+    }
+
+    private boolean isCurrentUserAccountOwnerOf(String wsId) throws ServerException, NotFoundException {
+        final List<Account> accounts = accountDao.getByOwner(currentUser().getId());
+        final List<Workspace> workspaces = new LinkedList<>();
+        //fetch all workspaces related to accounts
+        for (Account account : accounts) {
+            workspaces.addAll(workspaceDao.getByAccount(account.getId()));
+        }
+        for (Workspace workspace : workspaces) {
+            if (workspace.getId().equals(wsId)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private com.codenvy.commons.user.User currentUser() {

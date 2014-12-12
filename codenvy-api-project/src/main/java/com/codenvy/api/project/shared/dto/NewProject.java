@@ -19,6 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+
 /**
  * Data transfer object (DTO) for create project.
  *
@@ -35,9 +36,17 @@ public interface NewProject extends ProjectUpdate {
     /** Sets name of project. */
     void setName(String name);
 
+    /** Gets generator description. */
+    GeneratorDescription getGeneratorDescription();
+
+    /** Sets generator description. */
+    void setGeneratorDescription(GeneratorDescription generatorDescription);
+
     // For method call chain
 
     NewProject withName(String name);
+
+    NewProject withGeneratorDescription(GeneratorDescription generatorDescription);
 
     NewProject withType(String type);
 

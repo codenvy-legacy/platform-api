@@ -58,12 +58,16 @@ public abstract class Service {
 
     @OPTIONS
     @Produces(MediaType.APPLICATION_JSON)
-    public final ServiceDescriptor getServiceDescriptor() {
+    public ServiceDescriptor getServiceDescriptor() {
         return generateServiceDescriptor(uriInfo, getClass());
     }
 
     public ServiceContext getServiceContext() {
         return new ServiceContextImpl(uriInfo.getBaseUriBuilder(), getClass());
+    }
+
+    protected ServiceDescriptor createServiceDescriptor() {
+        return DtoFactory.getInstance().createDto(ServiceDescriptor.class);
     }
 
     //
@@ -83,7 +87,7 @@ public abstract class Service {
         JAX_RS_ANNOTATIONS = new HashSet<>(tmp);
     }
 
-    private static ServiceDescriptor generateServiceDescriptor(UriInfo uriInfo, Class<? extends Service> service) {
+    private ServiceDescriptor generateServiceDescriptor(UriInfo uriInfo, Class<? extends Service> service) {
         final List<Link> links = new ArrayList<>();
         for (Method method : service.getMethods()) {
             final GenerateLink generateLink = method.getAnnotation(GenerateLink.class);
@@ -95,17 +99,17 @@ public abstract class Service {
             }
         }
         final Description description = service.getAnnotation(Description.class);
-        final ServiceDescriptor dto = DtoFactory.getInstance().createDto(ServiceDescriptor.class)
-                                                .withHref(uriInfo.getRequestUriBuilder().replaceQuery(null).build().toString())
-                                                .withLinks(links)
-                                                .withVersion(Constants.API_VERSION);
+        final ServiceDescriptor dto = createServiceDescriptor()
+                .withHref(uriInfo.getRequestUriBuilder().replaceQuery(null).build().toString())
+                .withLinks(links)
+                .withVersion(Constants.API_VERSION);
         if (description != null) {
             dto.setDescription(description.value());
         }
         return dto;
     }
 
-    private static Link generateLinkForMethod(UriInfo uriInfo, String linkRel, Method method, Object... pathParameters) {
+    private Link generateLinkForMethod(UriInfo uriInfo, String linkRel, Method method, Object... pathParameters) {
         String httpMethod = null;
         final HttpMethod httpMethodAnnotation = getMetaAnnotation(method, HttpMethod.class);
         if (httpMethodAnnotation != null) {
@@ -200,7 +204,7 @@ public abstract class Service {
         return link;
     }
 
-    private static <T extends Annotation> T getAnnotation(Method method, Class<T> annotationClass) {
+    private <T extends Annotation> T getAnnotation(Method method, Class<T> annotationClass) {
         T annotation = method.getAnnotation(annotationClass);
         if (annotation == null) {
             for (Class<?> c = method.getDeclaringClass().getSuperclass();
@@ -219,7 +223,7 @@ public abstract class Service {
         return annotation;
     }
 
-    private static <T extends Annotation> T getMetaAnnotation(Method method, Class<T> metaAnnotationClass) {
+    private <T extends Annotation> T getMetaAnnotation(Method method, Class<T> metaAnnotationClass) {
         T annotation = null;
         for (Annotation a : method.getAnnotations()) {
             annotation = a.annotationType().getAnnotation(metaAnnotationClass);
@@ -249,7 +253,7 @@ public abstract class Service {
         return annotation;
     }
 
-    private static ParameterType getParameterType(Class<?> clazz) {
+    private ParameterType getParameterType(Class<?> clazz) {
         if (clazz == String.class) {
             return ParameterType.String;
         }

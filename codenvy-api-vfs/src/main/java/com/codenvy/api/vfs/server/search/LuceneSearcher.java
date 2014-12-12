@@ -58,7 +58,6 @@ public abstract class LuceneSearcher implements Searcher {
     private final VirtualFileFilter filter;
 
     private IndexWriter   luceneIndexWriter;
-    private Directory     luceneIndexDirectory;
     private IndexSearcher luceneIndexSearcher;
     private boolean       reopening;
     private boolean       closed;
@@ -85,27 +84,33 @@ public abstract class LuceneSearcher implements Searcher {
      * @throws ServerException
      *         if any virtual filesystem error
      */
-    public synchronized void init(MountPoint mountPoint) throws ServerException {
-        final long start = System.currentTimeMillis();
+    public void init(MountPoint mountPoint) throws ServerException {
+        doInit();
+        addTree(mountPoint.getRoot());
+    }
+
+    protected final synchronized void doInit() throws ServerException {
         try {
-            luceneIndexDirectory = makeDirectory();
-            luceneIndexWriter = new IndexWriter(luceneIndexDirectory, makeAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED);
+            luceneIndexWriter = new IndexWriter(makeDirectory(), makeAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED);
             luceneIndexSearcher = new IndexSearcher(luceneIndexWriter.getReader());
-            addTree(mountPoint.getRoot());
         } catch (IOException e) {
             throw new ServerException(e);
         }
-        final long end = System.currentTimeMillis();
-        LOG.debug("Index creation time: {} ms", (end - start));
     }
 
     public synchronized void close() {
         if (!closed) {
+            final IndexWriter indexWriter = getIndexWriter();
+            final Directory directory = indexWriter == null ? null : indexWriter.getDirectory();
             closeQuietly(luceneIndexSearcher);
-            closeQuietly(luceneIndexWriter);
-            closeQuietly(luceneIndexDirectory);
+            closeQuietly(indexWriter);
+            closeQuietly(directory);
             closed = true;
         }
+    }
+
+    public synchronized IndexWriter getIndexWriter() {
+        return luceneIndexWriter;
     }
 
     /**
@@ -231,6 +236,7 @@ public abstract class LuceneSearcher implements Searcher {
     }
 
     protected void addTree(VirtualFile tree) throws ServerException {
+        final long start = System.currentTimeMillis();
         final LinkedList<VirtualFile> q = new LinkedList<>();
         q.add(tree);
         int indexedFiles = 0;
@@ -249,7 +255,8 @@ public abstract class LuceneSearcher implements Searcher {
                 }
             }
         }
-        LOG.debug("Indexed {} files from {}", indexedFiles, tree.getPath());
+        final long end = System.currentTimeMillis();
+        LOG.debug("Indexed {} files from {}, time: {} ms", indexedFiles, tree.getPath(), (end - start));
     }
 
     protected void addFile(VirtualFile virtualFile) throws ServerException {
@@ -258,7 +265,7 @@ public abstract class LuceneSearcher implements Searcher {
             try {
                 fContentReader =
                         filter.accept(virtualFile) ? new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream())) : null;
-                luceneIndexWriter.updateDocument(new Term("path", virtualFile.getPath()), createDocument(virtualFile, fContentReader));
+                getIndexWriter().updateDocument(new Term("path", virtualFile.getPath()), createDocument(virtualFile, fContentReader));
             } catch (OutOfMemoryError oome) {
                 close();
                 throw oome;
@@ -284,7 +291,7 @@ public abstract class LuceneSearcher implements Searcher {
 
     protected void doDelete(Term deleteTerm) throws ServerException {
         try {
-            luceneIndexWriter.deleteDocuments(new PrefixQuery(deleteTerm));
+            getIndexWriter().deleteDocuments(new PrefixQuery(deleteTerm));
         } catch (OutOfMemoryError oome) {
             close();
             throw oome;
@@ -303,7 +310,7 @@ public abstract class LuceneSearcher implements Searcher {
         try {
             fContentReader =
                     filter.accept(virtualFile) ? new BufferedReader(new InputStreamReader(virtualFile.getContent().getStream())) : null;
-            luceneIndexWriter.updateDocument(deleteTerm, createDocument(virtualFile, fContentReader));
+            getIndexWriter().updateDocument(deleteTerm, createDocument(virtualFile, fContentReader));
         } catch (OutOfMemoryError oome) {
             close();
             throw oome;

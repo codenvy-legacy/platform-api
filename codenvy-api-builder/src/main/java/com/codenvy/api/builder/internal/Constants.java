@@ -24,12 +24,14 @@ public class Constants {
     public static final String LINK_REL_BUILD                 = "build";
     public static final String LINK_REL_DEPENDENCIES_ANALYSIS = "analyze dependencies";
 
-    public static final String LINK_REL_GET_STATUS      = "get status";
-    public static final String LINK_REL_VIEW_LOG        = "view build log";
-    public static final String LINK_REL_VIEW_REPORT     = "view report";
-    public static final String LINK_REL_DOWNLOAD_RESULT = "download result";
-    public static final String LINK_REL_BROWSE          = "browse";
-    public static final String LINK_REL_CANCEL          = "cancel";
+    public static final String LINK_REL_GET_STATUS               = "get status";
+    public static final String LINK_REL_VIEW_LOG                 = "view build log";
+    public static final String LINK_REL_VIEW_REPORT              = "view report";
+    public static final String LINK_REL_DOWNLOAD_RESULT          = "download result";
+    public static final String LINK_REL_DOWNLOAD_RESULTS_TARBALL = "download results tarball";
+    public static final String LINK_REL_DOWNLOAD_RESULTS_ZIPBALL = "download results zipball";
+    public static final String LINK_REL_BROWSE                   = "browse";
+    public static final String LINK_REL_CANCEL                   = "cancel";
 
     // config properties
     /** URLs of slave builders that should be registered in RunQueue. */

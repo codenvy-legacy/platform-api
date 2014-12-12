@@ -139,7 +139,7 @@ public class RunnerService extends Service {
                         // NotFoundException is possible and should not be treated as error in this case. Typically it occurs if slave
                         // runner already cleaned up the task by its internal cleaner but RunQueue doesn't re-check yet slave runner and
                         // doesn't have actual info about state of slave runner.
-                    } catch(RunnerException e) {
+                    } catch (RunnerException e) {
                         // Decide ignore such error to be able show maximum available info.
                         LOG.error(e.getMessage(), e);
                     }
@@ -220,8 +220,18 @@ public class RunnerService extends Service {
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("system");
         for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
-            if ((!runnerServer.isDedicated() || runnerServer.getAssignedWorkspace().equals(workspace))
-                && (project == null || project.equals(runnerServer.getAssignedProject()))) {
+            final String assignedWorkspace;
+            final String assignedProject;
+            try {
+                assignedWorkspace = runnerServer.getAssignedWorkspace();
+                assignedProject = runnerServer.getAssignedProject();
+            } catch (RunnerException e) {
+                LOG.error(e.getMessage(), e);
+                continue;
+            }
+            if (((assignedWorkspace != null && assignedWorkspace.equals(workspace)) || assignedWorkspace == null)
+                && ((assignedProject != null && assignedProject.equals(project)) || assignedProject == null)) {
+
                 final List<RunnerDescriptor> runners;
                 try {
                     runners = runnerServer.getRunnerDescriptors();
@@ -245,9 +255,13 @@ public class RunnerService extends Service {
                         final String unique =
                                 new EnvironmentId(EnvironmentId.Scope.system, runnerDescriptor.getName(), runnerEnvironment.getId())
                                         .toString();
-                        node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
-                                               .withDisplayName(runnerEnvironment.getId())
-                                               .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
+                        final String envId = runnerEnvironment.getId();
+                        final RunnerEnvironmentLeaf environment = node.getEnvironment(envId);
+                        if (environment == null) {
+                            node.addLeaf(dtoFactory.createDto(RunnerEnvironmentLeaf.class)
+                                                   .withDisplayName(envId)
+                                                   .withEnvironment(dtoFactory.clone(runnerEnvironment).withId(unique)));
+                        }
                     }
                 }
             }

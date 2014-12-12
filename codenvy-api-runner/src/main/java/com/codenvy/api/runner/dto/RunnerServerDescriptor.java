@@ -8,31 +8,25 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory.dto;
+package com.codenvy.api.runner.dto;
 
+import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
-/** Replacement variable, that contains list of files to find variables and replace by specified values. */
+/**
+ * @author andrew00x
+ */
 @DTO
-public interface Variable {
-    /**
-     * @return - list of files to make replacement
-     */
-    List<String> getFiles();
+public interface RunnerServerDescriptor extends ServiceDescriptor {
+    String getAssignedWorkspace();
 
-    void setFiles(List<String> files);
+    void setAssignedWorkspace(String assignedWorkspace);
 
-    Variable withFiles(List<String> files);
+    RunnerServerDescriptor withAssignedWorkspace(String assignedWorkspace);
 
-    /**
-     * @return - list of replacement
-     */
-    List<Replacement> getEntries();
+    String getAssignedProject();
 
-    void setEntries(List<Replacement> entries);
+    void setAssignedProject(String assignedProject);
 
-    Variable withEntries(List<Replacement> entries);
-
+    RunnerServerDescriptor withAssignedProject(String assignedProject);
 }

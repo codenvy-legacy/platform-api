@@ -19,7 +19,10 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import java.io.UnsupportedEncodingException;
 import java.net.URLEncoder;
-import java.util.*;
+import java.util.HashSet;
+import java.util.Map;
+import java.util.Queue;
+import java.util.Set;
 import java.util.concurrent.LinkedBlockingQueue;
 
 /**
@@ -29,11 +32,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 public class EventLogger {
     private static final Logger LOG = LoggerFactory.getLogger(EventLogger.class);
 
-    private static final int MAX_EXTENDED_PARAMS_NUMBER = 3;
-    private static final int RESERVED_PARAMS_NUMBER     = 6;
-    private static final int MAX_PARAM_NAME_LENGTH      = 20;
-    private static final int MAX_PARAM_VALUE_LENGTH     = 100;
-    private static final int QUEUE_MAX_CAPACITY         = 10000;
+    public static final String DASHBOARD_SOURCE = "com.codenvy.dashboard";
 
     public static final String EVENT_PARAM        = "EVENT";
     public static final String WS_PARAM           = "WS";
@@ -52,6 +51,12 @@ public class EventLogger {
     public static final String SESSION_FACTORY_STOPPED = "session-factory-stopped";
     public static final String SESSION_USAGE           = "session-usage";
     public static final String SESSION_FACTORY_USAGE   = "session-factory-usage";
+
+    private static final int MAX_EXTENDED_PARAMS_NUMBER = 3;
+    private static final int RESERVED_PARAMS_NUMBER     = 6;
+    private static final int MAX_PARAM_NAME_LENGTH      = 20;
+    private static final int MAX_PARAM_VALUE_LENGTH     = 100;
+    private static final int QUEUE_MAX_CAPACITY         = 10000;
 
     private static final Set<String> ALLOWED_EVENTS = new HashSet<String>() {{
         add(IDE_USAGE);
@@ -92,7 +97,9 @@ public class EventLogger {
 
     public void log(String event, Map<String, String> parameters) throws UnsupportedEncodingException {
         if (event != null && ALLOWED_EVENTS.contains(event)) {
-            parameters = parameters != null ? parameters : Collections.<String, String>emptyMap();
+            if (event.equals(DASHBOARD_USAGE)) {
+                parameters.put(EventLogger.SOURCE_PARAM, EventLogger.DASHBOARD_SOURCE);
+            }
 
             validate(parameters);
 

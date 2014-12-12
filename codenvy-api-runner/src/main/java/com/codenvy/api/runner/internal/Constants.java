@@ -62,6 +62,9 @@ public class Constants {
     /** Name of configuration parameter that sets amount of memory (in megabytes) for running applications. */
     public static final String TOTAL_APPS_MEM_SIZE                = "runner.total_apps_mem_size_mb";
 
+    public static final String RUNNER_ASSIGNED_TO_WORKSPACE = "runner.assigned_to_workspace";
+    public static final String RUNNER_ASSIGNED_TO_PROJECT   = "runner.assigned_to_project";
+
     // attributes of workspace which are interested for runner
     public static final String RUNNER_MAX_MEMORY_SIZE = "codenvy:runner_ram";
     public static final String RUNNER_LIFETIME        = "codenvy:runner_lifetime";

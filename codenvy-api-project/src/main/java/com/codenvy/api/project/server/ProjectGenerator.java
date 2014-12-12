@@ -13,25 +13,28 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-
-import java.util.Map;
+import com.codenvy.api.project.shared.dto.NewProject;
 
 /**
  * Generates project structure.
  *
  * @author andrew00x
+ * @author Artem Zatsarynnyy
  */
 public interface ProjectGenerator {
-    /** Unique id of project generator. */
+    /** ID of the project generator. Should be unique within project type ID. */
     String getId();
+
+    /** Returns ID of the project type for which this generator may generate content. */
+    String getProjectTypeId();
 
     /**
      * Generates project.
      *
      * @param baseFolder
      *         base project folder
-     * @param options
-     *         generator options
+     * @param newProjectDescriptor
+     *         new project descriptor
      * @throws ForbiddenException
      *         if some operations in {@code baseFolder} are forbidden, e.g. current user doesn't have write permissions to the {@code
      *         baseFolder}
@@ -40,5 +43,6 @@ public interface ProjectGenerator {
      * @throws ServerException
      *         if project generation causes some errors that should be treated as internal errors
      */
-    void generateProject(FolderEntry baseFolder, Map<String, String> options) throws ForbiddenException, ConflictException, ServerException;
+    void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+            throws ForbiddenException, ConflictException, ServerException;
 }

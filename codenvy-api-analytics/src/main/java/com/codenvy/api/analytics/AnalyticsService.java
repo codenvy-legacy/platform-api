@@ -44,6 +44,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.MultivaluedMap;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriInfo;
 import java.util.HashMap;
 import java.util.List;
@@ -76,9 +77,9 @@ public class AnalyticsService extends Service {
                   response = MetricValueDTO.class,
                   position = 1)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message  ="Not Found"),
-                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
     @GenerateLink(rel = "metric value")
     @GET
     @Path("/metric/{name}")
@@ -108,9 +109,9 @@ public class AnalyticsService extends Service {
                   response = MetricInfoListDTO.class,
                   position = 2)
     @ApiResponses(value = {
-                  @ApiResponse(code = 200, message = "OK"),
-                  @ApiResponse(code = 404, message  ="Not Found"),
-                  @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 500, message = "Unexpected error occurred. Can't get value for metric")})
 
     @GenerateLink(rel = "list of metric values")
     @POST
@@ -270,29 +271,25 @@ public class AnalyticsService extends Service {
     @Consumes(MediaType.APPLICATION_JSON)
     @Path("log/{event}")
     @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logEvent(@PathParam("event") String event, EventParameters parameters) throws ServerException {
+    public Response logEvent(@PathParam("event") String event,
+                             @Context SecurityContext securityContext,
+                             EventParameters parameters) throws ServerException {
         try {
-            eventLogger.log(event, parameters.getParams());
+            Map<String, String> params;
+            if (parameters == null) {
+                params = new HashMap<>();
+            } else {
+                params = parameters.getParams();
+            }
+
+            if (!params.containsKey(EventLogger.USER_PARAM) && securityContext != null && securityContext.getUserPrincipal() != null) {
+                params.put(EventLogger.USER_PARAM, securityContext.getUserPrincipal().getName());
+            }
+
+            eventLogger.log(event, params);
             return Response.status(Response.Status.ACCEPTED).build();
         } catch (Exception e) {
             throw new ServerException("Unexpected error occurred. Can't log event " + event);
-        }
-    }
-
-    @GenerateLink(rel = "log use dashboard event")
-    @POST
-    @Path("log/dashboard-usage/{action}")
-    @RolesAllowed({"user", "temp_user", "system/admin", "system/manager"})
-    public Response logUserDashboardEvent(@PathParam("action") String action) throws ServerException {
-        try {
-            Map<String, String> parameters = new HashMap<>(1);
-            parameters.put(EventLogger.ACTION_PARAM, action);
-
-            eventLogger.log(EventLogger.DASHBOARD_USAGE, parameters);
-            return Response.status(Response.Status.ACCEPTED).build();
-        } catch (Exception e) {
-            LOG.error(e.getMessage(), e);
-            throw new ServerException("Unexpected error occurred. Can't log dashboard event for action " + action);
         }
     }
 

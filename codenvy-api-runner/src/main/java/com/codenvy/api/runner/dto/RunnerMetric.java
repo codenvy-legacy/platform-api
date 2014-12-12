@@ -42,6 +42,10 @@ public interface RunnerMetric {
 
     String MEMORY ="memory";
 
+    String DISK_SPACE_TOTAL = "diskSpaceTotal";
+
+    String DISK_SPACE_USED = "diskSpaceUsed";
+
     String getName();
 
     RunnerMetric withName(String name);

@@ -41,15 +41,13 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
+import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Named;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.Part;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
@@ -113,8 +111,8 @@ public class FactoryService extends Service {
      * Fields with images should be named 'image'. Acceptable image size 100x100 pixels.
      * If vcs is not set in factory URL it will be set with "git" value.
      *
-     * @param request
-     *         - http request
+     * @param formData
+     *         - http request form data
      * @param uriInfo
      *         - url context
      * @return - stored data
@@ -135,12 +133,12 @@ public class FactoryService extends Service {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
             @ApiResponse(code = 500, message = "Unable to identify user from context")})
+
     @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
     @Produces({MediaType.APPLICATION_JSON})
-    public Factory saveFactory(@ApiParam(value = "Factory parameters", required = true)
-                               @Context HttpServletRequest request,
+    public Factory saveFactory(Iterator<FileItem> formData,
                                @Context UriInfo uriInfo)
             throws ApiException {
         try {
@@ -152,20 +150,21 @@ public class FactoryService extends Service {
             Set<FactoryImage> images = new HashSet<>();
             Factory factoryUrl = null;
 
-            for (Part part : request.getParts()) {
-                String fieldName = part.getName();
+            while (formData.hasNext()) {
+                FileItem item = formData.next();
+                String fieldName = item.getFieldName();
                 if (fieldName.equals("factoryUrl")) {
                     try {
-                        factoryUrl = factoryBuilder.buildEncoded(part.getInputStream());
+                        factoryUrl = factoryBuilder.buildEncoded(item.getInputStream());
                     } catch (JsonSyntaxException e) {
                         throw new ConflictException(
                                 "You have provided an invalid JSON.  For more information, " +
                                 "please visit http://docs.codenvy.com/user/creating-factories/factory-parameter-reference/");
                     }
                 } else if (fieldName.equals("image")) {
-                    try (InputStream inputStream = part.getInputStream()) {
+                    try (InputStream inputStream = item.getInputStream()) {
                         FactoryImage factoryImage =
-                                FactoryImage.createImage(inputStream, part.getContentType(), NameGenerator.generate(null, 16));
+                                FactoryImage.createImage(inputStream, item.getContentType(), NameGenerator.generate(null, 16));
                         if (factoryImage.hasContent()) {
                             images.add(factoryImage);
                         }
@@ -228,7 +227,7 @@ public class FactoryService extends Service {
                     nullToEmpty(orgid));
 
             return factoryUrl;
-        } catch (IOException | ServletException e) {
+        } catch (IOException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new ServerException(e.getLocalizedMessage(), e);
         }
@@ -515,6 +514,10 @@ public class FactoryService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public Response getFactoryJson(@PathParam("ws-id") String workspace, @PathParam("path") String path) throws ApiException {
         final Project project = projectManager.getProject(workspace, path);
+
+        if (project == null) {
+            throw new NotFoundException("Project " + path + " are not found in workspace " + workspace);
+        }
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         ImportSourceDescriptor source;
         NewProject newProject;

@@ -14,6 +14,7 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
+import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -38,6 +39,7 @@ import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
+import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
 import com.codenvy.api.runner.dto.RunnerServerRegistration;
@@ -49,6 +51,7 @@ import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
+import com.codenvy.commons.lang.Size;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
@@ -71,6 +74,7 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -249,18 +253,33 @@ public class RunQueue {
                             try {
                                 internalRunTask.get();
                             } catch (CancellationException e) {
+                                LOG.warn("Task {}, workspace '{}', project '{}' was cancelled",
+                                         internalRunTask.id, internalRunTask.workspace, internalRunTask.project);
                                 error = e;
                             } catch (ExecutionException e) {
                                 error = e.getCause();
+                                logError(internalRunTask, error == null ? e : error);
                             } catch (InterruptedException e) {
                                 Thread.currentThread().interrupt();
                             }
+                        } else {
+                            logError(internalRunTask, error);
                         }
                         if (error != null) {
-                            LOG.error(error.getMessage(), error);
                             eventService.publish(RunnerEvent.errorEvent(internalRunTask.id, internalRunTask.workspace,
                                                                         internalRunTask.project, error.getMessage()));
                         }
+                    }
+                }
+
+                private void logError(InternalRunTask runTask, Throwable t) {
+                    String errorMessage = t.getMessage();
+                    if (errorMessage != null) {
+                        LOG.warn("Execution error, task {}, workspace '{}', project '{}', message '{}'",
+                                 runTask.id, runTask.workspace, runTask.project, errorMessage);
+                    } else {
+                        LOG.warn(String.format("Execution error, task %d, workspace '%s', project '%s', message '%s'",
+                                               runTask.id, runTask.workspace, runTask.project, ""), t);
                     }
                 }
             };
@@ -327,9 +346,8 @@ public class RunQueue {
 
             // sending message by websocket connection for notice about used memory size changing
             eventService.subscribe(new ResourcesChangesMessenger());
-
+            eventService.subscribe(new ProcessStartedMessenger());
             eventService.subscribe(new RunStatusMessenger());
-
             //Log events for analytics
             eventService.subscribe(new AnalyticsMessenger());
 
@@ -669,7 +687,7 @@ public class RunQueue {
                         || (status = task.getRemoteProcess().getApplicationProcessDescriptor().getStatus()) == ApplicationStatus.RUNNING
                         || status == ApplicationStatus.NEW) {
                         availableMem -= request.getMemorySize();
-                        if (availableMem <= 0) {
+                        if (availableMem < mem) {
                             throw new RunnerException(
                                     String.format("Not enough resources to start application. Available memory %dM but %dM required.",
                                                   availableMem < 0 ? 0 : availableMem, mem)
@@ -683,7 +701,7 @@ public class RunQueue {
         }
     }
 
-    int getUsedMemory(String workspaceId) throws RunnerException {
+    int getUsedMemory(String workspaceId) {
         int usedMemory = 0;
         for (RunQueueTask task : tasks.values()) {
             final RunRequest request = task.getRequest();
@@ -698,6 +716,11 @@ public class RunQueue {
                     }
                 } catch (NotFoundException ignored) {
                     // If remote process is not found, it is stopped and removed from remote server.
+                } catch (RunnerException e) {
+                    // If can't get remote process in some reason, probably it was not started at all or we aren't able to connect to
+                    // remote runner. Such errors should not prevent get info about available resources.
+                    LOG.warn("Unable get amount of memory used by application '{}' from workspace '{}'. Get error when try access " +
+                             "status of remote process. Error: {}", request.getProject(), request.getWorkspace(), e.getMessage());
                 }
             }
         }
@@ -746,102 +769,7 @@ public class RunQueue {
     protected Callable<RemoteRunnerProcess> createTaskFor(final List<RemoteRunner> matched,
                                                           final RunRequest request,
                                                           final ValueHolder<BuildTaskDescriptor> buildTaskHolder) {
-        return new Callable<RemoteRunnerProcess>() {
-            @Override
-            public RemoteRunnerProcess call() throws Exception {
-                BuildTaskDescriptor buildDescriptor = buildTaskHolder.get();
-                if (buildDescriptor != null) {
-                    final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
-                    if (buildStatusLink == null) {
-                        throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
-                    }
-                    for (; ; ) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            // Expected to get here if task is canceled. Try to cancel related runner process.
-                            tryCancelBuild(buildDescriptor);
-                            return null;
-                        }
-                        synchronized (this) {
-                            try {
-                                wait(checkBuildResultPeriod);
-                            } catch (InterruptedException e) {
-                                // Expected to get here if task is canceled. Try to cancel related build process.
-                                tryCancelBuild(buildDescriptor);
-                                return null;
-                            }
-                        }
-                        buildDescriptor =
-                                HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
-                        // to be able show current state of build process with RunQueueTask.
-                        buildTaskHolder.set(buildDescriptor);
-                        final BuildStatus buildStatus = buildDescriptor.getStatus();
-                        if (buildStatus == BuildStatus.SUCCESSFUL) {
-                            final Link downloadLink =
-                                    buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
-                            if (downloadLink == null) {
-                                throw new RunnerException("Unable start application. Application build is successful but there " +
-                                                          "is no URL for download result of build.");
-                            }
-                            final String downloadLinkHref = downloadLink.getHref();
-                            // Slave runner needs auth token to be able download binaries from Builder API.
-                            final String token = getAuthenticationToken();
-                            request.withDeploymentSourcesUrl(
-                                    token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
-                            // get out from loop
-                            break;
-                        } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
-                            String msg = "Unable start application. Build of application is failed or cancelled.";
-                            final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
-                            if (logLink != null) {
-                                msg += (" Build logs: " + logLink.getHref());
-                            }
-                            throw new RunnerException(msg);
-                        } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
-                            // wait
-                            LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
-                                      request.getWorkspace());
-                        }
-                    }
-                }
-
-                // List of runners that have enough resources for launch application.
-                final List<RemoteRunner> available = new LinkedList<>();
-                for (; ; ) {
-                    for (RemoteRunner runner : matched) {
-                        if (Thread.currentThread().isInterrupted()) {
-                            // Expected to get here if task is canceled. Stop immediately.
-                            return null;
-                        }
-                        RunnerState runnerState;
-                        try {
-                            runnerState = runner.getRemoteRunnerState();
-                        } catch (Exception e) {
-                            LOG.error(e.getMessage(), e);
-                            continue;
-                        }
-                        if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()) {
-                            available.add(runner);
-                        }
-                    }
-                    if (available.isEmpty()) {
-                        synchronized (this) {
-                            try {
-                                // Wait and try again.
-                                wait(checkAvailableRunnerPeriod);
-                            } catch (InterruptedException e) {
-                                // Expected to get here if task is canceled.
-                                Thread.currentThread().interrupt();
-                                return null;
-                            }
-                        }
-                    } else {
-                        final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
-                        LOG.debug("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
-                        return runner.run(request);
-                    }
-                }
-            }
-        };
+        return new RemoteRunnerProcessCallable(buildTaskHolder, request, matched);
     }
 
     // Switched to default for test.
@@ -1064,6 +992,167 @@ public class RunQueue {
         }
     }
 
+
+    private class RemoteRunnerProcessCallable implements Callable<RemoteRunnerProcess> {
+        private final ValueHolder<BuildTaskDescriptor> buildTaskHolder;
+        private final RunRequest                       request;
+        private final List<RemoteRunner>               matchedRunners;
+        private final Set<Pair<String, String>>        lowDiskSpaceRunners;
+        private final Set<Pair<String, String>>        criticalDiskSpaceRunners;
+
+        public RemoteRunnerProcessCallable(ValueHolder<BuildTaskDescriptor> buildTaskHolder, RunRequest request,
+                                           List<RemoteRunner> matchedRunners) {
+            this.buildTaskHolder = buildTaskHolder;
+            this.request = request;
+            this.matchedRunners = matchedRunners;
+            lowDiskSpaceRunners = new HashSet<>();
+            criticalDiskSpaceRunners = new HashSet<>();
+        }
+
+        @Override
+        public RemoteRunnerProcess call() throws Exception {
+            BuildTaskDescriptor buildDescriptor = buildTaskHolder.get();
+            if (buildDescriptor != null) {
+                final Link buildStatusLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_GET_STATUS);
+                if (buildStatusLink == null) {
+                    throw new RunnerException("Invalid response from builder service. Unable get URL for checking build status");
+                }
+                for (; ; ) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        // Expected to get here if task is canceled. Try to cancel related runner process.
+                        tryCancelBuild(buildDescriptor);
+                        return null;
+                    }
+                    synchronized (this) {
+                        try {
+                            wait(checkBuildResultPeriod);
+                        } catch (InterruptedException e) {
+                            // Expected to get here if task is canceled. Try to cancel related build process.
+                            tryCancelBuild(buildDescriptor);
+                            return null;
+                        }
+                    }
+                    buildDescriptor =
+                            HttpJsonHelper.request(BuildTaskDescriptor.class, DtoFactory.getInstance().clone(buildStatusLink));
+                    // to be able show current state of build process with RunQueueTask.
+                    buildTaskHolder.set(buildDescriptor);
+                    final BuildStatus buildStatus = buildDescriptor.getStatus();
+                    if (buildStatus == BuildStatus.SUCCESSFUL) {
+                        final Link downloadLink =
+                                buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
+                        if (downloadLink == null) {
+                            throw new RunnerException("Unable start application. Application build is successful but there " +
+                                                      "is no URL for download result of build.");
+                        }
+                        final String downloadLinkHref = downloadLink.getHref();
+                        // Slave runner needs auth token to be able download binaries from Builder API.
+                        final String token = getAuthenticationToken();
+                        request.withDeploymentSourcesUrl(
+                                token != null ? String.format("%s&token=%s", downloadLinkHref, token) : downloadLinkHref);
+                        // get out from loop
+                        break;
+                    } else if (buildStatus == BuildStatus.CANCELLED || buildStatus == BuildStatus.FAILED) {
+                        String msg = "Unable start application. Build of application is failed or cancelled.";
+                        final Link logLink = buildDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_VIEW_LOG);
+                        if (logLink != null) {
+                            msg += (" Build logs: " + logLink.getHref());
+                        }
+                        throw new RunnerException(msg);
+                    } else if (buildStatus == BuildStatus.IN_PROGRESS || buildStatus == BuildStatus.IN_QUEUE) {
+                        // wait
+                        LOG.debug("Build in of project '{}' from workspace '{}' is progress", request.getProject(),
+                                  request.getWorkspace());
+                    }
+                }
+            }
+
+            // List of runners that have enough resources for launch application.
+            final List<RemoteRunner> available = new LinkedList<>();
+            for (; ; ) {
+                for (RemoteRunner runner : matchedRunners) {
+                    if (Thread.currentThread().isInterrupted()) {
+                        // Expected to get here if task is canceled. Stop immediately.
+                        return null;
+                    }
+                    RunnerState runnerState;
+                    try {
+                        runnerState = runner.getRemoteRunnerState();
+                    } catch (Exception e) {
+                        LOG.error(e.getMessage(), e);
+                        continue;
+                    }
+                    if (runnerState.getServerState().getFreeMemory() >= request.getMemorySize()
+                        && hasEnoughSpaceOnDisk(runner.getName(), runner.getBaseUrl(), runnerState)) {
+
+                        available.add(runner);
+                    }
+                }
+                if (available.isEmpty()) {
+                    synchronized (this) {
+                        try {
+                            // Wait and try again.
+                            wait(checkAvailableRunnerPeriod);
+                        } catch (InterruptedException e) {
+                            // Expected to get here if task is canceled.
+                            Thread.currentThread().interrupt();
+                            return null;
+                        }
+                    }
+                } else {
+                    final RemoteRunner runner = available.size() > 1 ? runnerSelector.select(available) : available.get(0);
+                    LOG.info("Use runner '{}' at '{}'", runner.getName(), runner.getBaseUrl());
+                    return runner.run(request);
+                }
+            }
+        }
+
+        private boolean hasEnoughSpaceOnDisk(String name, String baseUrl, RunnerState runnerState) {
+            final long diskSpace = getTotalDiskSpace(runnerState);
+            if (diskSpace > 0) {
+                final long usedDiskSpace = getUsedDiskSpace(runnerState);
+                if (usedDiskSpace > 0) {
+                    final long freePercent = (long)((((double)diskSpace - usedDiskSpace) / diskSpace) * 100);
+                    if (freePercent < 5) {
+                        if (criticalDiskSpaceRunners.add(Pair.of(name, baseUrl))) {
+                            // In production error messages cause sending email with SMTPAppender.
+                            // Need remember runners with low disk space to avoid sending multiple emails.
+                            LOG.error("Skip runner '{}' at '{}' because of low disk space, {}% left", name, baseUrl, freePercent);
+                        }
+                        return false;
+                    } else if (freePercent < 10) {
+                        if (lowDiskSpaceRunners.add(Pair.of(name, baseUrl))) {
+                            // In production error messages cause sending email with SMTPAppender.
+                            // Need remember runners with low disk space to avoid sending multiple emails.
+                            LOG.error("Runner '{}' at '{}' is running out of disk space, {}% left.", name, baseUrl, freePercent);
+                        }
+                    }
+                }
+            }
+            // If don't have information about disk status let application run.
+            return true;
+        }
+
+        /** Gets total disk space available for running application in bytes or {@code -1} if this operation is not supported. */
+        private long getTotalDiskSpace(RunnerState runnerState) {
+            for (RunnerMetric metric : runnerState.getStats()) {
+                if (RunnerMetric.DISK_SPACE_TOTAL.equals(metric.getName())) {
+                    return Size.parseSize(metric.getValue());
+                }
+            }
+            return -1;
+        }
+
+        /** Gets disk space used for running application in bytes or {@code -1} if this operation is not supported. */
+        private long getUsedDiskSpace(RunnerState runnerState) {
+            for (RunnerMetric metric : runnerState.getStats()) {
+                if (RunnerMetric.DISK_SPACE_USED.equals(metric.getName())) {
+                    return Size.parseSize(metric.getValue());
+                }
+            }
+            return -1;
+        }
+    }
+
     // for store workspace, project and id of process with FutureTask
     private static class InternalRunTask extends FutureTask<RemoteRunnerProcess> {
         final Long   id;
@@ -1211,7 +1300,7 @@ public class RunQueue {
                     try {
                         final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                         String workspaceId = event.getWorkspace();
-                        bm.setChannel(String.format("runner:resources:%s", workspaceId));
+                        bm.setChannel(String.format("workspace:resources:%s", workspaceId));
 
                         final ResourcesDescriptor resourcesDescriptor =
                                 DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
@@ -1226,6 +1315,23 @@ public class RunQueue {
         }
     }
 
+    private class ProcessStartedMessenger implements EventSubscriber<RunnerEvent> {
+        @Override
+        public void onEvent(RunnerEvent event) {
+            if (event.getType() == RunnerEvent.EventType.STARTED) {
+                try {
+                    final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+                    bm.setChannel(String.format("runner:process_started:%s:%s", event.getWorkspace(), event.getProject()));
+                    final ApplicationProcessDescriptor descriptor = getTask(event.getProcessId()).getDescriptor();
+                    bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+                    WSConnectionContext.sendMessage(bm);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
+                }
+            }
+        }
+    }
+
     private class RunStatusMessenger implements EventSubscriber<RunnerEvent> {
         @Override
         public void onEvent(RunnerEvent event) {
@@ -1233,6 +1339,7 @@ public class RunQueue {
                 final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                 final long id = event.getProcessId();
                 switch (event.getType()) {
+                    case PREPARATION_STARTED:
                     case STARTED:
                     case STOPPED:
                     case ERROR:
@@ -1285,35 +1392,36 @@ public class RunQueue {
 
         @Override
         public void onEvent(RunnerEvent event) {
-            try {
-                final long id = event.getProcessId();
-                final RunQueueTask task = getTask(id);
-                final RunRequest request = task.getRequest();
-                final String analyticsID = task.getCreationTime() + "-" + id;
-                final String project = extractProjectName(event.getProject());
-                final String workspace = request.getWorkspace();
-                final int memorySize = request.getMemorySize();
-                final long lifetime;
-                if (request.getLifetime() == Integer.MAX_VALUE) {
-                    lifetime = -1;
-                } else {
-                    lifetime = request.getLifetime() * 1000; // to ms
-                }
-                final String projectTypeId = request.getProjectDescriptor().getType();
-                final boolean debug = request.isInDebugMode();
-                final String user = request.getUserName();
-                switch (event.getType()) {
-                    case STARTED:
-                        long waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                        LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID,
-                                 waitingTime);
-                        if (debug) {
-                            LOG.info("EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+            if (event.getType() == RunnerEvent.EventType.PREPARATION_STARTED
+                || event.getType() == RunnerEvent.EventType.STARTED
+                || event.getType() == RunnerEvent.EventType.STOPPED
+                || event.getType() == RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE
+                || event.getType() == RunnerEvent.EventType.RUN_TASK_QUEUE_TIME_EXCEEDED) {
+                try {
+                    final long id = event.getProcessId();
+                    final RunQueueTask task = getTask(id);
+                    final RunRequest request = task.getRequest();
+                    final String analyticsID = task.getCreationTime() + "-" + id;
+                    final String project = extractProjectName(event.getProject());
+                    final String workspace = request.getWorkspace();
+                    final int memorySize = request.getMemorySize();
+                    final long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                    final long lifetime;
+                    if (request.getLifetime() == Integer.MAX_VALUE) {
+                        lifetime = -1;
+                    } else {
+                        lifetime = request.getLifetime() * 1000; // to ms
+                    }
+                    final String projectTypeId = request.getProjectDescriptor().getType();
+                    final boolean debug = request.isInDebugMode();
+                    final String user = request.getUserName();
+                    switch (event.getType()) {
+                        case PREPARATION_STARTED:
+                            final String preparationStartLineFormat =
+                                    debug
+                                    ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                    : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                            LOG.info(preparationStartLineFormat,
                                      workspace,
                                      user,
                                      project,
@@ -1321,8 +1429,19 @@ public class RunQueue {
                                      analyticsID,
                                      memorySize,
                                      lifetime);
-                        } else {
-                            LOG.info("EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#",
+                            break;
+                        case STARTED:
+                            LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            final String startLineFormat =
+                                    debug ? "EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                            LOG.info(startLineFormat,
                                      workspace,
                                      user,
                                      project,
@@ -1330,58 +1449,52 @@ public class RunQueue {
                                      analyticsID,
                                      memorySize,
                                      lifetime);
-                        }
-                        break;
-                    case STOPPED:
-                        long usageTime = task.getDescriptor().getStopTime() - task.getDescriptor().getStartTime();
-                        final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
-                        if (debug) {
-                            LOG.info(
-                                    "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
-                                    workspace,
-                                    user,
-                                    project,
-                                    projectTypeId,
-                                    analyticsID,
-                                    memorySize,
-                                    lifetime,
-                                    usageTime,
-                                    stoppedByUser);
-                        } else {
-                            LOG.info(
-                                    "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#",
-                                    workspace,
-                                    user,
-                                    project,
-                                    projectTypeId,
-                                    analyticsID,
-                                    memorySize,
-                                    lifetime,
-                                    usageTime,
-                                    stoppedByUser);
-                        }
-                        break;
-                    case RUN_TASK_ADDED_IN_QUEUE:
-                        LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID);
-                        break;
-                    case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                        waitingTime = System.currentTimeMillis() - task.getCreationTime();
-                        LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                 workspace,
-                                 user,
-                                 project,
-                                 projectTypeId,
-                                 analyticsID,
-                                 waitingTime);
-                        break;
+                            break;
+                        case STOPPED:
+                            long usageTime;
+                            try {
+                                final ApplicationProcessDescriptor descriptor = task.getDescriptor();
+                                usageTime = descriptor.getStopTime() - descriptor.getStartTime();
+                            } catch (ApiException e) {
+                                usageTime = 0;
+                            }
+                            final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
+                            final String stopLineFormat =
+                                    debug
+                                    ? "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#"
+                                    : "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#";
+                            LOG.info(stopLineFormat,
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     memorySize,
+                                     lifetime,
+                                     usageTime,
+                                     stoppedByUser);
+                            break;
+                        case RUN_TASK_ADDED_IN_QUEUE:
+                            LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID);
+                            break;
+                        case RUN_TASK_QUEUE_TIME_EXCEEDED:
+                            LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                     workspace,
+                                     user,
+                                     project,
+                                     projectTypeId,
+                                     analyticsID,
+                                     waitingTime);
+                            break;
+                    }
+                } catch (Exception e) {
+                    LOG.error(e.getMessage(), e);
                 }
-            } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
             }
         }
 

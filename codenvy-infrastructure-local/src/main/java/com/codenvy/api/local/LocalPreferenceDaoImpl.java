@@ -25,6 +25,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
+import javax.inject.Singleton;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -39,6 +40,7 @@ import java.util.regex.Pattern;
 /**
  * @author Eugene Voevodin
  */
+@Singleton
 public class LocalPreferenceDaoImpl implements PreferenceDao {
     private static final Logger LOG = LoggerFactory.getLogger(LocalPreferenceDaoImpl.class);
 

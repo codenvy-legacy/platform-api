@@ -48,7 +48,7 @@ public class Variable extends AbstractAttribute {
 
     public final AttributeValue getValue(Project project) throws ValueStorageException {
         if(valueProviderFactory != null) {
-            return new AttributeValue(valueProviderFactory.newInstance(getId(), project).getValues());
+            return new AttributeValue(valueProviderFactory.newInstance(project).getValues(getName()));
         } else {
             return value;
         }
@@ -57,7 +57,7 @@ public class Variable extends AbstractAttribute {
 
     public final void setValue(AttributeValue value, Project project) throws InvalidValueException, ValueStorageException {
         if(valueProviderFactory != null) {
-            this.valueProviderFactory.newInstance(getId(), project).setValues(value.getList());
+            this.valueProviderFactory.newInstance(project).setValues(getName(), value.getList());
         } else
             this.value = value;
     }

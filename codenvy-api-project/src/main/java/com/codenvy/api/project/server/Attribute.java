@@ -87,7 +87,7 @@ public class Attribute {
      * @return current value of attribute
      */
     public final String getValue() throws ValueStorageException {
-        final List<String> values = valueProvider.getValues();
+        final List<String> values = valueProvider.getValues(name);
         return !(values == null || values.isEmpty()) ? values.get(0) : null;
     }
 
@@ -97,7 +97,7 @@ public class Attribute {
      * @return current value of attribute
      */
     public final List<String> getValues() throws ValueStorageException {
-        final List<String> values = valueProvider.getValues();
+        final List<String> values = valueProvider.getValues(name);
         return values == null ? new ArrayList<String>(0) : new ArrayList<>(values);
     }
 
@@ -111,9 +111,9 @@ public class Attribute {
         if (value != null) {
             final List<String> list = new ArrayList<>(1);
             list.add(value);
-            valueProvider.setValues(list);
+            valueProvider.setValues(name, list);
         } else {
-            valueProvider.setValues(null);
+            valueProvider.setValues(name, null);
         }
     }
 
@@ -125,9 +125,9 @@ public class Attribute {
      */
     public final void setValues(List<String> values) throws ValueStorageException, InvalidValueException {
         if (values != null) {
-            valueProvider.setValues(new ArrayList<>(values));
+            valueProvider.setValues(name, new ArrayList<>(values));
         } else {
-            valueProvider.setValues(null);
+            valueProvider.setValues(name, null);
         }
     }
 
@@ -141,9 +141,9 @@ public class Attribute {
         if (values != null) {
             final List<String> list = new ArrayList<>();
             Collections.addAll(list, values);
-            valueProvider.setValues(list);
+            valueProvider.setValues(name, list);
         } else {
-            valueProvider.setValues(null);
+            valueProvider.setValues(name, null);
         }
     }
 }

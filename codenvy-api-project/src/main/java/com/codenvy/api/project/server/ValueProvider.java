@@ -20,8 +20,8 @@ import java.util.List;
 public interface ValueProvider {
 
     /** Gets value. */
-    List<String> getValues() throws ValueStorageException;
+    List<String> getValues(String attributeName) throws ValueStorageException;
 
     /** Sets value. */
-    void setValues(List<String> value) throws ValueStorageException, InvalidValueException;
+    void setValues(String attributeName, List<String> value) throws ValueStorageException, InvalidValueException;
 }

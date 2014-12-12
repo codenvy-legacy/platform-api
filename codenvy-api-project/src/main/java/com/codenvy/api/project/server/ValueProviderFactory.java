@@ -20,5 +20,5 @@ public interface ValueProviderFactory {
     //String getName();
 
     /** Create new instance of ValueProvider2. Project is used for access to low-level information about project. */
-    ValueProvider newInstance(String attributeId, Project project);
+    ValueProvider newInstance(Project project);
 }

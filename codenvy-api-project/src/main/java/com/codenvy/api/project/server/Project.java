@@ -107,7 +107,7 @@ public class Project {
                 List <String> val;
                 if (factory != null) {
 
-                    val = factory.newInstance(var.getId(), this).getValues();
+                    val = factory.newInstance(this).getValues(var.getName());
 
                     //System.out.println("GET CONFIG2 >> "+var.getName()+" "+val);
 
@@ -176,7 +176,7 @@ public class Project {
                      throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
 
                 if(valueProviderFactory != null) {
-                    valueProviderFactory.newInstance(var.getId(), this).setValues(attributeValue.getList());
+                    valueProviderFactory.newInstance(this).setValues(var.getName(), attributeValue.getList());
                 }
                 projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
 

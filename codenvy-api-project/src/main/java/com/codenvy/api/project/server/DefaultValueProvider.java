@@ -46,7 +46,7 @@ public class DefaultValueProvider implements ValueProvider {
     }
 
     @Override
-    public List<String> getValues() {
+    public List<String> getValues(String attributeName) {
         if (values == null) {
             values = new ArrayList<>(2);
         }
@@ -54,7 +54,7 @@ public class DefaultValueProvider implements ValueProvider {
     }
 
     @Override
-    public void setValues(List<String> values) {
+    public void setValues(String attributeName, List<String> values) {
         if (this.values == null) {
             if (values != null) {
                 this.values = new ArrayList<>(values);

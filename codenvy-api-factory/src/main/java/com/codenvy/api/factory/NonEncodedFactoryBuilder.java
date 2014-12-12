@@ -205,16 +205,6 @@ public abstract class NonEncodedFactoryBuilder {
         if (ide != null) {
             final OnProjectOpened onProjectOpened = ide.getOnProjectOpened();
             if (onProjectOpened != null) {
-                List<Part> parts = onProjectOpened.getParts();
-                for (int i = 0; i < parts.size(); i++) {
-                    Part part = parts.get(i);
-                    builder.append("&client.onProjectOpened.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
-                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
-                        builder.append("&client.onProjectOpened.parts.").append(encode("[" + i + "]")).append(".properties.")
-                               .append(property.getKey()).append("=").append(encode(property.getValue()));
-                    }
-                }
-
                 List<Action> ideActions = onProjectOpened.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
@@ -228,16 +218,6 @@ public abstract class NonEncodedFactoryBuilder {
             }
             final OnAppClosed onAppClosed = ide.getOnAppClosed();
             if (onAppClosed != null) {
-                List<Part> parts = onAppClosed.getParts();
-                for (int i = 0; i < parts.size(); i++) {
-                    Part part = parts.get(i);
-                    builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
-                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".properties.")
-                               .append(property.getKey()).append("=").append(encode(property.getValue()));
-                    }
-                }
-
                 List<Action> ideActions = onAppClosed.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
@@ -251,16 +231,6 @@ public abstract class NonEncodedFactoryBuilder {
 
             final OnAppLoaded onAppLoaded = ide.getOnAppLoaded();
             if (onAppLoaded != null) {
-                List<Part> parts = onAppLoaded.getParts();
-                for (int i = 0; i < parts.size(); i++) {
-                    Part part = parts.get(i);
-                    builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".id=").append(part.getId());
-                    for (Map.Entry<String, String> property : part.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.parts.").append(encode("[" + i + "]")).append(".properties.")
-                               .append(property.getKey()).append("=").append(encode(property.getValue()));
-                    }
-                }
-
                 List<Action> ideActions = onAppLoaded.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
@@ -271,7 +241,6 @@ public abstract class NonEncodedFactoryBuilder {
                     }
                 }
             }
-
 
         }
 

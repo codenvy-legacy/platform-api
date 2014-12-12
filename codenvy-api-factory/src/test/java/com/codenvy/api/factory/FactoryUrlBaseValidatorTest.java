@@ -10,11 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static java.util.Collections.singletonList;
-import static org.mockito.Matchers.anyString;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.when;
-
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
@@ -22,12 +17,13 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Ide;
+import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
-import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
@@ -55,6 +51,11 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+
+import static java.util.Collections.singletonList;
+import static org.mockito.Matchers.anyString;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.when;
 
 @Listeners(value = {MockitoTestNGListener.class})
 public class FactoryUrlBaseValidatorTest {
@@ -139,10 +140,10 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp =
-                    "The parameter source.project.location has a value submitted http://codenvy.com/git/04%2 with a value that is " +
-                    "unexpected. " +
-                    "For more information, please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference")
+          expectedExceptionsMessageRegExp =
+                  "The parameter source.project.location has a value submitted http://codenvy.com/git/04%2 with a value that is " +
+                  "unexpected. " +
+                  "For more information, please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference")
     public void shouldNotValidateIfVcsurlContainIncorrectEncodedSymbol() throws ApiException {
         // given
         factory = factory.withSource(dto.createDto(Source.class)
@@ -216,8 +217,8 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(dataProvider = "invalidProjectNamesProvider", expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = "Project name must contain only Latin letters, digits or these following special characters" +
-                                              " -._.")
+          expectedExceptionsMessageRegExp = "Project name must contain only Latin letters, digits or these following special characters" +
+                                            " -._.")
     public void shouldThrowFactoryUrlExceptionIfProjectNameInvalid(String projectName) throws Exception {
         // given
         factory.withProject(dto.createDto(NewProject.class)
@@ -346,29 +347,61 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class)
-    public void shouldNotValidateEncodedFactoryWithWelcomePageIfOrgIdIsEmpty() throws ApiException {
+    public void shouldNotValidateEncodedFactoryWithWelcomePageInOnProjectOpenedIfOrgIdIsEmpty() throws ApiException {
         // given
         factory.withIde(dto.createDto(Ide.class)
                            .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                                   .withParts(singletonList(dto.createDto(Part.class)
-                                                                               .withId("welcomePanel")
-                                                                               .withProperties(ImmutableMap
-                                                                                                       .<String,
-                                                                                                               String>builder()
-                                                                                                       .put("authenticatedTitle",
-                                                                                                            "title")
-                                                                                                       .put("authenticatedIconUrl",
-                                                                                                            "url")
-                                                                                                       .put("authenticatedContentUrl",
-                                                                                                            "url")
-                                                                                                       .put("nonAuthenticatedTitle",
-                                                                                                            "title")
-                                                                                                       .put("nonAuthenticatedIconUrl",
-                                                                                                            "url")
-                                                                                                       .put("nonAuthenticatedContentUrl",
-                                                                                                            "url")
-                                                                                                       .build()))
-                                                             )));
+                                                   .withActions(singletonList(dto.createDto(Action.class)
+                                                                                 .withId("welcomePanel")
+                                                                                 .withProperties(ImmutableMap
+                                                                                                         .<String,
+                                                                                                                 String>builder()
+                                                                                                         .put("authenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("authenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("authenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("nonAuthenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .build()))
+                                                               )));
+        factory.withCreator(dto.createDto(Author.class)
+                               .withAccountId("")
+                               .withUserId("userid"));
+
+        // when, then
+        validator.validateTrackedFactoryAndParams(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class)
+    public void shouldNotValidateEncodedFactoryWithWelcomePageInOnAppLoadedIfOrgIdIsEmpty() throws ApiException {
+        // given
+        factory.withIde(dto.createDto(Ide.class)
+                           .withOnAppLoaded(dto.createDto(OnAppLoaded.class)
+                                                   .withActions(singletonList(dto.createDto(Action.class)
+                                                                                 .withId("welcomePanel")
+                                                                                 .withProperties(ImmutableMap
+                                                                                                         .<String,
+                                                                                                                 String>builder()
+                                                                                                         .put("authenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("authenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("authenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("nonAuthenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .build()))
+                                                               )));
         factory.withCreator(dto.createDto(Author.class)
                                .withAccountId("")
                                .withUserId("userid"));
@@ -390,7 +423,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCE_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCE_MESSAGE)
     public void shouldNotValidateIfValidSinceBeforeCurrent() throws ApiException {
         factory.withPolicies(dto.createDto(Policies.class)
                                 .withValidSince(1l)
@@ -399,7 +432,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeCurrent() throws ApiException {
         factory.withPolicies(dto.createDto(Policies.class)
                                 .withValidUntil(1l)
@@ -408,7 +441,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeValidSince() throws ApiException {
         factory.withPolicies(dto.createDto(Policies.class)
                                 .withValidSince(2l)
@@ -419,7 +452,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDUNTIL_MESSAGE)
     public void shouldNotValidateIfValidUntilBeforeCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withPolicies(dto.createDto(Policies.class)
@@ -443,7 +476,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE)
+          expectedExceptionsMessageRegExp = FactoryConstants.ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE)
     public void shouldNotValidateIfValidUntilSinceAfterCurrentTime() throws ApiException {
         Long currentTime = new Date().getTime();
         factory.withPolicies(dto.createDto(Policies.class)
@@ -473,8 +506,8 @@ public class FactoryUrlBaseValidatorTest {
 
 
     @Test(dataProvider = "trackedFactoryParameterWithoutValidAccountId",
-            expectedExceptions = ConflictException.class,
-            expectedExceptionsMessageRegExp = "(?s)You do not have a valid orgID. Your Factory configuration has a parameter that.*")
+          expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "(?s)You do not have a valid orgID. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
 
@@ -482,7 +515,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
 
-    @Test (dataProvider = "trackedFactoryParameterWithoutValidAccountId")
+    @Test(dataProvider = "trackedFactoryParameterWithoutValidAccountId")
     public void shouldNotFailValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesTrue(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, true);
 
@@ -515,29 +548,30 @@ public class FactoryUrlBaseValidatorTest {
     public Object[][] trackedFactoryParameterWithoutValidAccountId() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
                 {
-                        dto.createDto(Factory.class).withV("2.1").withIde(dto.createDto(Ide.class)
-                                                                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                                                                                     .withParts(singletonList(dto.createDto(
-                                                                                                                        Part.class)
-                                                                                                                                 .withId("welcomePanel")
-                                                                                                                                 .withProperties(
-                                                                                                                                         ImmutableMap
-                                                                                                                                                 .<String,
-                                                                                                                                                         String>builder()
-                                                                                                                                                 .put("authenticatedTitle",
-                                                                                                                                                      "title")
-                                                                                                                                                 .put("authenticatedIconUrl",
-                                                                                                                                                      "url")
-                                                                                                                                                 .put("authenticatedContentUrl",
-                                                                                                                                                      "url")
-                                                                                                                                                 .put("nonAuthenticatedTitle",
-                                                                                                                                                      "title")
-                                                                                                                                                 .put("nonAuthenticatedIconUrl",
-                                                                                                                                                      "url")
-                                                                                                                                                 .put("nonAuthenticatedContentUrl",
-                                                                                                                                                      "url")
-                                                                                                                                                 .build()))
-                                                                                                               )))},
+                        dto.createDto(Factory.class)
+                           .withV("2.1")
+                           .withIde(dto.createDto(Ide.class)
+                                       .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
+                                                               .withActions(singletonList(dto.createDto(Action.class)
+                                                                                             .withId("welcomePanel")
+                                                                                             .withProperties(
+                                                                                                     ImmutableMap
+                                                                                                             .<String,
+                                                                                                                     String>builder()
+                                                                                                             .put("authenticatedTitle",
+                                                                                                                  "title")
+                                                                                                             .put("authenticatedIconUrl",
+                                                                                                                  "url")
+                                                                                                             .put("authenticatedContentUrl",
+                                                                                                                  "url")
+                                                                                                             .put("nonAuthenticatedTitle",
+                                                                                                                  "title")
+                                                                                                             .put("nonAuthenticatedIconUrl",
+                                                                                                                  "url")
+                                                                                                             .put("nonAuthenticatedContentUrl",
+                                                                                                                  "url")
+                                                                                                             .build()))
+                                                                           )))},
 
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},

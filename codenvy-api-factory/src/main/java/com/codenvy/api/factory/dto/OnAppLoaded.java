@@ -10,12 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.factory.dto;
 
-import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
-
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * Describe IDE look and feel on application loaded event.
@@ -33,15 +33,4 @@ public interface OnAppLoaded {
     void setActions(List<Action> actions);
 
     OnAppLoaded withActions(List<Action> actions);
-
-
-    /**
-     * @return parts for current event.
-     */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "parts")
-    List<Part> getParts();
-
-    void setParts(List<Part> actions);
-
-    OnAppLoaded withParts(List<Part> actions);
 }

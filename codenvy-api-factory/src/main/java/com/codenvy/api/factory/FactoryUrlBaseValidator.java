@@ -10,10 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
-import static java.lang.String.format;
-
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
@@ -21,8 +17,8 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
@@ -36,6 +32,10 @@ import java.net.URLDecoder;
 import java.util.Date;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
+import static java.lang.String.format;
 
 /**
  * Validates values of factory parameters.
@@ -215,13 +215,24 @@ public abstract class FactoryUrlBaseValidator {
                 }
             }
         } else {
-            if (factory.getIde() != null && factory.getIde().getOnProjectOpened() != null &&
-                factory.getIde().getOnProjectOpened().getParts() != null) {
-                List<Part> onOpenedParts = factory.getIde().getOnProjectOpened().getParts();
-                for (Part onOpenedPart : onOpenedParts) {
-                    if (onOpenedPart.getId().equals("welcomePanel") && null == orgid && !onPremises) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                           "ide.onProjectOpened.parts.[%index%].id=welcomePanel"));
+            if (factory.getIde() != null) {
+                if (factory.getIde().getOnProjectOpened() != null && factory.getIde().getOnProjectOpened().getActions() != null) {
+                    List<Action> onOpenedActions = factory.getIde().getOnProjectOpened().getActions();
+                    for (Action onOpenedAction : onOpenedActions) {
+                        if (onOpenedAction.getId().equals("welcomePanel") && null == orgid && !onPremises) {
+                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                               "ide.onProjectOpened.parts.[%index%].id=welcomePanel"));
+                        }
+                    }
+                }
+
+                if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
+                    List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
+                    for (Action onLoadedAction : onLoadedActions) {
+                        if (onLoadedAction.getId().equals("welcomePanel") && null == orgid && !onPremises) {
+                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                               "ide.onAppLoaded.parts.[%index%].id=welcomePanel"));
+                        }
                     }
                 }
             }

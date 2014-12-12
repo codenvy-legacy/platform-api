@@ -19,7 +19,6 @@ import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.OnAppClosed;
 import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
-import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.api.vfs.shared.dto.Variable;
@@ -27,7 +26,9 @@ import com.codenvy.dto.server.DtoFactory;
 import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -58,39 +59,33 @@ public class ActionsConverter implements LegacyConverter {
 
         final WelcomePage welcomePage = actions.getWelcome();
         if (welcomePage != null) {
-            addToOnProjectOpened(factory,
-                                 null,
-                                 singletonList(dto.createDto(Part.class)
-                                                  .withId("welcomePanel")
-                                                  .withProperties(ImmutableMap.<String, String>builder()
-                                                                              .put("authenticatedTitle",
-                                                                                   welcomePage.getAuthenticated()
-                                                                                              .getTitle())
-                                                                              .put("authenticatedIconUrl",
-                                                                                   welcomePage.getAuthenticated()
-                                                                                              .getIconurl())
-                                                                              .put("authenticatedContentUrl",
-                                                                                   welcomePage.getAuthenticated()
-                                                                                              .getContenturl())
-                                                                              .put("nonAuthenticatedTitle",
-                                                                                   welcomePage.getNonauthenticated()
-                                                                                              .getTitle())
-                                                                              .put("nonAuthenticatedIconUrl",
-                                                                                   welcomePage.getNonauthenticated()
-                                                                                              .getIconurl())
-                                                                              .put("nonAuthenticatedContentUrl",
-                                                                                   welcomePage.getNonauthenticated()
-                                                                                              .getContenturl())
-                                                                              .build())));
+            Map<String, String> welcomeProperties = new HashMap<>();
+
+            if (welcomePage.getAuthenticated() != null) {
+                welcomeProperties.put("authenticatedTitle", welcomePage.getAuthenticated().getTitle());
+                welcomeProperties.put("authenticatedIconUrl", welcomePage.getAuthenticated().getIconurl());
+                welcomeProperties.put("authenticatedContentUrl", welcomePage.getAuthenticated().getContenturl());
+                welcomeProperties.put("authenticatedNotification", welcomePage.getAuthenticated().getNotification());
+            }
+
+            if (welcomePage.getNonauthenticated() != null) {
+                welcomeProperties.put("nonAuthenticatedTitle", welcomePage.getNonauthenticated().getTitle());
+                welcomeProperties.put("nonAuthenticatedIconUrl", welcomePage.getNonauthenticated().getIconurl());
+                welcomeProperties.put("nonAuthenticatedContentUrl", welcomePage.getNonauthenticated().getContenturl());
+                welcomeProperties.put("nonAuthenticatedNotification", welcomePage.getNonauthenticated().getNotification());
+            }
+
+            //TODO add to on AppLoaded
+            addToOnProjectOpened(factory, singletonList(dto.createDto(Action.class)
+                                                       .withId("openWelcomePage")
+                                                       .withProperties(welcomeProperties)));
         }
 
         final String openFile = actions.getOpenFile();
         if (openFile != null) {
-            addToOnProjectOpened(factory,
-                                 singletonList(dto.createDto(Action.class)
-                                                  .withId("openFile")
-                                                  .withProperties(singletonMap("file", openFile))),
-                                 null);
+            addToOnProjectOpened(factory, singletonList(dto.createDto(Action.class)
+                                                           .withId("openFile")
+                                                           .withProperties(singletonMap("file", openFile))));
         }
 
         final List<ReplacementSet> replacement = actions.getFindReplace();
@@ -108,18 +103,34 @@ public class ActionsConverter implements LegacyConverter {
                     }
                 }
             }
-            addToOnProjectOpened(factory, replacementActions, null);
+            addToOnProjectOpened(factory, replacementActions);
         }
 
         final Boolean warnOnClose = actions.getWarnOnClose();
         if (warnOnClose != null && warnOnClose) {
-            addToOnAppClosed(factory, singletonList(dto.createDto(Action.class).withId("warnOnClose")), null);
+            addToOnAppClosed(factory, singletonList(dto.createDto(Action.class).withId("warnOnClose")));
         }
 
         factory.setActions(null);
     }
 
-    private void addToOnAppClosed(Factory factory, List<Action> actions, List<Part> parts) {
+    private void addToOnAppLoaded(Factory factory, List<Action> actions) {
+        OnAppLoaded onAppLoaded = factory.getIde().getOnAppLoaded();
+        if (onAppLoaded == null) {
+            onAppLoaded = dto.createDto(OnAppLoaded.class);
+            factory.getIde().setOnAppLoaded(onAppLoaded);
+        }
+        if (actions != null) {
+            List<Action> currentActions = onAppLoaded.getActions();
+            if (currentActions == null) {
+                currentActions = new ArrayList<>();
+                onAppLoaded.setActions(currentActions);
+            }
+            currentActions.addAll(actions);
+        }
+    }
+
+    private void addToOnAppClosed(Factory factory, List<Action> actions) {
         OnAppClosed onAppClosed = factory.getIde().getOnAppClosed();
         if (onAppClosed == null) {
             onAppClosed = dto.createDto(OnAppClosed.class);
@@ -133,17 +144,9 @@ public class ActionsConverter implements LegacyConverter {
             }
             currentActions.addAll(actions);
         }
-        if (parts != null) {
-            List<Part> currentParts = onAppClosed.getParts();
-            if (currentParts == null) {
-                currentParts = new ArrayList<>();
-                onAppClosed.setParts(currentParts);
-            }
-            currentParts.addAll(parts);
-        }
     }
 
-    private void addToOnProjectOpened(Factory factory, List<Action> actions, List<Part> parts) {
+    private void addToOnProjectOpened(Factory factory, List<Action> actions) {
         OnProjectOpened onProjectOpened = factory.getIde().getOnProjectOpened();
         if (onProjectOpened == null) {
             onProjectOpened = dto.createDto(OnProjectOpened.class);
@@ -157,14 +160,6 @@ public class ActionsConverter implements LegacyConverter {
                 onProjectOpened.setActions(currentActions);
             }
             currentActions.addAll(actions);
-        }
-        if (parts != null) {
-            List<Part> currentParts = onProjectOpened.getParts();
-            if (currentParts == null) {
-                currentParts = new ArrayList<>();
-                onProjectOpened.setParts(currentParts);
-            }
-            currentParts.addAll(parts);
         }
     }
 }

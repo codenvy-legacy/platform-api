@@ -280,7 +280,7 @@ public class ProjectTypeTest {
     public static class MyVPFactory implements ValueProviderFactory {
 
         @Override
-        public ValueProvider newInstance(String attributeId, Project project) {
+        public ValueProvider newInstance(Project project) {
             return new MyValueProvider();
 
         }
@@ -289,12 +289,12 @@ public class ProjectTypeTest {
 
 
             @Override
-            public List<String> getValues() throws ValueStorageException {
+            public List<String> getValues(String attributeName) throws ValueStorageException {
                 return Arrays.asList("gena");
             }
 
             @Override
-            public void setValues(List<String> value) throws ValueStorageException, InvalidValueException {
+            public void setValues(String attributeName, List<String> value) throws ValueStorageException, InvalidValueException {
 
             }
 

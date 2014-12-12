@@ -147,11 +147,6 @@ public class ProjectServiceTest {
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
                 new HashMap<String, AttributeValue>(), null, null, null));
 
-//        final ProjectType projectType = new ProjectType("my_project_type", "my project type", "my_category");
-//        ProjectDescription pd = new ProjectDescription(projectType);
-//        pd.setDescription("my test project");
-//        pd.setAttributes(Arrays.asList(new Attribute("my_attribute", "attribute value 1")));
-//        pm.createProject(workspace, "my_project1", pd);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());

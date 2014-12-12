@@ -47,21 +47,19 @@ public class ProjectTest {
         final ValueProviderFactory vpf1 = new ValueProviderFactory() {
 
             @Override
-            public ValueProvider newInstance(String attributeId, Project project) {
+            public ValueProvider newInstance(Project project) {
                 return new ValueProvider() {
                     @Override
-                    public List<String> getValues() {
+                    public List<String> getValues(String attributeName) {
 
-                        //System.out.println(" >>>> GET VALUE "+calculateAttributeValueHolder);
                         return calculateAttributeValueHolder;
                         //Collections.singletonList("hello");
                     }
 
                     @Override
-                    public void setValues(List<String> value) {
+                    public void setValues(String attributeName, List<String> value) {
 
                         calculateAttributeValueHolder = value;
-                        //System.out.println(" >>>> SET VALUE "+calculateAttributeValueHolder);
                     }
                 };
             }

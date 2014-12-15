@@ -303,10 +303,7 @@ public class RunQueueTest {
         assertEquals(request.getRunner(), "java/web");
         assertTrue(request.getOptions().isEmpty());
         assertTrue(request.getVariables().isEmpty());
-        // secure token must be appended
-        assertEquals(request.getDeploymentSourcesUrl(),
-                     project.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP)
-                            .getHref() + "?token=" + codenvyContext.getUser().getToken());
+        assertEquals(request.getUserToken(), codenvyContext.getUser().getToken());
 
         checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE);
     }
@@ -355,10 +352,7 @@ public class RunQueueTest {
         assertEquals(request.getRunner(), "java/web");
         assertEquals(request.getOptions(), options);
         assertEquals(request.getVariables(), envVar);
-        // secure token must be appended
-        assertEquals(request.getDeploymentSourcesUrl(),
-                     project.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP)
-                            .getHref() + "?token=" + codenvyContext.getUser().getToken());
+        assertEquals(request.getUserToken(), codenvyContext.getUser().getToken());
 
         checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE);
     }
@@ -399,12 +393,7 @@ public class RunQueueTest {
         assertEquals(request.getRunner(), "docker");
         List<String> recipeUrls = request.getRecipeUrls();
         assertEquals(recipeUrls.size(), 1);
-        // secure token must be appended
-        assertEquals(request.getDeploymentSourcesUrl(),
-                     project.getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP)
-                            .getHref() + "?token=" + codenvyContext.getUser().getToken());
-        // secure token must be appended
-        assertTrue(recipeUrls.contains(recipeUrl + "?token=" + codenvyContext.getUser().getToken()));
+        assertEquals(request.getUserToken(), codenvyContext.getUser().getToken());
 
         checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE);
     }
@@ -451,7 +440,7 @@ public class RunQueueTest {
         doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
         doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
 
-        String downloadResultUrl = mockBuilderApi(3);
+        mockBuilderApi(3);
 
         runQueue.run(wsId, pPath, serviceContext, null);
 
@@ -465,8 +454,7 @@ public class RunQueueTest {
         assertEquals(request.getRunner(), "java/web");
         assertTrue(request.getOptions().isEmpty());
         assertTrue(request.getVariables().isEmpty());
-        // secure token must be appended
-        assertEquals(request.getDeploymentSourcesUrl(), downloadResultUrl + "&token=" + codenvyContext.getUser().getToken());
+        assertEquals(request.getUserToken(), codenvyContext.getUser().getToken());
 
         checkEvents(RunnerEvent.EventType.RUN_TASK_ADDED_IN_QUEUE);
     }

@@ -35,9 +35,23 @@ public class DeploymentSources {
     /**
      * Checks is application bundle is zip archive or not.
      *
-     * @return is application bundle is zip archive or not
+     * @return {@code true} is application bundle is zip archive and {@code false} otherwise
+     * @deprecated use {@link #isZipArchive()} instead
      */
     public boolean isArchive() {
+        try {
+            return file != null && ZipUtils.isZipFile(file);
+        } catch (IOException e) {
+            return false;
+        }
+    }
+
+    /**
+     * Checks is application bundle is zip archive or not.
+     *
+     * @return {@code true} is application bundle is zip archive and {@code false} otherwise
+     */
+    public boolean isZipArchive() {
         try {
             return file != null && ZipUtils.isZipFile(file);
         } catch (IOException e) {

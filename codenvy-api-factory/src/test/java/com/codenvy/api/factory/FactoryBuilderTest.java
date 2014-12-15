@@ -510,30 +510,33 @@ public class FactoryBuilderTest {
                                  .withValidSince(123l)
                                  .withValidUntil(123l))
                 .withIde(dto.createDto(Ide.class)
+                            .withOnAppLoaded(dto.createDto(OnAppLoaded.class)
+                                                .withActions(singletonList(dto.createDto(Action.class)
+                                                                              .withId("openWelcomePage")
+                                                                              .withProperties(ImmutableMap.<String, String>builder()
+                                                                                                          .put("authenticatedTitle",
+                                                                                                               "title")
+                                                                                                          .put("authenticatedIconUrl",
+                                                                                                               "url")
+                                                                                                          .put("authenticatedContentUrl",
+                                                                                                               "url")
+                                                                                                          .put("authenticatedNotification",
+                                                                                                               "notification")
+                                                                                                          .put("nonAuthenticatedTitle",
+                                                                                                               "title")
+                                                                                                          .put("nonAuthenticatedIconUrl",
+                                                                                                               "url")
+                                                                                                          .put("nonAuthenticatedContentUrl",
+                                                                                                               "url")
+                                                                                                          .put("nonAuthenticatedNotification",
+                                                                                                               "notification")
+                                                                                                          .build()))))
                             .withOnAppClosed(
                                     dto.createDto(OnAppClosed.class)
                                        .withActions(
                                                singletonList(dto.createDto(Action.class).withId("warnOnClose"))))
                             .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
                                                     .withActions(Arrays.asList(
-                                                            dto.createDto(Action.class)
-                                                               .withId("openWelcomePage")
-                                                               .withProperties(ImmutableMap.<String, String>builder()
-                                                                                           .put("authenticatedTitle", "title")
-                                                                                           .put("authenticatedIconUrl", "url")
-                                                                                           .put("authenticatedContentUrl",
-                                                                                                "url")
-                                                                                           .put("authenticatedNotification",
-                                                                                                "notification")
-                                                                                           .put("nonAuthenticatedTitle",
-                                                                                                "title")
-                                                                                           .put("nonAuthenticatedIconUrl",
-                                                                                                "url")
-                                                                                           .put("nonAuthenticatedContentUrl",
-                                                                                                "url")
-                                                                                           .put("nonAuthenticatedNotification",
-                                                                                                "notification")
-                                                                                           .build()),
                                                             dto.createDto(Action.class)
                                                                .withId("openFile")
                                                                .withProperties(singletonMap("file", "openFile")),

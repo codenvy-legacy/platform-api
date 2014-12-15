@@ -76,7 +76,7 @@ public class ActionsConverter implements LegacyConverter {
             }
 
             //TODO add to on AppLoaded
-            addToOnProjectOpened(factory, singletonList(dto.createDto(Action.class)
+            addToOnAppLoaded(factory, singletonList(dto.createDto(Action.class)
                                                        .withId("openWelcomePage")
                                                        .withProperties(welcomeProperties)));
         }

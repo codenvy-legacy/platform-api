@@ -225,7 +225,7 @@ public class UserService extends Service {
             }
         }
         if (numOfDigits == 0 || numOfLetters == 0) {
-            throw new ConflictException("Password should contain letters and at least one digit");
+            throw new ConflictException("Password should contain letters and digits");
         }
 
         final User user = userDao.getById(currentUser().getId());

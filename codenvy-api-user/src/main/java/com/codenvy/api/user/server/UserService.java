@@ -197,9 +197,7 @@ public class UserService extends Service {
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
-            @ApiResponse(code = 409, message = "Password required"),
-            @ApiResponse(code = 409, message = "Password should contain at least 8 characters"),
-            @ApiResponse(code = 409, message = "Password should contain letters and at least one digit"),
+            @ApiResponse(code = 409, message = "Invalid password"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/password")
@@ -216,9 +214,9 @@ public class UserService extends Service {
             throw new ConflictException("Password should contain at least 8 characters");
         }
 
-        int numOfLetters = 0, numOfDigits = 0;
-        for (byte passwordByte : password.getBytes()) {
-            char passwordChar = (char)passwordByte;
+        int numOfLetters = 0;
+        int numOfDigits = 0;
+        for (char passwordChar : password.toCharArray()) {
             if (Character.isDigit(passwordChar)) {
                 numOfDigits++;
             }

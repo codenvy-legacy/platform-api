@@ -42,10 +42,13 @@ import java.util.List;
 import java.util.Map;
 
 import static java.util.Collections.singletonList;
-import static javax.ws.rs.core.Response.Status.*;
+import static javax.ws.rs.core.Response.Status.NO_CONTENT;
+import static javax.ws.rs.core.Response.Status.OK;
+import static javax.ws.rs.core.Response.Status.CONFLICT;
+import static javax.ws.rs.core.Response.Status.CREATED;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
-import static org.mockito.internal.verification.VerificationModeFactory.times;
 import static org.testng.Assert.assertEquals;
 
 /**
@@ -209,7 +212,7 @@ public class UserServiceTest {
                                                             environmentContext);
 
         assertEquals(response.getStatus(), CONFLICT.getStatusCode());
-        verify(userDao, times(0)).update(user.withPassword(newPassword));
+        verify(userDao, never()).update(user.withPassword(newPassword));
     }
 
     @Test
@@ -228,7 +231,7 @@ public class UserServiceTest {
                                                             environmentContext);
 
         assertEquals(response.getStatus(), CONFLICT.getStatusCode());
-        verify(userDao, times(0)).update(user.withPassword(newPassword));
+        verify(userDao, never()).update(user.withPassword(newPassword));
     }
 
     @Test
@@ -247,7 +250,7 @@ public class UserServiceTest {
                                                             environmentContext);
 
         assertEquals(response.getStatus(), CONFLICT.getStatusCode());
-        verify(userDao, times(0)).update(user.withPassword(newPassword));
+        verify(userDao, never()).update(user.withPassword(newPassword));
     }
 
     @Test

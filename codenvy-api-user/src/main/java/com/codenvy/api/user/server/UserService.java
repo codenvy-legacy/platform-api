@@ -207,7 +207,7 @@ public class UserService extends Service {
     public void updatePassword(@ApiParam(value = "New password", required = true)
                                @FormParam("password")
                                String password) throws NotFoundException, ServerException, ConflictException {
-        if (password == null || password.isEmpty()) {
+        if (password == null) {
             throw new ConflictException("Password required");
         }
         if (password.length() < 8) {

@@ -20,13 +20,14 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.project.newproj.AttributeValue;
+import com.codenvy.api.project.newproj.ProjectConfig;
 import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.project.server.Builders;
+import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.server.Project;
-import com.codenvy.api.project.server.ProjectDescription;
 import com.codenvy.api.project.server.ProjectJson2;
 import com.codenvy.api.project.server.ProjectManager;
-import com.codenvy.api.project.server.Runners;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -522,8 +523,9 @@ public class FactoryService extends Service {
         ImportSourceDescriptor source;
         NewProject newProject;
         try {
-            final ProjectDescription projectDescription = project.getDescription();
-            if ("git".equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
+            final ProjectConfig projectDescription = project.getConfig();
+            Map<String, AttributeValue> attributes = projectDescription.getAttributes();
+            if (attributes.containsKey("vcs.provider.name") && "git".equals(attributes.get("vcs.provider.name"))) {
                 final Link importSourceLink = dtoFactory.createDto(Link.class)
                                                         .withMethod("GET")
                                                         .withHref(UriBuilder.fromUri(baseApiUrl)

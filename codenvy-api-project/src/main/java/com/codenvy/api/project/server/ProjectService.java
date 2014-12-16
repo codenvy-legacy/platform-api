@@ -245,7 +245,7 @@ public class ProjectService extends Service {
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
 
-        projectCreatedLogEvent(descriptor.getName(), descriptor.getType());
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
 
         return descriptor;
     }
@@ -323,7 +323,7 @@ public class ProjectService extends Service {
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(module, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
 
-        projectCreatedLogEvent(descriptor.getName(), descriptor.getType());
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
 
         return descriptor;
     }
@@ -568,7 +568,7 @@ public class ProjectService extends Service {
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
 
-            projectCreatedLogEvent(name, projectType);
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -604,7 +604,7 @@ public class ProjectService extends Service {
             LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
 
-            projectCreatedLogEvent(name, projectType);
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -830,7 +830,7 @@ public class ProjectService extends Service {
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
 
-        projectCreatedLogEvent(projectDescriptor.getName(), projectDescriptor.getType());
+        logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
 
         if (problem != null) {
             List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
@@ -866,7 +866,7 @@ public class ProjectService extends Service {
             eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
             final String projectType = project.getDescription().getProjectType().getId();
 
-            projectCreatedLogEvent(path, projectType);
+            logProjectCreatedEvent(path, projectType);
         }
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")
@@ -1213,7 +1213,7 @@ public class ProjectService extends Service {
         return entry;
     }
 
-    private void projectCreatedLogEvent(@Nonnull String projectName, @Nonnull String projectType) {
+    private void logProjectCreatedEvent(@Nonnull String projectName, @Nonnull String projectType) {
         String paas = projectType.startsWith("GAE") ? "GAE" : "default";
 
         LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#{}#",

@@ -196,8 +196,10 @@ public class UserService extends Service {
                   position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
-            @ApiResponse(code = 403, message = "Password required"),
             @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Password required"),
+            @ApiResponse(code = 409, message = "Password should contain at least 8 characters"),
+            @ApiResponse(code = 409, message = "Password should contain letters and at least one digit"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/password")
@@ -207,9 +209,27 @@ public class UserService extends Service {
     public void updatePassword(@ApiParam(value = "New password", required = true)
                                @FormParam("password")
                                String password) throws NotFoundException, ServerException, ConflictException {
-        if (password == null) {
+        if (password == null || password.isEmpty()) {
             throw new ConflictException("Password required");
         }
+        if (password.length() < 8) {
+            throw new ConflictException("Password should contain at least 8 characters");
+        }
+
+        int numOfLetters = 0, numOfDigits = 0;
+        for (byte passwordByte : password.getBytes()) {
+            char passwordChar = (char)passwordByte;
+            if (Character.isDigit(passwordChar)) {
+                numOfDigits++;
+            }
+            if (Character.isLetter(passwordChar)) {
+                numOfLetters++;
+            }
+        }
+        if (numOfDigits == 0 || numOfLetters == 0) {
+            throw new ConflictException("Password should contain letters and at least one digit");
+        }
+
         final User user = userDao.getById(currentUser().getId());
         user.setPassword(password);
         userDao.update(user);

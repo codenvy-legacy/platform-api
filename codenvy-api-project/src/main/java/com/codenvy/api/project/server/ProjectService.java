@@ -1214,13 +1214,10 @@ public class ProjectService extends Service {
     }
 
     private void logProjectCreatedEvent(@Nonnull String projectName, @Nonnull String projectType) {
-        String paas = projectType.startsWith("GAE") ? "GAE" : "default";
-
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#{}#",
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#",
                  projectName,
                  projectType,
-                 EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName(),
-                 paas);
+                 EnvironmentContext.getCurrent().getWorkspaceId(),
+                 EnvironmentContext.getCurrent().getUser().getId());
     }
 }

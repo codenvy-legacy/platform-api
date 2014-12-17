@@ -12,6 +12,7 @@ package com.codenvy.api.user.server;
 
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -43,10 +44,12 @@ import java.util.Map;
 import static java.util.Collections.singletonList;
 import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static javax.ws.rs.core.Response.Status.OK;
+import static javax.ws.rs.core.Response.Status.CONFLICT;
+import static javax.ws.rs.core.Response.Status.CREATED;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
-import static javax.ws.rs.core.Response.Status.CREATED;
 
 /**
  * Tests for {@link UserService}
@@ -88,7 +91,9 @@ public class UserServiceTest {
                                                             new EverrestConfiguration(),
                                                             null);
         launcher = new ResourceLauncher(processor);
-        ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, ProviderBinder.getInstance()));
+        ProviderBinder providerBinder = ProviderBinder.getInstance();
+        providerBinder.addExceptionMapper(ApiExceptionMapper.class);
+        ApplicationContextImpl.setCurrent(new ApplicationContextImpl(null, null, providerBinder));
         //set up user
         final User user = createUser();
         com.codenvy.commons.env.EnvironmentContext.getCurrent().setUser(new com.codenvy.commons.user.User() {
@@ -175,7 +180,7 @@ public class UserServiceTest {
     @Test
     public void shouldBeAbleToUpdateUserPassword() throws Exception {
         final User user = createUser();
-        final String newPassword = "new password";
+        final String newPassword = "validPass123";
         final Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", singletonList("application/x-www-form-urlencoded"));
 
@@ -189,6 +194,63 @@ public class UserServiceTest {
 
         assertEquals(response.getStatus(), NO_CONTENT.getStatusCode());
         verify(userDao).update(user.withPassword(newPassword));
+    }
+
+    @Test
+    public void shouldFailUpdatePasswordContainsOnlyLetters() throws Exception {
+        final User user = createUser();
+        final String newPassword = "password";
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", singletonList("application/x-www-form-urlencoded"));
+
+        final ContainerResponse response = launcher.service("POST",
+                                                            SERVICE_PATH + "/password",
+                                                            BASE_URI,
+                                                            headers,
+                                                            ("password=" + newPassword).getBytes(),
+                                                            null,
+                                                            environmentContext);
+
+        assertEquals(response.getStatus(), CONFLICT.getStatusCode());
+        verify(userDao, never()).update(user.withPassword(newPassword));
+    }
+
+    @Test
+    public void shouldFailUpdatePasswordContainsOnlyDigits() throws Exception {
+        final User user = createUser();
+        final String newPassword = "12345678";
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", singletonList("application/x-www-form-urlencoded"));
+
+        final ContainerResponse response = launcher.service("POST",
+                                                            SERVICE_PATH + "/password",
+                                                            BASE_URI,
+                                                            headers,
+                                                            ("password=" + newPassword).getBytes(),
+                                                            null,
+                                                            environmentContext);
+
+        assertEquals(response.getStatus(), CONFLICT.getStatusCode());
+        verify(userDao, never()).update(user.withPassword(newPassword));
+    }
+
+    @Test
+    public void shouldFailUpdatePasswordWhichLessEightChar() throws Exception {
+        final User user = createUser();
+        final String newPassword = "abc123";
+        final Map<String, List<String>> headers = new HashMap<>();
+        headers.put("Content-Type", singletonList("application/x-www-form-urlencoded"));
+
+        final ContainerResponse response = launcher.service("POST",
+                                                            SERVICE_PATH + "/password",
+                                                            BASE_URI,
+                                                            headers,
+                                                            ("password=" + newPassword).getBytes(),
+                                                            null,
+                                                            environmentContext);
+
+        assertEquals(response.getStatus(), CONFLICT.getStatusCode());
+        verify(userDao, never()).update(user.withPassword(newPassword));
     }
 
     @Test

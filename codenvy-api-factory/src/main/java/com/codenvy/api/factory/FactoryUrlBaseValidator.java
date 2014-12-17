@@ -183,7 +183,7 @@ public abstract class FactoryUrlBaseValidator {
 
         if (orgid != null) {
             try {
-                List<Subscription> subscriptions = accountDao.getSubscriptions(orgid, "Factory");
+                List<Subscription> subscriptions = accountDao.getActiveSubscriptions(orgid, "Factory");
                 boolean isTracked = false;
                 for (Subscription one : subscriptions) {
                     if ("Tracked".equalsIgnoreCase(one.getProperties().get("Package"))) {

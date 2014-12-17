@@ -11,35 +11,31 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
-import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
+ * Describes subscription - a link between {@link com.codenvy.api.account.server.subscription.SubscriptionService} and {@link
  * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
  * @author Alexander Garagatyi
  */
 @DTO
-public interface NewSubscription {
+public interface NewSubscription extends NewSubscriptionTemplate {
+    Boolean getUsePaymentSystem();
 
-    @ApiModelProperty(value = "Account ID")
-    String getAccountId();
+    void setUsePaymentSystem(Boolean usePaymentSystem);
 
-    void setAccountId(String orgId);
+    NewSubscription withUsePaymentSystem(Boolean usePaymentSystem);
 
-    NewSubscription withAccountId(String orgId);
+    String getPaymentToken();
 
-    @ApiModelProperty(value = "Plan ID")
-    String getPlanId();
+    void setPaymentToken(String paymentToken);
 
-    void setPlanId(String id);
+    NewSubscription withPaymentToken(String paymentToken);
+
+    NewSubscription withTrialDuration(Integer trialDuration);
 
     NewSubscription withPlanId(String id);
 
-    NewSubscriptionAttributes getSubscriptionAttributes();
-
-    void setSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
-
-    NewSubscription withSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
+    NewSubscription withAccountId(String orgId);
 }

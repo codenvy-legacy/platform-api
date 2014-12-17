@@ -860,7 +860,7 @@ public class WorkspaceService extends Service {
         Workspace workspaceToDelete = workspaceDao.getById(wsId);
         if (!workspaceToDelete.isTemporary() && !workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
             //checking active Saas subscription
-            List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
+            List<Subscription> saasSubscriptions = accountDao.getActiveSubscriptions(workspaceToDelete.getAccountId(), "Saas");
             if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
                 //checking primary workspace
                 throw new ConflictException("You can't delete primary workspace when Saas subscription is active");

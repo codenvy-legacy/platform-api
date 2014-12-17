@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.account.server.dao.Subscription.State;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Describes subscription - a link between {@link com.codenvy.api.account.server.SubscriptionService} and {@link
+ * Describes subscription - a link between {@link com.codenvy.api.account.server.subscription.SubscriptionService} and {@link
  * com.codenvy.api.account.server.dao.Account}
  *
  * @author Eugene Voevodin
@@ -59,6 +60,84 @@ public interface SubscriptionDescriptor {
     void setProperties(Map<String, String> properties);
 
     SubscriptionDescriptor withProperties(Map<String, String> properties);
+
+    State getState();
+
+    void setState(State state);
+
+    SubscriptionDescriptor withState(State state);
+
+    String getStartDate();
+
+    void setStartDate(String startDate);
+
+    SubscriptionDescriptor withStartDate(String startDate);
+
+    String getEndDate();
+
+    void setEndDate(String endDate);
+
+    SubscriptionDescriptor withEndDate(String endDate);
+
+    String getTrialStartDate();
+
+    void setTrialStartDate(String trialStartDate);
+
+    SubscriptionDescriptor withTrialStartDate(String trialStartDate);
+
+    String getTrialEndDate();
+
+    void setTrialEndDate(String trialEndDate);
+
+    SubscriptionDescriptor withTrialEndDate(String trialEndDate);
+
+    Boolean getUsePaymentSystem();
+
+    void setUsePaymentSystem(Boolean usePaymentSystem);
+
+    SubscriptionDescriptor withUsePaymentSystem(Boolean usePaymentSystem);
+
+    String getBillingStartDate();
+
+    void setBillingStartDate(String billingStartDate);
+
+    SubscriptionDescriptor withBillingStartDate(String billingStartDate);
+
+    String getBillingEndDate();
+
+    void setBillingEndDate(String billingEndDate);
+
+    SubscriptionDescriptor withBillingEndDate(String billingEndDate);
+
+    String getNextBillingDate();
+
+    void setNextBillingDate(String nextBillingDate);
+
+    SubscriptionDescriptor withNextBillingDate(String nextBillingDate);
+
+    Integer getBillingCycle();
+
+    void setBillingCycle(Integer billingCycle);
+
+    SubscriptionDescriptor withBillingCycle(Integer billingCycle);
+
+    CycleTypeDescriptor getBillingCycleType();
+
+    void setBillingCycleType(CycleTypeDescriptor billingCycleType);
+
+    SubscriptionDescriptor withBillingCycleType(CycleTypeDescriptor billingCycleType);
+
+    Integer getBillingContractTerm();
+
+    void setBillingContractTerm(Integer BillingContractTerm);
+
+    SubscriptionDescriptor withBillingContractTerm(Integer BillingContractTerm);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    SubscriptionDescriptor withDescription(String description);
 
     void setLinks(List<Link> links);
 

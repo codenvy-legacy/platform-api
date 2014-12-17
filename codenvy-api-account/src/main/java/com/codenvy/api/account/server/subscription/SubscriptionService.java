@@ -8,12 +8,12 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.server;
-
+package com.codenvy.api.account.server.subscription;
 
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 /**
@@ -74,15 +74,10 @@ public abstract class SubscriptionService {
     public abstract void onRemoveSubscription(Subscription subscription) throws ApiException;
 
     /**
-     * Should be invoked to check subscription.
+     * Should be invoked to check subscriptions.
      * The one of use cases is use this method to check subscription expiration etc
-     *
-     * @param subscription
-     *         subscription that need to be checked
-     * @throws ApiException
-     *         when some error occurs while checking {@code subscription}
      */
-    public abstract void onCheckSubscription(Subscription subscription) throws ApiException;
+    public abstract void onCheckSubscriptions() throws ApiException;
 
     /**
      * Should be invoked after subscription update

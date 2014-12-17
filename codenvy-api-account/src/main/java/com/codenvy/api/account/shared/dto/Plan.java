@@ -50,4 +50,34 @@ public interface Plan {
     void setProperties(Map<String, String> properties);
 
     Plan withProperties(Map<String, String> properties);
+
+    Integer getTrialDuration();
+
+    void setTrialDuration(Integer trialDuration);
+
+    Plan withTrialDuration(Integer trialDuration);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    Plan withDescription(String description);
+
+    Integer getBillingCycle();
+
+    void setBillingCycle(Integer cycle);
+
+    Plan withBillingCycle(Integer cycle);
+
+    Integer getBillingCycleType();
+
+    void setBillingCycleType(Integer billingCycleType);
+
+    Plan withBillingCycleType(Integer billingCycleType);
+
+    Integer getBillingContractTerm();
+
+    void setBillingContractTerm(Integer contractTerm);
+
+    Plan withBillingContractTerm(Integer contractTerm);
 }

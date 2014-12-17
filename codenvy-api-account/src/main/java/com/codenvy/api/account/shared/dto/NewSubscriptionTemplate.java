@@ -34,4 +34,10 @@ public interface NewSubscriptionTemplate {
     void setPlanId(String id);
 
     NewSubscriptionTemplate withPlanId(String id);
+
+    Integer getTrialDuration();
+
+    void setTrialDuration(Integer trialDuration);
+
+    NewSubscriptionTemplate withTrialDuration(Integer trialDuration);
 }

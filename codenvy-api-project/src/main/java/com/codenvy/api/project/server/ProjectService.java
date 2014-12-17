@@ -57,6 +57,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -92,6 +93,7 @@ import java.util.concurrent.Executors;
  * @author andrew00x
  * @author Eugene Voevodin
  * @author Artem Zatsarynnyy
+ * @author Valeriy Svydenko
  */
 @Api(value = "/project",
      description = "Project manager")
@@ -242,9 +244,9 @@ public class ProjectService extends Service {
         }
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
+
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
+
         return descriptor;
     }
 
@@ -320,9 +322,9 @@ public class ProjectService extends Service {
 
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(module, getServiceContext().getServiceUriBuilder());
         eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
+
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
+
         return descriptor;
     }
 
@@ -565,8 +567,8 @@ public class ProjectService extends Service {
             final String name = project.getName();
             final String projectType = project.getDescription().getProjectType().getId();
             entry.remove();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", name, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -601,8 +603,8 @@ public class ProjectService extends Service {
             entry.remove();
             LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", name, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -827,9 +829,9 @@ public class ProjectService extends Service {
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder());
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                 projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
+
+        logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
+
         if (problem != null) {
             List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
             projectProblems.add(problem);
@@ -863,8 +865,8 @@ public class ProjectService extends Service {
             Project project = new Project(parent, projectManager);
             eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
             final String projectType = project.getDescription().getProjectType().getId();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", path, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+
+            logProjectCreatedEvent(path, projectType);
         }
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")
@@ -1209,5 +1211,13 @@ public class ProjectService extends Service {
             throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
+    }
+
+    private void logProjectCreatedEvent(@Nonnull String projectName, @Nonnull String projectType) {
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#",
+                 projectName,
+                 projectType,
+                 EnvironmentContext.getCurrent().getWorkspaceId(),
+                 EnvironmentContext.getCurrent().getUser().getId());
     }
 }

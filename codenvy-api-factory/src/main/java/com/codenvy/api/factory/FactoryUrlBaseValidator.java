@@ -219,7 +219,7 @@ public abstract class FactoryUrlBaseValidator {
                 if (factory.getIde().getOnProjectOpened() != null && factory.getIde().getOnProjectOpened().getActions() != null) {
                     List<Action> onOpenedActions = factory.getIde().getOnProjectOpened().getActions();
                     for (Action onOpenedAction : onOpenedActions) {
-                        if (onOpenedAction.getId().equals("welcomePanel") && null == orgid && !onPremises) {
+                        if ("welcomePanel".equals(onOpenedAction.getId()) && null == orgid && !onPremises) {
                             throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                                "ide.onProjectOpened.parts.[%index%].id=welcomePanel"));
                         }
@@ -229,7 +229,7 @@ public abstract class FactoryUrlBaseValidator {
                 if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
                     List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
                     for (Action onLoadedAction : onLoadedActions) {
-                        if (onLoadedAction.getId().equals("welcomePanel") && null == orgid && !onPremises) {
+                        if ("welcomePanel".equals(onLoadedAction.getId()) && null == orgid && !onPremises) {
                             throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                                "ide.onAppLoaded.parts.[%index%].id=welcomePanel"));
                         }

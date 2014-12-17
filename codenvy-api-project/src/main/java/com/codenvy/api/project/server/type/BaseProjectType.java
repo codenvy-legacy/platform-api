@@ -8,11 +8,23 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj;
+package com.codenvy.api.project.server.type;
+
+import com.codenvy.api.project.server.type.ProjectType2;
+
+import javax.inject.Singleton;
 
 /**
  * @author gazarenkov
  */
-public enum ValueType {
+@Singleton
+public class BaseProjectType extends ProjectType2 {
+
+    public static final String ID = "blank";
+
+    public BaseProjectType() {
+        super(ID, "Blank");
+        addVariableDefinition("vcs", "VCS", false);
+    }
 
 }

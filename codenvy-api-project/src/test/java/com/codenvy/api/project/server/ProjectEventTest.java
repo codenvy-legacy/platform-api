@@ -11,9 +11,8 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
 import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
@@ -40,7 +39,7 @@ public class ProjectEventTest {
         EventService eventService = new EventService();
 
 
-        AbstractProjectType pt = new AbstractProjectType("my_project_type", "my proj type") {
+        ProjectType2 pt = new ProjectType2("my_project_type", "my proj type") {
 
             {
                 addConstantDefinition("my_attribute", "attr description", "attribute value 1");

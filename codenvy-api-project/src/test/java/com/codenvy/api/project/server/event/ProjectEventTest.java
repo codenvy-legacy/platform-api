@@ -10,8 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.event;
 
-import com.codenvy.api.project.newproj.server.AbstractProjectType;
-import com.codenvy.api.project.newproj.server.Constant;
+import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.*;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
@@ -35,7 +34,7 @@ public class ProjectEventTest {
 
     }
 
-    public class MyProjectType extends AbstractProjectType {
+    public class MyProjectType extends ProjectType2 {
 
         public MyProjectType() {
 

@@ -8,11 +8,8 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectType2;
 import com.codenvy.api.project.server.ValueProviderFactory;
 
 import java.util.*;
@@ -20,7 +17,7 @@ import java.util.*;
 /**
  * @author gazarenkov
  */
-public abstract class AbstractProjectType implements ProjectType2 {
+public abstract class ProjectType2 {
 
 
     private final String id;
@@ -30,7 +27,7 @@ public abstract class AbstractProjectType implements ProjectType2 {
     protected final List<String> runnerCategories;
     protected final List<String> builderCategories;
 
-    protected AbstractProjectType(String id, String displayName) {
+    protected ProjectType2(String id, String displayName) {
         this.id = id;
         this.displayName = displayName;
         this.attributes = new HashMap<>();
@@ -41,27 +38,23 @@ public abstract class AbstractProjectType implements ProjectType2 {
     }
 
 
-    @Override
     public String getId() {
         return id;
     }
 
-    @Override
+
     public String getDisplayName() {
         return displayName;
     }
 
-    @Override
     public List<Attribute2> getAttributes() {
         return new ArrayList<>(attributes.values());
     }
 
-    @Override
     public List<ProjectType2> getParents() {
         return parents;
     }
 
-    @Override
     public boolean isTypeOf(String typeId) {
         if(this.id.equals(typeId))
             return true;
@@ -72,12 +65,11 @@ public abstract class AbstractProjectType implements ProjectType2 {
         return false;
     }
 
-    @Override
     public Attribute2 getAttribute(String name) {
         return attributes.get(name);
     }
 
-    @Override
+
     public List<String> getRunnerCategories() {
         return runnerCategories;
     }

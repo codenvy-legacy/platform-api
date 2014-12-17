@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.newproj.server.event;
 
-import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.shared.dto.ItemReference;
 
 /**

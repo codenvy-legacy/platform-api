@@ -12,10 +12,9 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.dto.ProjectTypeDefinition;
-import com.codenvy.api.project.shared.dto.ProjectTypeDescriptor;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;

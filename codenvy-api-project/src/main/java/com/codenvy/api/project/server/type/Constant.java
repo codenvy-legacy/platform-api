@@ -8,10 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
-
-import com.codenvy.api.project.newproj.AbstractAttribute;
-import com.codenvy.api.project.newproj.AttributeValue;
+package com.codenvy.api.project.server.type;
 
 /**
  * @author gazarenkov

@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj;
+package com.codenvy.api.project.server.type;
 
 /**
  * @author gazarenkov

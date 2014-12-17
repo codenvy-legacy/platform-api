@@ -11,15 +11,14 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ApiException;
-import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.server.type.Attribute2;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.BaseProjectType;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.*;
@@ -363,7 +362,6 @@ public class DtoConverter {
 
         if (config != null) {
             dto.withDescription(config.getDescription());
-            //final ProjectType2 projectType = config.getTypeId();
             String typeId = config.getTypeId();
             dto.withType(typeId).withTypeName(ptRegistry.getProjectType(typeId).getDisplayName());
 

@@ -8,27 +8,11 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj;
-
-import com.codenvy.api.project.server.ValueStorageException;
+package com.codenvy.api.project.server.type;
 
 /**
  * @author gazarenkov
  */
-public interface Attribute2 {
-
-    String getId();
-
-    String getName();
-
-    String getProjectType();
-
-    String getDescription();
-
-    boolean isRequired();
-
-    boolean isVariable();
-
-    AttributeValue getValue() throws ValueStorageException;
+public enum ValueType {
 
 }

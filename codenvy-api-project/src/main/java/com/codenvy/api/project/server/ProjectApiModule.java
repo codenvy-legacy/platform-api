@@ -8,9 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.newproj.ProjectType2;
+import com.codenvy.api.project.server.type.BaseProjectType;
+import com.codenvy.api.project.server.type.ProjectType2;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 

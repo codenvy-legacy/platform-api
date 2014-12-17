@@ -11,11 +11,9 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -66,7 +64,7 @@ public class ProjectTest {
         };
 
 
-        AbstractProjectType pt = new AbstractProjectType("my_project_type", "my project type") {
+        ProjectType2 pt = new ProjectType2("my_project_type", "my project type") {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);

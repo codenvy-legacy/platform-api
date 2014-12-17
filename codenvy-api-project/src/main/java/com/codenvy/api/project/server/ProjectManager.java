@@ -13,13 +13,11 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.server.ProjectTypeRegistry;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * A manager for codenvy projects.

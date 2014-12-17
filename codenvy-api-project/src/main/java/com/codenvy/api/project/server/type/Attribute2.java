@@ -8,21 +8,27 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.type;
 
-import javax.inject.Singleton;
+import com.codenvy.api.project.server.ValueStorageException;
 
 /**
  * @author gazarenkov
  */
-@Singleton
-public class BaseProjectType extends AbstractProjectType {
+public interface Attribute2 {
 
-    public static final String ID = "blank";
+    String getId();
 
-    public BaseProjectType() {
-        super(ID, "Blank");
-        addVariableDefinition("vcs", "VCS", false);
-    }
+    String getName();
+
+    String getProjectType();
+
+    String getDescription();
+
+    boolean isRequired();
+
+    boolean isVariable();
+
+    AttributeValue getValue() throws ValueStorageException;
 
 }

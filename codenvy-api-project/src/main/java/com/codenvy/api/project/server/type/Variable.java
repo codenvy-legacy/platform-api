@@ -8,10 +8,8 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.newproj.AbstractAttribute;
-import com.codenvy.api.project.newproj.AttributeValue;
 import com.codenvy.api.project.server.*;
 
 
@@ -52,7 +50,6 @@ public class Variable extends AbstractAttribute {
         } else {
             return value;
         }
-        //return (valueProvider != null)?new AttributeValue(valueProvider.getValues()):value;
     }
 
     public final void setValue(AttributeValue value, Project project) throws InvalidValueException, ValueStorageException {

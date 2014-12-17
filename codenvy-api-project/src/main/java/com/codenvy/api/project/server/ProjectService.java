@@ -22,8 +22,6 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
 import com.codenvy.api.project.newproj.server.event.GetItemEvent;
 import com.codenvy.api.project.newproj.server.event.GetItemHandler;
 import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;

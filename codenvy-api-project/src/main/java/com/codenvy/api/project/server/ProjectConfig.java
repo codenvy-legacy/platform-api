@@ -8,9 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj;
+package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.newproj.server.BaseProjectType;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.BaseProjectType;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 
@@ -36,7 +37,7 @@ public class ProjectConfig {
 
         this.description = description;
         this.typeId = typeId;
-        this.attributes = attributes;
+        this.attributes = (attributes == null)?new HashMap<String, AttributeValue>():attributes;
         this.builders = (builders == null)?new Builders():builders;
         this.runners = (runners == null)?new Runners():runners;
         this.mixinTypes = (mixinTypes == null)?new ArrayList<String>():mixinTypes;

@@ -21,12 +21,10 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.*;
+import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.dto.*;
 
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
@@ -72,7 +70,6 @@ import org.testng.annotations.Listeners;
 import org.testng.annotations.Test;
 
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.HEAD;
 import javax.ws.rs.core.Application;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -124,7 +121,7 @@ public class ProjectServiceTest {
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
         // PTs for test
-        AbstractProjectType chuck = new AbstractProjectType("chuck_project_type", "chuck_project_type") {
+        ProjectType2 chuck = new ProjectType2("chuck_project_type", "chuck_project_type") {
 
             {
                 addConstantDefinition("x", "attr description",
@@ -251,7 +248,7 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     public void testGetModules() throws Exception {
 
-        AbstractProjectType pt = new AbstractProjectType("testGetModules", "my module type") {
+        ProjectType2 pt = new ProjectType2("testGetModules", "my module type") {
 
             {
                 addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
@@ -341,7 +338,7 @@ public class ProjectServiceTest {
     public void testGetModule() throws Exception {
 
 
-        AbstractProjectType pt = new AbstractProjectType("my_module_type", "my module type") {
+        ProjectType2 pt = new ProjectType2("my_module_type", "my module type") {
 
             {
                 addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
@@ -423,7 +420,7 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
 
-        AbstractProjectType pt = new AbstractProjectType("testCreateProject", "my project type") {
+        ProjectType2 pt = new ProjectType2("testCreateProject", "my project type") {
 
             {
                 addConstantDefinition("new_project_attribute", "attr description", "to be or not to be");
@@ -650,7 +647,7 @@ public class ProjectServiceTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        AbstractProjectType pt = new AbstractProjectType("testUpdateProject", "my project type") {
+        ProjectType2 pt = new ProjectType2("testUpdateProject", "my project type") {
 
             {
                 addVariableDefinition("my_attribute", "attr description", false);
@@ -2357,7 +2354,7 @@ public class ProjectServiceTest {
     }
 
 
-    private class MyProjType extends AbstractProjectType {
+    private class MyProjType extends ProjectType2 {
         private MyProjType() {
 
             super("my_project_type", "my project type");

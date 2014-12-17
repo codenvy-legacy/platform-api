@@ -8,10 +8,8 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.newproj.server;
+package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.ProjectType2;
 import com.codenvy.api.project.server.ProjectTypeConstraintException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -139,7 +137,7 @@ public class ProjectTypeRegistry {
                                 " is duplicated in its ancestor(s).");
                     }
                 }
-                ((AbstractProjectType)myType).addAttributeDefinition(attr);
+                myType.addAttributeDefinition(attr);
             }
             initAttributesRecursively(myType, supertype);
         }

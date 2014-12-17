@@ -12,11 +12,10 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.newproj.Attribute2;
-import com.codenvy.api.project.newproj.AttributeValue;
-import com.codenvy.api.project.newproj.ProjectConfig;
-import com.codenvy.api.project.newproj.ProjectType2;
-import com.codenvy.api.project.newproj.server.Variable;
+import com.codenvy.api.project.server.type.Attribute2;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.Variable;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;

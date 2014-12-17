@@ -10,8 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.auth;
 
+import com.codenvy.api.core.ApiException;
+
 @SuppressWarnings("serial")
-public class AuthenticationException extends Exception {
+public class AuthenticationException extends ApiException {
     /**
      * Response status if any exception occurs,
      * <br>
@@ -36,7 +38,7 @@ public class AuthenticationException extends Exception {
     }
 
     public AuthenticationException(int responseStatus) {
-        super();
+        super("Authentication failed.");
         this.responseStatus = responseStatus;
     }
 

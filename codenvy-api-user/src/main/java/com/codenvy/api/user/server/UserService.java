@@ -196,8 +196,8 @@ public class UserService extends Service {
                   position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
-            @ApiResponse(code = 403, message = "Password required"),
             @ApiResponse(code = 404, message = "Not Found"),
+            @ApiResponse(code = 409, message = "Invalid password"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @Path("/password")
@@ -210,6 +210,24 @@ public class UserService extends Service {
         if (password == null) {
             throw new ConflictException("Password required");
         }
+        if (password.length() < 8) {
+            throw new ConflictException("Password should contain at least 8 characters");
+        }
+
+        int numOfLetters = 0;
+        int numOfDigits = 0;
+        for (char passwordChar : password.toCharArray()) {
+            if (Character.isDigit(passwordChar)) {
+                numOfDigits++;
+            }
+            if (Character.isLetter(passwordChar)) {
+                numOfLetters++;
+            }
+        }
+        if (numOfDigits == 0 || numOfLetters == 0) {
+            throw new ConflictException("Password should contain letters and digits");
+        }
+
         final User user = userDao.getById(currentUser().getId());
         user.setPassword(password);
         userDao.update(user);

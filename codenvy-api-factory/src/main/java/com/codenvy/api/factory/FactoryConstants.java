@@ -68,6 +68,13 @@ public class FactoryConstants {
 
     public static final String INVALID_VALIDSINCEUNTIL_MESSAGE = "Valid Until date should occur after the Valid Since date.";
 
+    public static final String INVALID_ACTION_SECTION = "The action %s is not allowed in this IDE event section.";
+
+    public static final String INVALID_OPENFILE_ACTION = "The openFile action must contain at least one file.";
+
+    public static final String INVALID_FIND_REPLACE_ACTION = "The findReplace action must contain at least one file, "+
+                                                             "find and replace properties.";
+
     public static final String ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE =
             "This Factory is not yet valid due to time restrictions applied by its owner. Please, " +
             "contact owner for more information.";

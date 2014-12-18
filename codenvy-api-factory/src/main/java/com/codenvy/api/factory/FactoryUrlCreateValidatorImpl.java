@@ -40,5 +40,6 @@ public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator imple
         validateOrgid(factory);
         validateTrackedFactoryAndParams(factory);
         validateCurrentTimeBeforeSinceUntil(factory);
+        validateProjectActions(factory);
     }
 }

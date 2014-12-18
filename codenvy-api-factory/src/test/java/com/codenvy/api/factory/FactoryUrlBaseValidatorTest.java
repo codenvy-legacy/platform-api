@@ -22,6 +22,7 @@ import com.codenvy.api.factory.dto.Actions;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.Ide;
+import com.codenvy.api.factory.dto.OnAppClosed;
 import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
@@ -51,6 +52,9 @@ import java.text.ParseException;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.anyString;
@@ -541,6 +545,88 @@ public class FactoryUrlBaseValidatorTest {
         //when
         validator.validateTrackedFactoryAndParams(factoryWithAccountId);
     }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateIfActionInWrongSection1() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
+        Ide ide = dto.createDto(Ide.class).withOnAppClosed(dto.createDto(OnAppClosed.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateIfActionInWrongSection2() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace"));
+        Ide ide = dto.createDto(Ide.class).withOnAppLoaded(dto.createDto(OnAppLoaded.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateIfActionInsufficientParams1() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
+        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
+                dto.createDto(OnProjectOpened.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateIfActionInsufficientParams2() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        Map<String, String> params = new HashMap<>();
+        params.put("in", "pom.xml");
+        // find is missing!
+        params.put("replace", "123");
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace").withProperties(params));
+        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
+                dto.createDto(OnProjectOpened.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test
+    public void shouldValidateFindReplaceAction() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        Map<String, String> params = new HashMap<>();
+        params.put("in", "pom.xml");
+        params.put("find", "123");
+        params.put("replace", "456");
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace").withProperties(params));
+        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
+                dto.createDto(OnProjectOpened.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test
+    public void shouldValidateOpenfileAction() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        Map<String, String> params = new HashMap<>();
+        params.put("file", "pom.xml");
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile").withProperties(params));
+        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
+                dto.createDto(OnProjectOpened.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+
 
 
     @DataProvider(name = "trackedFactoryParameterWithoutValidAccountId")

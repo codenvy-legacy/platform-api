@@ -19,6 +19,8 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.OnAppClosed;
+import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
@@ -29,10 +31,14 @@ import com.codenvy.commons.lang.Strings;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
+import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
 import static java.lang.String.format;
@@ -282,6 +288,44 @@ public abstract class FactoryUrlBaseValidator {
 
         if (validUntil != null && validUntil != 0 && new Date().after(new Date(validUntil))) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDUNTIL_MESSAGE);
+        }
+    }
+
+
+    protected void validateProjectActions(Factory factory) throws ConflictException {
+        if (factory.getV() ==  null || !factory.getV().equals("2.1"))
+            return;
+
+        OnAppClosed onClosed = factory.getIde().getOnAppClosed();
+        List<Action> applicationActions  =  onClosed != null ? onClosed.getActions() : new ArrayList<Action>();
+        if (factory.getIde().getOnAppLoaded() != null) {
+            applicationActions.addAll(factory.getIde().getOnAppLoaded().getActions());
+        }
+
+        for (Action applicationAction : applicationActions) {
+            String id =  applicationAction.getId();
+            if (id.equals("openFile") || id.equals("findReplace")) {
+                throw new ConflictException(String.format(FactoryConstants.INVALID_ACTION_SECTION, id));
+            }
+        }
+
+        OnProjectOpened onOpened  = factory.getIde().getOnProjectOpened();
+        if (onOpened != null) {
+            List<Action> onProjectOpenedActions = factory.getIde().getOnProjectOpened().getActions();
+            for (Action applicationAction : onProjectOpenedActions) {
+                String id = applicationAction.getId();
+                Map<String, String> properties = applicationAction.getProperties();
+                if (id.equals("openFile") && Strings.isNullOrEmpty(properties.get("file"))) {
+                    throw new ConflictException(INVALID_OPENFILE_ACTION);
+                }
+
+                if (id.equals("findReplace") && (Strings.isNullOrEmpty(properties.get("in")) ||
+                                                 Strings.isNullOrEmpty(properties.get("find")) ||
+                                                 Strings.isNullOrEmpty(properties.get("replace"))
+                )) {
+                    throw new ConflictException(INVALID_FIND_REPLACE_ACTION);
+                }
+            }
         }
     }
 }

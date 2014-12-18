@@ -293,11 +293,14 @@ public abstract class FactoryUrlBaseValidator {
 
 
     protected void validateProjectActions(Factory factory) throws ConflictException {
-        if (factory.getV() ==  null || !factory.getV().equals("2.1"))
+        if (factory.getV() ==  null || !factory.getV().equals("2.1") || factory.getIde() == null) {
             return;
+        }
 
-        OnAppClosed onClosed = factory.getIde().getOnAppClosed();
-        List<Action> applicationActions  =  onClosed != null ? onClosed.getActions() : new ArrayList<Action>();
+        List<Action> applicationActions  =  new ArrayList<>();
+        if (factory.getIde().getOnAppClosed() != null) {
+            applicationActions.addAll(factory.getIde().getOnAppClosed().getActions());
+        }
         if (factory.getIde().getOnAppLoaded() != null) {
             applicationActions.addAll(factory.getIde().getOnAppLoaded().getActions());
         }

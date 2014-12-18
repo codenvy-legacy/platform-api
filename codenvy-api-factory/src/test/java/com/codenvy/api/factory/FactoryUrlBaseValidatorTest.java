@@ -547,7 +547,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateIfActionInWrongSection1() throws Exception {
+    public void shouldNotValidateOpenfileActionIfInWrongSectionOnAppClosed() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
@@ -558,7 +558,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateIfActionInWrongSection2() throws Exception {
+    public void shouldNotValidateFindReplaceActionIfInWrongSectionOnAppLoaded() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace"));
@@ -569,7 +569,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateIfActionInsufficientParams1() throws Exception {
+    public void shouldNotValidateIfOpenfileActionInsufficientParams() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
@@ -581,7 +581,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateIfActionInsufficientParams2() throws Exception {
+    public void shouldNotValidateIfFindReplaceActionInsufficientParams() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         Map<String, String> params = new HashMap<>();

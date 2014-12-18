@@ -231,11 +231,10 @@ public class ProjectService extends Service {
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-        if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
-            if (generator != null) {
-                generator.generateProject(project.getBaseFolder(), newProject);
-            }
+        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
+        final ProjectGenerator generator = generators.getGenerator(generatorId, newProject.getType());
+        if (generator != null) {
+            generator.generateProject(project.getBaseFolder(), newProject);
         }
 
         final String visibility = newProject.getVisibility();
@@ -313,11 +312,10 @@ public class ProjectService extends Service {
         module.updateDescription(DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry()));
 
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-        if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
-            if (generator != null) {
-                generator.generateProject(module.getBaseFolder(), newProject);
-            }
+        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
+        final ProjectGenerator generator = generators.getGenerator(generatorId, newProject.getType());
+        if (generator != null) {
+            generator.generateProject(module.getBaseFolder(), newProject);
         }
 
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto(module, getServiceContext().getServiceUriBuilder());

@@ -42,6 +42,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -81,8 +82,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
 
-import static com.codenvy.api.core.rest.shared.Links.createLink;
-import static com.codenvy.commons.lang.Size.parseSize;
+import static com.codenvy.api.core.util.LinksHelper.createLink;
 import static com.codenvy.commons.lang.Size.parseSizeToMegabytes;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
@@ -1025,57 +1025,57 @@ public class AccountService extends Service {
     private AccountDescriptor toDescriptor(Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
-        links.add(createLink(HttpMethod.GET,
-                             uriBuilder.clone()
-                                       .path(getClass(), "getMemberships")
-                                       .build()
-                                       .toString(),
-                             null,
-                             MediaType.APPLICATION_JSON,
-                             Constants.LINK_REL_GET_ACCOUNTS));
-        links.add(createLink(HttpMethod.GET,
-                             uriBuilder.clone()
-                                       .path(getClass(), "getSubscriptions")
-                                       .build(account.getId())
-                                       .toString(),
-                             null,
-                             MediaType.APPLICATION_JSON,
-                             Constants.LINK_REL_GET_SUBSCRIPTIONS));
-        links.add(createLink(HttpMethod.GET,
-                             uriBuilder.clone()
-                                       .path(getClass(), "getMembers")
-                                       .build(account.getId())
-                                       .toString(),
-                             null,
-                             MediaType.APPLICATION_JSON,
-                             Constants.LINK_REL_GET_MEMBERS));
-        links.add(createLink(HttpMethod.GET,
-                             uriBuilder.clone()
-                                       .path(getClass(), "getById")
-                                       .build(account.getId())
-                                       .toString(),
-                             null,
-                             MediaType.APPLICATION_JSON,
-                             Constants.LINK_REL_GET_ACCOUNT_BY_ID));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getMemberships")
+                                                   .build()
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_ACCOUNTS));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getSubscriptions")
+                                                   .build(account.getId())
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_SUBSCRIPTIONS));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getMembers")
+                                                   .build(account.getId())
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_MEMBERS));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getById")
+                                                   .build(account.getId())
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_ACCOUNT_BY_ID));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink(HttpMethod.GET,
-                                 uriBuilder.clone()
-                                           .path(getClass(), "getByName")
-                                           .queryParam("name", account.getName())
-                                           .build()
-                                           .toString(),
-                                 null,
-                                 MediaType.APPLICATION_JSON,
-                                 Constants.LINK_REL_GET_ACCOUNT_BY_NAME));
+            links.add(LinksHelper.createLink(HttpMethod.GET,
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getByName")
+                                                       .queryParam("name", account.getName())
+                                                       .build()
+                                                       .toString(),
+                                             null,
+                                             MediaType.APPLICATION_JSON,
+                                             Constants.LINK_REL_GET_ACCOUNT_BY_NAME));
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink(HttpMethod.DELETE,
-                                 uriBuilder.clone().path(getClass(), "remove")
-                                           .build(account.getId())
-                                           .toString(),
-                                 null,
-                                 null,
-                                 Constants.LINK_REL_REMOVE_ACCOUNT));
+            links.add(LinksHelper.createLink(HttpMethod.DELETE,
+                                             uriBuilder.clone().path(getClass(), "remove")
+                                                       .build(account.getId())
+                                                       .toString(),
+                                             null,
+                                             null,
+                                             Constants.LINK_REL_REMOVE_ACCOUNT));
         }
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
@@ -1089,36 +1089,36 @@ public class AccountService extends Service {
      */
     private MemberDescriptor toDescriptor(Member member, Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final Link removeMember = createLink(HttpMethod.DELETE,
-                                             uriBuilder.clone()
-                                                       .path(getClass(), "removeMember")
-                                                       .build(account.getId(), member.getUserId())
-                                                       .toString(),
-                                             null,
-                                             null,
-                                             Constants.LINK_REL_REMOVE_MEMBER);
-        final Link allMembers = createLink(HttpMethod.GET,
-                                           uriBuilder.clone()
-                                                     .path(getClass(), "getMembers")
-                                                     .build(account.getId())
-                                                     .toString(),
-                                           null,
-                                           MediaType.APPLICATION_JSON,
-                                           Constants.LINK_REL_GET_MEMBERS);
+        final Link removeMember = LinksHelper.createLink(HttpMethod.DELETE,
+                                                         uriBuilder.clone()
+                                                                   .path(getClass(), "removeMember")
+                                                                   .build(account.getId(), member.getUserId())
+                                                                   .toString(),
+                                                         null,
+                                                         null,
+                                                         Constants.LINK_REL_REMOVE_MEMBER);
+        final Link allMembers = LinksHelper.createLink(HttpMethod.GET,
+                                                       uriBuilder.clone()
+                                                                 .path(getClass(), "getMembers")
+                                                                 .build(account.getId())
+                                                                 .toString(),
+                                                       null,
+                                                       MediaType.APPLICATION_JSON,
+                                                       Constants.LINK_REL_GET_MEMBERS);
         final AccountReference accountRef = DtoFactory.getInstance().createDto(AccountReference.class)
                                                       .withId(account.getId())
                                                       .withName(account.getName());
         if (member.getRoles().contains("account/owner") ||
             securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {
-            accountRef.setLinks(singletonList(createLink(HttpMethod.GET,
-                                                         uriBuilder.clone()
-                                                                   .path(getClass(), "getById")
-                                                                   .build(account.getId())
-                                                                   .toString(),
-                                                         null,
-                                                         MediaType.APPLICATION_JSON,
-                                                         Constants.LINK_REL_GET_ACCOUNT_BY_ID)));
+            accountRef.setLinks(singletonList(LinksHelper.createLink(HttpMethod.GET,
+                                                                     uriBuilder.clone()
+                                                                               .path(getClass(), "getById")
+                                                                               .build(account.getId())
+                                                                               .toString(),
+                                                                     null,
+                                                                     MediaType.APPLICATION_JSON,
+                                                                     Constants.LINK_REL_GET_ACCOUNT_BY_ID)));
         }
         return DtoFactory.getInstance().createDto(MemberDescriptor.class)
                          .withUserId(member.getUserId())
@@ -1157,33 +1157,33 @@ public class AccountService extends Service {
         List<Link> links = new ArrayList<>(0);
         if (!"sas-community".equals(subscription.getPlanId())) {
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-            links.add(createLink(HttpMethod.GET,
-                                 uriBuilder.clone()
-                                           .path(getClass(), "getSubscriptionById")
-                                           .build(subscription.getId())
-                                           .toString(),
-                                 null,
-                                 MediaType.APPLICATION_JSON,
-                                 Constants.LINK_REL_GET_SUBSCRIPTION));
+            links.add(LinksHelper.createLink(HttpMethod.GET,
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getSubscriptionById")
+                                                       .build(subscription.getId())
+                                                       .toString(),
+                                             null,
+                                             MediaType.APPLICATION_JSON,
+                                             Constants.LINK_REL_GET_SUBSCRIPTION));
             if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
                 securityContext.isUserInRole("system/manager") ||
                 (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
-                links.add(createLink(HttpMethod.DELETE,
-                                     uriBuilder.clone()
-                                               .path(getClass(), "removeSubscription")
-                                               .build(subscription.getId())
-                                               .toString(),
-                                     null,
-                                     null,
-                                     Constants.LINK_REL_REMOVE_SUBSCRIPTION));
-                links.add(createLink(HttpMethod.GET,
-                                     uriBuilder.clone()
-                                               .path(getClass(), "getSubscriptionAttributes")
-                                               .build(subscription.getId())
-                                               .toString(),
-                                     null,
-                                     MediaType.APPLICATION_JSON,
-                                     Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES));
+                links.add(LinksHelper.createLink(HttpMethod.DELETE,
+                                                 uriBuilder.clone()
+                                                           .path(getClass(), "removeSubscription")
+                                                           .build(subscription.getId())
+                                                           .toString(),
+                                                 null,
+                                                 null,
+                                                 Constants.LINK_REL_REMOVE_SUBSCRIPTION));
+                links.add(LinksHelper.createLink(HttpMethod.GET,
+                                                 uriBuilder.clone()
+                                                           .path(getClass(), "getSubscriptionAttributes")
+                                                           .build(subscription.getId())
+                                                           .toString(),
+                                                 null,
+                                                 MediaType.APPLICATION_JSON,
+                                                 Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES));
             }
         }
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)

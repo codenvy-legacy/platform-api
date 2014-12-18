@@ -14,12 +14,15 @@ import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * Template for NerSubscription
+ * Template for NewSubscription
  *
  * @author Alexander Garagatyi
  */
 @DTO
 public interface NewSubscriptionTemplate {
+    /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
+     * that allow better validate data that was sent
+    */
 
     @ApiModelProperty(value = "Account ID")
     String getAccountId();
@@ -35,6 +38,7 @@ public interface NewSubscriptionTemplate {
 
     NewSubscriptionTemplate withPlanId(String id);
 
+    @ApiModelProperty(value = "Length of the trial")
     Integer getTrialDuration();
 
     void setTrialDuration(Integer trialDuration);

@@ -11,8 +11,11 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
+ * Describes cycle type
+ *
  * @author Alexander Garagatyi
  */
 @DTO
@@ -21,12 +24,14 @@ public interface CycleTypeDescriptor {
      * that allow better validate data that was sent
      */
 
+    @ApiModelProperty(value = "Unique cycle type ID")
     Integer getId();
 
     void setId(Integer id);
 
     CycleTypeDescriptor withId(Integer id);
 
+    @ApiModelProperty(value = "Cycle type description")
     String getDescription();
 
     void setDescription(String description);

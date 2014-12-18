@@ -922,15 +922,32 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void shouldRemoveSubscriptionIfChargingFails() throws Exception {
+    public void shouldRemoveSubscriptionIfChargingFailsAndReturnOriginalExceptionMessageIfThrownExceptionIsApi() throws Exception {
         prepareSuccessfulSubscriptionAddition();
         newSubscription.setTrialDuration(0);
-        doThrow(new ServerException("")).when(paymentService).charge(any(Subscription.class));
+        doThrow(new ServerException("origin exception")).when(paymentService).charge(any(Subscription.class));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
 
         assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        assertEquals(response.getEntity(), "origin exception");
+        verify(accountDao).addSubscription(any(Subscription.class));
+        verify(accountDao).removeSubscription(anyString());
+        verify(paymentService).charge(any(Subscription.class));
+    }
+
+    @Test
+    public void shouldRemoveSubscriptionIfChargingFailsAndReturnDefaultExceptionMessageIfThrownExceptionIsNotApi() throws Exception {
+        prepareSuccessfulSubscriptionAddition();
+        newSubscription.setTrialDuration(0);
+        doThrow(new Exception("origin exception")).when(paymentService).charge(any(Subscription.class));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
+
+        assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
+        assertEquals(response.getEntity(), "Internal server error. Please, contact support");
         verify(accountDao).addSubscription(any(Subscription.class));
         verify(accountDao).removeSubscription(anyString());
         verify(paymentService).charge(any(Subscription.class));

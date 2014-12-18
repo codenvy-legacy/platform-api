@@ -11,31 +11,52 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 /**
- * Describes subscription - a link between {@link com.codenvy.api.account.server.subscription.SubscriptionService} and {@link
- * com.codenvy.api.account.server.dao.Account}
+ * Describes new subscription
  *
  * @author Eugene Voevodin
  * @author Alexander Garagatyi
  */
 @DTO
-public interface NewSubscription extends NewSubscriptionTemplate {
+public interface NewSubscription {
+    /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
+     * that allow better validate data that was sent
+    */
+
+    @ApiModelProperty(value = "Account ID")
+    String getAccountId();
+
+    void setAccountId(String orgId);
+
+    NewSubscription withAccountId(String orgId);
+
+    @ApiModelProperty(value = "Plan ID")
+    String getPlanId();
+
+    void setPlanId(String id);
+
+    NewSubscription withPlanId(String id);
+
+    @ApiModelProperty(value = "Length of the trial")
+    Integer getTrialDuration();
+
+    void setTrialDuration(Integer trialDuration);
+
+    NewSubscription withTrialDuration(Integer trialDuration);
+
+    @ApiModelProperty(value = "Is payment system used")
     Boolean getUsePaymentSystem();
 
     void setUsePaymentSystem(Boolean usePaymentSystem);
 
     NewSubscription withUsePaymentSystem(Boolean usePaymentSystem);
 
+    @ApiModelProperty(value = "Token for payment system")
     String getPaymentToken();
 
     void setPaymentToken(String paymentToken);
 
     NewSubscription withPaymentToken(String paymentToken);
-
-    NewSubscription withTrialDuration(Integer trialDuration);
-
-    NewSubscription withPlanId(String id);
-
-    NewSubscription withAccountId(String orgId);
 }

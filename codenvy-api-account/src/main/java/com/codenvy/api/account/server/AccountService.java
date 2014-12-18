@@ -610,10 +610,10 @@ public class AccountService extends Service {
      * @see SubscriptionDescriptor
      */
     @ApiOperation(value = "Get account subscriptions",
-                  notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
-                  response = SubscriptionDescriptor.class,
-                  responseContainer = "List",
-                  position = 10)
+            notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
+            response = SubscriptionDescriptor.class,
+            responseContainer = "List",
+            position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -652,9 +652,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Get subscription details",
-                  notes = "Get information on a particular subscription by its unique ID.",
-                  response = SubscriptionDescriptor.class,
-                  position = 11)
+            notes = "Get information on a particular subscription by its unique ID.",
+            response = SubscriptionDescriptor.class,
+            position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this method"),
@@ -720,9 +720,10 @@ public class AccountService extends Service {
         }
         final Plan plan = planDao.getPlanById(subscriptionTemplate.getPlanId());
 
+        // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
         if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 &&
             !subscriptionTemplate.getTrialDuration().equals(plan.getTrialDuration()) && securityContext.isUserInRole("user")) {
-            throw new ForbiddenException("Trial duration " + subscriptionTemplate.getTrialDuration() + " is not allowed");
+            throw new ConflictException("Trial duration " + subscriptionTemplate.getTrialDuration() + " is not allowed");
         }
 
         final SubscriptionService service = registry.get(plan.getServiceId());
@@ -733,8 +734,9 @@ public class AccountService extends Service {
                                                             .withProperties(plan.getProperties());
         service.beforeCreateSubscription(subscription);
 
-        // check that user hasn't got trial before
-        if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 && securityContext.isUserInRole("user")) {
+        // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
+        if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 &&
+            securityContext.isUserInRole("user")) {
             try {
                 List<Subscription> subscriptions = accountDao.getSubscriptions(
                         subscriptionQueryBuilderFactory.create()
@@ -773,9 +775,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Add new subscription",
-                  notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
-                  response = SubscriptionDescriptor.class,
-                  position = 12)
+            notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
+            response = SubscriptionDescriptor.class,
+            position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -809,20 +811,24 @@ public class AccountService extends Service {
 
         final Plan plan = planDao.getPlanById(newSubscription.getPlanId());
 
-        if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0 && !newSubscription.getTrialDuration().equals(plan.getTrialDuration()) && !isUserAdmin) {
-            throw new ForbiddenException("User not authorized to add this subscription, please contact support");
+        // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
+        if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0 &&
+            !newSubscription.getTrialDuration().equals(plan.getTrialDuration()) && !isUserAdmin) {
+            throw new ConflictException("User not authorized to add this subscription, please contact support");
         }
 
-        //check service exists
+        // check service exists
         final SubscriptionService service = registry.get(plan.getServiceId());
         if (null == service) {
             throw new ConflictException("Unknown serviceId is used");
         }
 
+        // only admins are allowed to disable payment on subscription addition
         if (!newSubscription.getUsePaymentSystem() && !isUserAdmin) {
             throw new ConflictException("Given value of attribute usePaymentSystem is not allowed");
         }
 
+        // check that subscription is allowed for not admin
         if (plan.getSalesOnly() && !isUserAdmin) {
             throw new ForbiddenException("User not authorized to add this subscription, please contact support");
         }
@@ -842,6 +848,7 @@ public class AccountService extends Service {
                 .withUsePaymentSystem(newSubscription.getUsePaymentSystem())
                 .withPaymentToken(newSubscription.getPaymentToken());
 
+        // disable payment if subscription is free
         if (!plan.isPaid()) {
             subscription.setUsePaymentSystem(false);
         }
@@ -849,6 +856,7 @@ public class AccountService extends Service {
         Calendar calendar = Calendar.getInstance();
         calendar.setTime(new Date());
 
+        // for now we allow addition of trial subscription or paid subscription without trial
         boolean requireCharging = true;
 
         if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
@@ -859,8 +867,10 @@ public class AccountService extends Service {
 
             calendar.add(Calendar.DATE, 1);
 
+            // subscription is not paid because it has trial
             requireCharging = false;
         } else {
+            // subscription without trial is paid unless another stated above
             subscription.setStartDate(calendar.getTime());
 
             if (subscription.getUsePaymentSystem()) {
@@ -871,6 +881,7 @@ public class AccountService extends Service {
                 nextBillingDate.add(Calendar.MONTH, subscription.getBillingCycle());
                 subscription.setNextBillingDate(nextBillingDate.getTime());
             } else {
+                // subscription is not paid, set above
                 requireCharging = false;
             }
 
@@ -885,7 +896,7 @@ public class AccountService extends Service {
 
         service.beforeCreateSubscription(subscription);
 
-        // check that user hasn't got trial before
+        // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
         if (subscription.getTrialStartDate() != null && !isUserAdmin) {
             try {
                 List<Subscription> subscriptions = accountDao.getSubscriptions(
@@ -916,8 +927,10 @@ public class AccountService extends Service {
                     accountDao.removeSubscription(subscription.getId());
                 } catch (Exception e1) {
                     LOG.error(e1.getLocalizedMessage(), e1);
-                    e.addSuppressed(e1);
-                    throw e;
+                }
+                // hide not user friendly exception if exception is not Api
+                if (!ApiException.class.isAssignableFrom(e.getClass())) {
+                    throw new ServerException("Internal server error. Please, contact support");
                 }
                 throw e;
             }
@@ -933,7 +946,7 @@ public class AccountService extends Service {
     }
 
     /**
-     * Removes subscription by id
+     * Removes subscription by id. Actually makes it inactive.
      *
      * @param subscriptionId
      *         id of the subscription to remove
@@ -948,8 +961,8 @@ public class AccountService extends Service {
      * @see #getSubscriptions(String, String, SecurityContext)
      */
     @ApiOperation(value = "Remove subscription",
-                  notes = "Remove subscription from account. Roles: account/owner, system/admin.",
-                  position = 13)
+            notes = "Remove subscription from account. Roles: account/owner, system/admin.",
+            position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -1218,7 +1231,8 @@ public class AccountService extends Service {
      */
     private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set resolvedRoles) {
         List<Link> links = new ArrayList<>(0);
-        if (!"sas-community".equals(subscription.getPlanId()) && subscription.getState() != INACTIVE) {
+        // community subscriptions should not use urls
+        if (!"sas-community".equals(subscription.getPlanId())) {
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
             links.add(createLink(HttpMethod.GET,
                                  uriBuilder.clone()
@@ -1259,9 +1273,11 @@ public class AccountService extends Service {
             }
         }
 
+        // Do not send with REST properties that starts from 'codenvy:'
         LinkedHashMap<String, String> filteredProperties = new LinkedHashMap<>();
         for (Map.Entry<String, String> property : subscription.getProperties().entrySet()) {
-            if (!property.getKey().startsWith("codenvy:") || securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+            if (!property.getKey().startsWith("codenvy:") || securityContext.isUserInRole("system/admin") ||
+                securityContext.isUserInRole("system/manager")) {
                 filteredProperties.put(property.getKey(), property.getValue());
             }
         }
@@ -1295,7 +1311,6 @@ public class AccountService extends Service {
                          .withBillingContractTerm(subscription.getBillingContractTerm())
                          .withLinks(links);
     }
-
 
     // TODO remove it after testing!
     @GET

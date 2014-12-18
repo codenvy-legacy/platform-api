@@ -268,6 +268,30 @@ public class ProjectTypeTest {
 
     }
 
+    @Test
+    public void testWithDefaultBuilderAndRunner() throws Exception {
+
+        Set<ProjectType2> pts = new HashSet<>();
+        final ProjectType2 type = new ProjectType2("testWithDefaultBuilderAndRunner", "testWithDefaultBuilderAndRunner") {
+            {
+                addConstantDefinition("parent_const", "Constant", "const_value");
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner1/myRunner");
+            }
+
+        };
+
+
+        pts.add(type);
+        ProjectTypeRegistry reg = new ProjectTypeRegistry(pts);
+
+        Assert.assertNotNull(reg.getProjectType("testWithDefaultBuilderAndRunner"));
+
+        Assert.assertEquals("builder1", reg.getProjectType("testWithDefaultBuilderAndRunner").getDefaultBuilder());
+        Assert.assertEquals("system:/runner1/myRunner", reg.getProjectType("testWithDefaultBuilderAndRunner").getDefaultRunner());
+
+    }
+
 
     /**
          * @author gazarenkov

@@ -70,6 +70,8 @@ public class ProjectTest {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
                 addVariableDefinition("my_property_1", "attr description", true);
                 addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
             }
 
         };
@@ -122,7 +124,7 @@ public class ProjectTest {
         json.withType("my_project_type").withAttributes(attributes).save(myProject);
         //ProjectDescription myProjectDescription = myProject.getDescription();
 
-        System.out.println("JSON >> "+json.getAttributes());
+        //System.out.println("JSON >> "+json.getAttributes());
 
         //System.out.println(">>    >>"+pm.getValueProviderFactories());
 
@@ -193,5 +195,20 @@ public class ProjectTest {
         myProject.getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         long modificationDate2 = myProject.getModificationDate();
         Assert.assertTrue(modificationDate2 > modificationDate1);
+    }
+
+    @Test
+    public void testIfDefaultBuilderRunnerAppearsInProject() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        Map<String, List<String>> attributes = new HashMap<>(2);
+        attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
+        ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null , null, "test project");
+        projectJson.save(myProject);
+
+        Assert.assertNotNull(myProject.getConfig().getRunners());
+        Assert.assertEquals(myProject.getConfig().getRunners().getDefault(), "system:/runner/runner1");
+
+        Assert.assertNotNull(myProject.getConfig().getBuilders());
+        Assert.assertEquals(myProject.getConfig().getBuilders().getDefault(), "builder1");
     }
 }

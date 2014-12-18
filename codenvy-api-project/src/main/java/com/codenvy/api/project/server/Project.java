@@ -16,6 +16,8 @@ import com.codenvy.api.project.server.type.Attribute2;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.type.Variable;
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
@@ -83,12 +85,13 @@ public class Project {
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
+
         final ProjectJson2 projectJson = ProjectJson2.load(this);
 
         ProjectType2 type = manager.getProjectTypeRegistry().getProjectType(projectJson.getType());
 
         if(type == null) {
-            throw new ProjectTypeConstraintException("No Project Type registered for: " + projectJson.getType());
+            throw new ProjectTypeConstraintException("No Project Type configured for project : " + this.getPath());
         }
 
 
@@ -133,8 +136,12 @@ public class Project {
             }
         }
 
+
+        Builders builders = (projectJson.getBuilders() == null)?new Builders(type.getDefaultBuilder()):projectJson.getBuilders();
+        Runners runners = (projectJson.getRunners() == null)?new Runners(type.getDefaultRunner()):projectJson.getRunners();
+
         return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
-                attributes, projectJson.getRunners(), projectJson.getBuilders(), projectJson.getMixinTypes());
+                attributes, runners, builders, projectJson.getMixinTypes());
 
     }
 
@@ -157,19 +164,10 @@ public class Project {
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
             Attribute2 definition = type.getAttribute(attributeName);
 
-            if(definition == null) {
-                // Silently ignore
-                continue;
-                //throw new ProjectTypeConstraintException("No attribute " + attributeName + " defined in Project Type " + type.getId());
-            }
-
-            if(definition.isVariable()) {
+            if(definition != null && definition.isVariable()) {
                 Variable var = (Variable)definition;
 
                 final ValueProviderFactory valueProviderFactory = var.getValueProviderFactory();
-                        //manager.getValueProviderFactories().get(var.getId());
-
-                //AttributeValue val = attributeUpdate.getValue();
 
                 if(attributeValue == null && var.isRequired())
                      throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
@@ -180,12 +178,6 @@ public class Project {
                 projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
 
             }
-//            else { // Constant
-//
-//                // Silently ignore
-//                //projectJson.getAttributes().put(attributeUpdate.getName(), attributeUpdate.getValue().getList());
-//            }
-
         }
 
         for(Attribute2 attr : type.getAttributes()) {
@@ -199,6 +191,8 @@ public class Project {
             }
 
         }
+
+
 
         projectJson.save(this);
 

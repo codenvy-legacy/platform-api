@@ -62,11 +62,20 @@ public class ProjectJson2 {
             // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
             throw new ServerException(e.getServiceError());
         }
+
+
         if (projectFile == null || !projectFile.isFile()) {
             return new ProjectJson2();
         }
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
-            return load(inputStream);
+
+            ProjectJson2 json = load(inputStream);
+
+            // possible if no content
+            if(json == null)
+                json = new ProjectJson2();
+
+            return json;
         } catch (IOException e) {
             throw new ServerException(e.getMessage(), e);
         }
@@ -74,6 +83,7 @@ public class ProjectJson2 {
 
     public static ProjectJson2 load(InputStream inputStream) throws IOException {
         try {
+
             return JsonHelper.fromJson(inputStream, ProjectJson2.class, null);
         } catch (JsonParseException e) {
             throw new IOException("Unable to parse the project's property file. " +

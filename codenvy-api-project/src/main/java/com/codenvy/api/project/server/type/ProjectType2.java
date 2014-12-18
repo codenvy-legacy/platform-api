@@ -26,6 +26,8 @@ public abstract class ProjectType2 {
     private final List<ProjectType2> parents;
     protected final List<String> runnerCategories;
     protected final List<String> builderCategories;
+    private String defaultBuilder = null;
+    private String defaultRunner = null;
 
     protected ProjectType2(String id, String displayName) {
         this.id = id;
@@ -65,6 +67,16 @@ public abstract class ProjectType2 {
         return false;
     }
 
+    public String getDefaultBuilder() {
+
+        return defaultBuilder;
+    }
+
+    public String getDefaultRunner() {
+
+        return defaultRunner;
+    }
+
     public Attribute2 getAttribute(String name) {
         return attributes.get(name);
     }
@@ -102,6 +114,16 @@ public abstract class ProjectType2 {
     protected void addParent(ProjectType2 parent) {
         parents.add(parent);
     }
+
+    protected void setDefaultBuilder(String builder) {
+        this.defaultBuilder = builder;
+    }
+
+    protected void setDefaultRunner(String runner) {
+        this.defaultRunner = runner;
+    }
+
+    //protected void addBuilders(B)
 
 }
 

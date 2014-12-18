@@ -51,4 +51,17 @@ public interface ProjectTypeDefinition {
 
     ProjectTypeDefinition withRunnerCategories(List<String> runnerCategories);
 
+
+    String getDefaultBuilder();
+
+    void setDefaultBuilder(String builder);
+
+    ProjectTypeDefinition withDefaultBuilder(String builder);
+
+    String getDefaultRunner();
+
+    void setDefaultRunner(String runner);
+
+    ProjectTypeDefinition withDefaultRunner(String runner);
+
 }

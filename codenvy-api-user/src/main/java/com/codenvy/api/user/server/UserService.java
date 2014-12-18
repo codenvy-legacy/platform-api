@@ -19,6 +19,7 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -54,7 +55,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.codenvy.api.core.rest.shared.Links.createLink;
+import static com.codenvy.api.core.util.LinksHelper.createLink;
 import static javax.ws.rs.core.Response.status;
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
@@ -340,67 +341,67 @@ public class UserService extends Service {
         final List<Link> links = new LinkedList<>();
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         if (context.isUserInRole("user")) {
-            links.add(createLink("GET",
-                                 getServiceContext().getBaseUriBuilder().path(UserProfileService.class)
-                                                    .path(UserProfileService.class, "getCurrent")
-                                                    .build()
-                                                    .toString(),
-                                 null,
-                                 APPLICATION_JSON,
-                                 LINK_REL_GET_CURRENT_USER_PROFILE));
-            links.add(createLink("GET",
-                                 uriBuilder.clone()
-                                           .path(getClass(), "getCurrent")
-                                           .build()
-                                           .toString(),
-                                 null,
-                                 APPLICATION_JSON,
-                                 LINK_REL_GET_CURRENT_USER));
-            links.add(createLink("POST",
-                                 uriBuilder.clone()
-                                           .path(getClass(), "updatePassword")
-                                           .build()
-                                           .toString(),
-                                 APPLICATION_FORM_URLENCODED,
-                                 null,
-                                 LINK_REL_UPDATE_PASSWORD));
+            links.add(LinksHelper.createLink("GET",
+                                             getServiceContext().getBaseUriBuilder().path(UserProfileService.class)
+                                                                .path(UserProfileService.class, "getCurrent")
+                                                                .build()
+                                                                .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_CURRENT_USER_PROFILE));
+            links.add(LinksHelper.createLink("GET",
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getCurrent")
+                                                       .build()
+                                                       .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_CURRENT_USER));
+            links.add(LinksHelper.createLink("POST",
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "updatePassword")
+                                                       .build()
+                                                       .toString(),
+                                             APPLICATION_FORM_URLENCODED,
+                                             null,
+                                             LINK_REL_UPDATE_PASSWORD));
         }
         if (context.isUserInRole("system/admin") || context.isUserInRole("system/manager")) {
-            links.add(createLink("GET",
-                                 uriBuilder.clone()
-                                           .path(getClass(), "getById")
-                                           .build(user.getId())
-                                           .toString(),
-                                 null,
-                                 APPLICATION_JSON,
-                                 LINK_REL_GET_USER_BY_ID));
-            links.add(createLink("GET",
-                                 getServiceContext().getBaseUriBuilder()
-                                                    .path(UserProfileService.class).path(UserProfileService.class, "getById")
-                                                    .build(user.getId())
-                                                    .toString(),
-                                 null,
-                                 APPLICATION_JSON,
-                                 LINK_REL_GET_USER_PROFILE_BY_ID));
-            links.add(createLink("GET",
-                                 uriBuilder.clone()
-                                           .path(getClass(), "getByEmail")
-                                           .queryParam("email", user.getEmail())
-                                           .build()
-                                           .toString(),
-                                 null,
-                                 APPLICATION_JSON,
-                                 LINK_REL_GET_USER_BY_EMAIL));
+            links.add(LinksHelper.createLink("GET",
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getById")
+                                                       .build(user.getId())
+                                                       .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_USER_BY_ID));
+            links.add(LinksHelper.createLink("GET",
+                                             getServiceContext().getBaseUriBuilder()
+                                                                .path(UserProfileService.class).path(UserProfileService.class, "getById")
+                                                                .build(user.getId())
+                                                                .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_USER_PROFILE_BY_ID));
+            links.add(LinksHelper.createLink("GET",
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getByEmail")
+                                                       .queryParam("email", user.getEmail())
+                                                       .build()
+                                                       .toString(),
+                                             null,
+                                             APPLICATION_JSON,
+                                             LINK_REL_GET_USER_BY_EMAIL));
         }
         if (context.isUserInRole("system/admin")) {
-            links.add(createLink("DELETE",
-                                 uriBuilder.clone()
-                                           .path(getClass(), "remove")
-                                           .build(user.getId())
-                                           .toString(),
-                                 null,
-                                 null,
-                                 LINK_REL_REMOVE_USER_BY_ID));
+            links.add(LinksHelper.createLink("DELETE",
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "remove")
+                                                       .build(user.getId())
+                                                       .toString(),
+                                             null,
+                                             null,
+                                             LINK_REL_REMOVE_USER_BY_ID));
         }
         return DtoFactory.getInstance().createDto(UserDescriptor.class)
                          .withId(user.getId())

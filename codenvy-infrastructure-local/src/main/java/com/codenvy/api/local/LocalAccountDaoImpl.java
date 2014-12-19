@@ -14,7 +14,7 @@ import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory;
+import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -383,7 +383,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getSubscriptions(SubscriptionQueryBuilderFactory.SubscriptionQueryBuilder builder) throws ServerException {
+    public SubscriptionQueryBuilder getSubscriptionQueryBuilder() {
         throw new UnsupportedOperationException();
     }
 }

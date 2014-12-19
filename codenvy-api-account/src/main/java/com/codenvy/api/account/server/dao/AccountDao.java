@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.dao;
 
-import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -135,15 +134,6 @@ public interface AccountDao {
     List<Subscription> getActiveSubscriptions(String accountId, String serviceId) throws NotFoundException, ServerException;
 
     /**
-     * Retrieve subscriptions by query.
-     * <p>Use carefully because this operation can use a lot of resources
-     *
-     * @return {@link List} of all subscriptions
-     * @throws ServerException
-     */
-    List<Subscription> getSubscriptions(SubscriptionQueryBuilderFactory.SubscriptionQueryBuilder queryBuilder) throws ServerException;
-
-    /**
      * Update existing subscription.
      *
      * @param subscription
@@ -176,4 +166,6 @@ public interface AccountDao {
      * @return list of accounts, or empty list if no accounts found
      */
     List<Member> getByMember(String userId) throws NotFoundException, ServerException;
+
+    SubscriptionQueryBuilder getSubscriptionQueryBuilder();
 }

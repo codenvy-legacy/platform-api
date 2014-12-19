@@ -18,16 +18,11 @@ import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
+import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder.SubscriptionQuery;
 import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
-import com.codenvy.api.account.server.subscription.query.EqualitySubscriptionQueryFactory;
-import com.codenvy.api.account.server.subscription.query.EqualitySubscriptionQueryFactory.EqualitySubscriptionQuery;
-import com.codenvy.api.account.server.subscription.query.IsSetSubscriptionQueryFactory;
-import com.codenvy.api.account.server.subscription.query.IsSetSubscriptionQueryFactory.IsSetSubscriptionQuery;
-import com.codenvy.api.account.server.subscription.query.SubscriptionQuery;
-import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory;
-import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory.SubscriptionQueryBuilder;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.BillingCycleType;
@@ -93,7 +88,6 @@ import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -158,13 +152,10 @@ public class AccountServiceTest {
     private EnvironmentContext environmentContext;
 
     @Mock
-    private SubscriptionQueryBuilderFactory subscriptionQueryBuilderFactory;
+    private SubscriptionQueryBuilder subscriptionQueryBuilder;
 
     @Mock
-    private EqualitySubscriptionQueryFactory equalityQueryFactory;
-
-    @Mock
-    private IsSetSubscriptionQueryFactory isSetQueryFactory;
+    private SubscriptionQuery subscriptionQuery;
 
     private Account           account;
     private Plan              plan;
@@ -186,9 +177,6 @@ public class AccountServiceTest {
         dependencies.addComponent(AccountDao.class, accountDao);
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
         dependencies.addComponent(PaymentService.class, paymentService);
-        dependencies.addComponent(SubscriptionQueryBuilderFactory.class, subscriptionQueryBuilderFactory);
-        dependencies.addComponent(EqualitySubscriptionQueryFactory.class, equalityQueryFactory);
-        dependencies.addComponent(IsSetSubscriptionQueryFactory.class, isSetQueryFactory);
         resources.addResource(AccountService.class, null);
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
         launcher = new ResourceLauncher(processor);
@@ -719,7 +707,9 @@ public class AccountServiceTest {
     public void shouldRespondForbiddenIfUserHasGotTrialOfTheSameServiceBefore() throws Exception {
         prepareSuccessfulSubscriptionAddition();
 
-        when(accountDao.getSubscriptions(any(SubscriptionQueryBuilder.class))).thenReturn(Collections.singletonList(createSubscription()));
+        when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
+        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQuery.execute()).thenReturn(Collections.singletonList(createSubscription()));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
@@ -736,7 +726,9 @@ public class AccountServiceTest {
     public void shouldRespondServerErrorIfServerExceptionIsThrownOnCheckTrialHistory() throws Exception {
         prepareSuccessfulSubscriptionAddition();
 
-        when(accountDao.getSubscriptions(any(SubscriptionQueryBuilder.class))).thenThrow(new ServerException(""));
+        when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
+        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQuery.execute()).thenThrow(new ServerException(""));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
@@ -744,7 +736,9 @@ public class AccountServiceTest {
         assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         assertEquals(response.getEntity(), "Can't add subscription. Please, contact support");
 
-        verify(accountDao).getSubscriptions(any(SubscriptionQueryBuilder.class));
+        verify(accountDao).getSubscriptionQueryBuilder();
+        verify(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString()));
+        verify(subscriptionQuery.execute());
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
         verify(paymentService, never()).charge(any(Subscription.class));
@@ -761,7 +755,7 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao).addSubscription(any(Subscription.class));
-        verify(accountDao, never()).getSubscriptions(any(SubscriptionQueryBuilder.class));
+        verify(accountDao, never()).getSubscriptionQueryBuilder();
     }
 
     @Test
@@ -1196,7 +1190,7 @@ public class AccountServiceTest {
                        PLAN_ID.equals(actual.getPlanId()) && Collections.singletonMap("key", "value").equals(actual.getProperties());
             }
         }));
-        verify(accountDao, never()).getSubscriptions(any(SubscriptionQueryBuilder.class));
+        verify(accountDao, never()).getSubscriptionQueryBuilder();
     }
 
     @DataProvider(name = "roleProvider")
@@ -1235,7 +1229,9 @@ public class AccountServiceTest {
                        PLAN_ID.equals(actual.getPlanId()) && Collections.singletonMap("key", "value").equals(actual.getProperties());
             }
         }));
-        verify(accountDao).getSubscriptions(any(SubscriptionQueryBuilder.class));
+        verify(accountDao).getSubscriptionQueryBuilder();
+        verify(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString()));
+        verify(subscriptionQuery.execute());
     }
 
     @Test
@@ -1251,7 +1247,7 @@ public class AccountServiceTest {
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions/validate", MediaType.APPLICATION_JSON, subscriptionTemplate);
 
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
-        verify(accountDao, never()).getSubscriptions(any(SubscriptionQueryBuilder.class));
+        verify(accountDao, never()).getSubscriptionQueryBuilder();
     }
 
     @Test
@@ -1323,7 +1319,9 @@ public class AccountServiceTest {
     @Test
     public void shouldRespondForbiddenIfUserHasGotTrialOfTheSameServiceBeforeOnVerifySubsAddition() throws Exception {
         prepareSuccessfulSubscriptionAddition();
-        when(accountDao.getSubscriptions(any(SubscriptionQueryBuilder.class))).thenReturn(Collections.singletonList(createSubscription()));
+        when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
+        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQuery.execute()).thenReturn(Collections.singletonList(createSubscription()));
 
         final NewSubscriptionTemplate subscriptionTemplate = DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
                                                                        .withAccountId(ACCOUNT_ID)
@@ -1340,7 +1338,9 @@ public class AccountServiceTest {
     @Test
     public void shouldRespondServerErrorIfServerExceptionIsThrownOnCheckTrialHistoryOnVerifySubsAddition() throws Exception {
         prepareSuccessfulSubscriptionAddition();
-        when(accountDao.getSubscriptions(any(SubscriptionQueryBuilder.class))).thenThrow(new ServerException(""));
+        when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
+        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQuery.execute()).thenThrow(new ServerException(""));
 
         final NewSubscriptionTemplate subscriptionTemplate = DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
                                                                        .withAccountId(ACCOUNT_ID)
@@ -1771,17 +1771,9 @@ public class AccountServiceTest {
         when(accountDao.getByMember(USER_ID)).thenReturn(Arrays.asList(new Member().withRoles(Arrays.asList("account/owner"))
                                                                                    .withAccountId(ACCOUNT_ID)
                                                                                    .withUserId(USER_ID)));
-        when(accountDao.getSubscriptions(any(SubscriptionQueryBuilder.class)))
-                .thenReturn(Collections.<Subscription>emptyList());
-        SubscriptionQueryBuilder subscriptionQueryBuilderMock = mock(SubscriptionQueryBuilder.class);
-        when(subscriptionQueryBuilderFactory.create()).thenReturn(subscriptionQueryBuilderMock);
-        EqualitySubscriptionQuery equalitySubscriptionQuery = mock(EqualitySubscriptionQuery.class);
-        when(equalityQueryFactory.create(anyString())).thenReturn(equalitySubscriptionQuery);
-        IsSetSubscriptionQuery isSetSubscriptionQuery = mock(IsSetSubscriptionQuery.class);
-        when(isSetQueryFactory.create(any(Date.class))).thenReturn(isSetSubscriptionQuery);
-        when(subscriptionQueryBuilderMock.setAccountId(any(SubscriptionQuery.class))).thenReturn(subscriptionQueryBuilderMock);
-        when(subscriptionQueryBuilderMock.setServiceId(any(SubscriptionQuery.class))).thenReturn(subscriptionQueryBuilderMock);
-        when(subscriptionQueryBuilderMock.setTrialEndDate(any(SubscriptionQuery.class))).thenReturn(subscriptionQueryBuilderMock);
+        when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
+        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQuery.execute()).thenReturn(Collections.<Subscription>emptyList());
         prepareSecurityContext("user");
     }
 

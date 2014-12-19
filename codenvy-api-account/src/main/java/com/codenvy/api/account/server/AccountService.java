@@ -18,9 +18,6 @@ import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
-import com.codenvy.api.account.server.subscription.query.EqualitySubscriptionQueryFactory;
-import com.codenvy.api.account.server.subscription.query.IsSetSubscriptionQueryFactory;
-import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
@@ -108,9 +105,6 @@ public class AccountService extends Service {
     private final PaymentService                   paymentService;
     private final PlanDao                          planDao;
     private final ResourcesManager                 resourcesManager;
-    private final SubscriptionQueryBuilderFactory  subscriptionQueryBuilderFactory;
-    private final EqualitySubscriptionQueryFactory subscriptionEqualityQueryFactory;
-    private final IsSetSubscriptionQueryFactory    subscriptionIsSetQueryFactory;
 
     @Inject
     public AccountService(AccountDao accountDao,
@@ -118,19 +112,13 @@ public class AccountService extends Service {
                           SubscriptionServiceRegistry registry,
                           PaymentService paymentService,
                           PlanDao planDao,
-                          ResourcesManager resourcesManager,
-                          SubscriptionQueryBuilderFactory subscriptionQueryBuilderFactory,
-                          EqualitySubscriptionQueryFactory subscriptionEqualityQueryFactory,
-                          IsSetSubscriptionQueryFactory subscriptionIsSetQueryFactory) {
+                          ResourcesManager resourcesManager) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
         this.paymentService = paymentService;
         this.planDao = planDao;
         this.resourcesManager = resourcesManager;
-        this.subscriptionQueryBuilderFactory = subscriptionQueryBuilderFactory;
-        this.subscriptionEqualityQueryFactory = subscriptionEqualityQueryFactory;
-        this.subscriptionIsSetQueryFactory = subscriptionIsSetQueryFactory;
     }
 
     /**
@@ -736,11 +724,9 @@ public class AccountService extends Service {
         if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 &&
             securityContext.isUserInRole("user")) {
             try {
-                List<Subscription> subscriptions = accountDao.getSubscriptions(
-                        subscriptionQueryBuilderFactory.create()
-                                                       .setAccountId(subscriptionEqualityQueryFactory.create(subscription.getAccountId()))
-                                                       .setServiceId(subscriptionEqualityQueryFactory.create(subscription.getServiceId()))
-                                                       .setTrialEndDate(subscriptionIsSetQueryFactory.create((Date)null)));
+                List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
+                                                             .getTrialExistQuery(subscription.getServiceId(), subscription.getAccountId())
+                                                             .execute();
 
                 if (!subscriptions.isEmpty()) {
                     throw new ForbiddenException("Can't add new trial. Please, contact support");
@@ -897,11 +883,9 @@ public class AccountService extends Service {
         // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
         if (subscription.getTrialStartDate() != null && !isUserAdmin) {
             try {
-                List<Subscription> subscriptions = accountDao.getSubscriptions(
-                        subscriptionQueryBuilderFactory.create()
-                                                       .setAccountId(subscriptionEqualityQueryFactory.create(subscription.getAccountId()))
-                                                       .setServiceId(subscriptionEqualityQueryFactory.create(subscription.getServiceId()))
-                                                       .setTrialEndDate(subscriptionIsSetQueryFactory.create((Date)null)));
+                List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
+                                                             .getTrialExistQuery(subscription.getServiceId(), subscription.getAccountId())
+                                                             .execute();
 
                 if (!subscriptions.isEmpty()) {
                     throw new ForbiddenException("Can't add new trial. Please, contact support");

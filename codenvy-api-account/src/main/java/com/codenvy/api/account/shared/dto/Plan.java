@@ -72,11 +72,11 @@ public interface Plan {
 
     Plan withBillingCycle(Integer cycle);
 
-    Integer getBillingCycleType();
+    BillingCycleType getBillingCycleType();
 
-    void setBillingCycleType(Integer billingCycleType);
+    void setBillingCycleType(BillingCycleType billingCycleType);
 
-    Plan withBillingCycleType(Integer billingCycleType);
+    Plan withBillingCycleType(BillingCycleType billingCycleType);
 
     Integer getBillingContractTerm();
 

@@ -24,7 +24,6 @@ import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilde
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewMembership;
@@ -32,6 +31,7 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
@@ -87,7 +87,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.codenvy.api.account.server.dao.Subscription.State.ACTIVE;
 import static com.codenvy.commons.lang.Size.parseSizeToMegabytes;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
@@ -839,7 +838,7 @@ public class AccountService extends Service {
                 .withServiceId(plan.getServiceId())
                 .withPlanId(plan.getId())
                 .withProperties(plan.getProperties())
-                .withState(ACTIVE)
+                .withState(SubscriptionState.ACTIVE)
                 .withDescription(plan.getDescription())
                 .withBillingCycleType(plan.getBillingCycleType())
                 .withBillingCycle(plan.getBillingCycle())
@@ -977,14 +976,14 @@ public class AccountService extends Service {
         if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
             throw new ForbiddenException("Access denied");
         }
-        if (Subscription.State.INACTIVE == toRemove.getState()) {
+        if (SubscriptionState.INACTIVE == toRemove.getState()) {
             throw new ForbiddenException("Subscription is inactive already " + subscriptionId);
         }
 
         LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId(),
                  toRemove.getAccountId());
 
-        toRemove.setState(Subscription.State.INACTIVE);
+        toRemove.setState(SubscriptionState.INACTIVE);
         accountDao.updateSubscription(toRemove);
         final SubscriptionService service = registry.get(toRemove.getServiceId());
         service.onRemoveSubscription(toRemove);
@@ -1241,8 +1240,11 @@ public class AccountService extends Service {
                                              null,
                                              MediaType.APPLICATION_JSON,
                                              Constants.LINK_REL_GET_SUBSCRIPTION));
-            if ((resolvedRoles != null && resolvedRoles.contains("account/owner")) || securityContext.isUserInRole("account/owner") ||
-                securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
+            boolean isUserPrivileged = (resolvedRoles != null && resolvedRoles.contains("account/owner")) ||
+                                       securityContext.isUserInRole("account/owner") ||
+                                       securityContext.isUserInRole("system/admin") ||
+                                       securityContext.isUserInRole("system/manager");
+            if (SubscriptionState.ACTIVE.equals(subscription.getState()) && isUserPrivileged) {
                 links.add(LinksHelper.createLink(HttpMethod.DELETE,
                                                  uriBuilder.clone()
                                                            .path(getClass(), "removeSubscription")
@@ -1251,24 +1253,6 @@ public class AccountService extends Service {
                                                  null,
                                                  null,
                                                  Constants.LINK_REL_REMOVE_SUBSCRIPTION));
-            }
-        }
-
-        CycleTypeDescriptor cycleTypeDescriptor =
-                DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(subscription.getBillingCycleType());
-        if (subscription.getBillingCycleType() != null) {
-            switch (cycleTypeDescriptor.getId()) {
-                case 1:
-                    cycleTypeDescriptor.withDescription("Auto-renew");
-                    break;
-                case 2:
-                    cycleTypeDescriptor.withDescription("One-time");
-                    break;
-                case 3:
-                    cycleTypeDescriptor.withDescription("No-renewal");
-                    break;
-                default:
-                    LOG.error("Unknown billing cycle type {} is used", cycleTypeDescriptor.getId());
             }
         }
 
@@ -1306,7 +1290,7 @@ public class AccountService extends Service {
                          .withNextBillingDate(
                                  null == subscription.getNextBillingDate() ? null : dateFormat.format(subscription.getNextBillingDate()))
                          .withBillingCycle(subscription.getBillingCycle())
-                         .withBillingCycleType(cycleTypeDescriptor)
+                         .withBillingCycleType(subscription.getBillingCycleType())
                          .withBillingContractTerm(subscription.getBillingContractTerm())
                          .withLinks(links);
     }

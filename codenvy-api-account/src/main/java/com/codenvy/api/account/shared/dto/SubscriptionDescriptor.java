@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
-import com.codenvy.api.account.server.dao.Subscription.State;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -66,11 +65,11 @@ public interface SubscriptionDescriptor {
     SubscriptionDescriptor withProperties(Map<String, String> properties);
 
     @ApiModelProperty(value = "Subscription state")
-    State getState();
+    SubscriptionState getState();
 
-    void setState(State state);
+    void setState(SubscriptionState state);
 
-    SubscriptionDescriptor withState(State state);
+    SubscriptionDescriptor withState(SubscriptionState state);
 
     @ApiModelProperty(value = "Date when subscription starts")
     String getStartDate();
@@ -136,11 +135,11 @@ public interface SubscriptionDescriptor {
     SubscriptionDescriptor withBillingCycle(Integer billingCycle);
 
     @ApiModelProperty(value = "Type of the billing")
-    CycleTypeDescriptor getBillingCycleType();
+    BillingCycleType getBillingCycleType();
 
-    void setBillingCycleType(CycleTypeDescriptor billingCycleType);
+    void setBillingCycleType(BillingCycleType billingCycleType);
 
-    SubscriptionDescriptor withBillingCycleType(CycleTypeDescriptor billingCycleType);
+    SubscriptionDescriptor withBillingCycleType(BillingCycleType billingCycleType);
 
     Integer getBillingContractTerm();
 

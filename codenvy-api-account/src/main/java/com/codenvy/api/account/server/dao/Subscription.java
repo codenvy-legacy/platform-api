@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.dao;
 
+import com.codenvy.api.account.shared.dto.BillingCycleType;
+import com.codenvy.api.account.shared.dto.SubscriptionState;
+
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,16 +26,12 @@ import java.util.Objects;
  * @author Alexander Garagatyi
  */
 public class Subscription {
-    public enum State {
-        ACTIVE, INACTIVE
-    }
-
     private String              id;
     private String              accountId;
     private String              serviceId;
     private String              planId;
     private Map<String, String> properties;
-    private State               state;
+    private SubscriptionState   state;
     private Date                startDate;
     private Date                endDate;
     private Date                trialStartDate;
@@ -42,7 +41,7 @@ public class Subscription {
     private Date                billingEndDate;
     private Date                nextBillingDate;
     private Integer             billingCycle;
-    private Integer             billingCycleType;
+    private BillingCycleType    billingCycleType;
     private Integer             billingContractTerm;
     private String              description;
     private String              paymentToken;
@@ -140,15 +139,15 @@ public class Subscription {
         return this;
     }
 
-    public State getState() {
+    public SubscriptionState getState() {
         return state;
     }
 
-    public void setState(State state) {
+    public void setState(SubscriptionState state) {
         this.state = state;
     }
 
-    public Subscription withState(State state) {
+    public Subscription withState(SubscriptionState state) {
         this.state = state;
         return this;
     }
@@ -231,15 +230,15 @@ public class Subscription {
         return this;
     }
 
-    public Integer getBillingCycleType() {
+    public BillingCycleType getBillingCycleType() {
         return billingCycleType;
     }
 
-    public void setBillingCycleType(Integer billingCycleType) {
+    public void setBillingCycleType(BillingCycleType billingCycleType) {
         this.billingCycleType = billingCycleType;
     }
 
-    public Subscription withBillingCycleType(Integer billingCycleType) {
+    public Subscription withBillingCycleType(BillingCycleType billingCycleType) {
         this.billingCycleType = billingCycleType;
         return this;
     }

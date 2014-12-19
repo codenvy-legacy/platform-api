@@ -32,7 +32,7 @@ import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 
-import static com.codenvy.api.account.server.dao.Subscription.State.ACTIVE;
+import static com.codenvy.api.account.shared.dto.SubscriptionState.ACTIVE;
 
 /**
  * @author Eugene Voevodin

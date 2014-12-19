@@ -30,13 +30,14 @@ import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilde
 import com.codenvy.api.account.server.subscription.query.SubscriptionQueryBuilderFactory.SubscriptionQueryBuilder;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
-import com.codenvy.api.account.shared.dto.CycleTypeDescriptor;
+import com.codenvy.api.account.shared.dto.BillingCycleType;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewMembership;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
@@ -206,7 +207,7 @@ public class AccountServiceTest {
                          .withProperties(Collections.singletonMap("key", "value"))
                          .withBillingContractTerm(12)
                          .withBillingCycle(1)
-                         .withBillingCycleType(1)
+                         .withBillingCycleType(BillingCycleType.AutoRenew)
                          .withDescription("description")
                          .withTrialDuration(7);
 
@@ -777,8 +778,8 @@ public class AccountServiceTest {
         assertEquals(subscription.getAccountId(), ACCOUNT_ID);
         assertEquals(subscription.getPlanId(), PLAN_ID);
         assertEquals(subscription.getServiceId(), SERVICE_ID);
-        assertEquals(subscription.getState(), Subscription.State.ACTIVE);
-        assertEquals(subscription.getBillingCycleType().getId(), plan.getBillingCycleType());
+        assertEquals(subscription.getState(), SubscriptionState.ACTIVE);
+        assertEquals(subscription.getBillingCycleType(), plan.getBillingCycleType());
         assertEquals(subscription.getBillingCycle(), plan.getBillingCycle());
         assertEquals(subscription.getBillingContractTerm(), plan.getBillingContractTerm());
         assertEquals(subscription.getDescription(), plan.getDescription());
@@ -802,7 +803,7 @@ public class AccountServiceTest {
                 assertEquals(actual.getAccountId(), ACCOUNT_ID);
                 assertEquals(actual.getPlanId(), PLAN_ID);
                 assertEquals(actual.getServiceId(), SERVICE_ID);
-                assertEquals(actual.getState(), Subscription.State.ACTIVE);
+                assertEquals(actual.getState(), SubscriptionState.ACTIVE);
                 assertEquals(actual.getBillingCycleType(), plan.getBillingCycleType());
                 assertEquals(actual.getBillingCycle(), plan.getBillingCycle());
                 assertEquals(actual.getBillingContractTerm(), plan.getBillingContractTerm());
@@ -840,8 +841,8 @@ public class AccountServiceTest {
         assertEquals(subscription.getAccountId(), ACCOUNT_ID);
         assertEquals(subscription.getPlanId(), PLAN_ID);
         assertEquals(subscription.getServiceId(), SERVICE_ID);
-        assertEquals(subscription.getState(), Subscription.State.ACTIVE);
-        assertEquals(subscription.getBillingCycleType().getId(), plan.getBillingCycleType());
+        assertEquals(subscription.getState(), SubscriptionState.ACTIVE);
+        assertEquals(subscription.getBillingCycleType(), plan.getBillingCycleType());
         assertEquals(subscription.getBillingCycle(), plan.getBillingCycle());
         assertEquals(subscription.getBillingContractTerm(), plan.getBillingContractTerm());
         assertEquals(subscription.getDescription(), plan.getDescription());
@@ -865,7 +866,7 @@ public class AccountServiceTest {
                 assertEquals(actual.getAccountId(), ACCOUNT_ID);
                 assertEquals(actual.getPlanId(), PLAN_ID);
                 assertEquals(actual.getServiceId(), SERVICE_ID);
-                assertEquals(actual.getState(), Subscription.State.ACTIVE);
+                assertEquals(actual.getState(), SubscriptionState.ACTIVE);
                 assertEquals(actual.getBillingCycleType(), plan.getBillingCycleType());
                 assertEquals(actual.getBillingCycle(), plan.getBillingCycle());
                 assertEquals(actual.getBillingContractTerm(), plan.getBillingContractTerm());
@@ -941,7 +942,7 @@ public class AccountServiceTest {
     public void shouldRemoveSubscriptionIfChargingFailsAndReturnDefaultExceptionMessageIfThrownExceptionIsNotApi() throws Exception {
         prepareSuccessfulSubscriptionAddition();
         newSubscription.setTrialDuration(0);
-        doThrow(new Exception("origin exception")).when(paymentService).charge(any(Subscription.class));
+        doThrow(new RuntimeException("origin exception")).when(paymentService).charge(any(Subscription.class));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
@@ -1011,7 +1012,7 @@ public class AccountServiceTest {
             public boolean matches(Object argument) {
                 Subscription actual = (Subscription)argument;
 
-                assertEquals(actual, new Subscription(subscription).withState(Subscription.State.INACTIVE));
+                assertEquals(actual, new Subscription(subscription).withState(SubscriptionState.INACTIVE));
                 return true;
             }
         }));
@@ -1037,7 +1038,7 @@ public class AccountServiceTest {
             public boolean matches(Object argument) {
                 Subscription actual = (Subscription)argument;
 
-                assertEquals(actual, new Subscription(subscription).withState(Subscription.State.INACTIVE));
+                assertEquals(actual, new Subscription(subscription).withState(SubscriptionState.INACTIVE));
                 return true;
             }
         }));
@@ -1047,7 +1048,7 @@ public class AccountServiceTest {
     public void shouldRespondForbiddenIfSubscriptionIsInactiveOnRemoveSubscription() throws Exception {
         when(accountDao.getByMember(USER_ID)).thenReturn(memberships);
         when(serviceRegistry.get(SERVICE_ID)).thenReturn(subscriptionService);
-        Subscription subscription = createSubscription().withState(Subscription.State.INACTIVE);
+        Subscription subscription = createSubscription().withState(SubscriptionState.INACTIVE);
 
         when(accountDao.getSubscriptionById(SUBSCRIPTION_ID)).thenReturn(subscription);
         prepareSecurityContext("user");
@@ -1101,14 +1102,20 @@ public class AccountServiceTest {
     }
 
     @Test
-    public void shouldNotAddLinksToSubscriptionDescriptorIfSubscriptionIsInactive() throws Exception {
-        Subscription subscription = createSubscription().withState(Subscription.State.INACTIVE);
+    public void shouldAddGetByIdLinkOnlyToSubscriptionDescriptorIfSubscriptionIsInactive() throws Exception {
+        List<Link> expectedLinks = new ArrayList<>();
+        expectedLinks.add(DtoFactory.getInstance().createDto(Link.class)
+                                    .withRel(Constants.LINK_REL_GET_SUBSCRIPTION)
+                                    .withMethod(HttpMethod.GET)
+                                    .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)
+                                    .withProduces(MediaType.APPLICATION_JSON));
+        Subscription subscription = createSubscription().withState(SubscriptionState.INACTIVE);
 
         prepareSecurityContext("system/admin");
 
         SubscriptionDescriptor descriptor = getDescriptor(subscription);
 
-        assertTrue(descriptor.getLinks().isEmpty());
+        assertEquals(descriptor.getLinks(), expectedLinks);
     }
 
     @Test
@@ -1159,23 +1166,6 @@ public class AccountServiceTest {
         SubscriptionDescriptor descriptor = getDescriptor(subscription);
 
         assertEquals(descriptor.withLinks(null), convertToDescriptor(subscription));
-    }
-
-    @Test(dataProvider = "cycleTypeProvider")
-    public void shouldBeAbleToConvertCycleType(CycleTypeDescriptor cycleTypeDescriptor) throws Exception {
-        SubscriptionDescriptor descriptor = getDescriptor(createSubscription().withBillingCycleType(cycleTypeDescriptor.getId()));
-
-        assertEquals(descriptor.getBillingCycleType(), cycleTypeDescriptor);
-    }
-
-    @DataProvider(name = "cycleTypeProvider")
-    public Object[][] cycleTypeProvider() {
-        return new CycleTypeDescriptor[][]{
-                {DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(1).withDescription("Auto-renew")},
-                {DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(2).withDescription("One-time")},
-                {DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(3).withDescription("No-renewal")},
-                {DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(0).withDescription(null)},
-        };
     }
 
     @Test(dataProvider = "roleProvider")
@@ -1721,23 +1711,6 @@ public class AccountServiceTest {
     }
 
     private SubscriptionDescriptor convertToDescriptor(Subscription subscription) {
-        CycleTypeDescriptor cycleTypeDescriptor =
-                DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(subscription.getBillingCycleType());
-        if (subscription.getBillingCycleType() != null) {
-            switch (cycleTypeDescriptor.getId()) {
-                case 1:
-                    cycleTypeDescriptor.withDescription("Auto-renew");
-                    break;
-                case 2:
-                    cycleTypeDescriptor.withDescription("One-time");
-                    break;
-                case 3:
-                    cycleTypeDescriptor.withDescription("No-renewal");
-                    break;
-                default:
-            }
-        }
-
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
                          .withId(subscription.getId())
                          .withAccountId(subscription.getAccountId())
@@ -1755,7 +1728,7 @@ public class AccountServiceTest {
                          .withNextBillingDate(dateToString(subscription.getNextBillingDate()))
                          .withBillingEndDate(dateToString(subscription.getBillingEndDate()))
                          .withBillingContractTerm(subscription.getBillingContractTerm())
-                         .withBillingCycleType(cycleTypeDescriptor)
+                         .withBillingCycleType(subscription.getBillingCycleType())
                          .withBillingCycle(subscription.getBillingCycle());
     }
 
@@ -1776,7 +1749,7 @@ public class AccountServiceTest {
                 .withPlanId(PLAN_ID)
                 .withServiceId(SERVICE_ID)
                 .withProperties(properties)
-                .withState(Subscription.State.ACTIVE)
+                .withState(SubscriptionState.ACTIVE)
                 .withDescription("description")
                 .withUsePaymentSystem(true)
                 .withPaymentToken("token")
@@ -1788,7 +1761,7 @@ public class AccountServiceTest {
                 .withNextBillingDate(new Date())
                 .withBillingEndDate(new Date())
                 .withBillingContractTerm(12)
-                .withBillingCycleType(1)
+                .withBillingCycleType(BillingCycleType.AutoRenew)
                 .withBillingCycle(1);
     }
 

@@ -10,12 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.runner.internal;
 
+import com.codenvy.api.builder.dto.BuildTaskDescriptor;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.Cancellable;
 import com.codenvy.api.core.util.DownloadPlugin;
+import com.codenvy.api.core.util.FileCleaner;
 import com.codenvy.api.core.util.HttpDownloadPlugin;
-import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.runner.RunnerException;
@@ -23,6 +25,7 @@ import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.TarUtils;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -274,9 +277,7 @@ public abstract class Runner {
                     memoryAllocator.allocate();
                     final java.io.File downloadDir =
                             Files.createTempDirectory(deployDirectory.toPath(), ("download_" + getName().replace("/", "."))).toFile();
-                    final String url = request.getDeploymentSourcesUrl();
-                    final DeploymentSources deploymentSources =
-                            url == null ? NO_SOURCES : new DeploymentSources(downloadFile(url, downloadDir));
+                    final DeploymentSources deploymentSources = createDeploymentSources(request, downloadDir);
                     process.addToCleanupList(downloadDir);
                     if (!getDeploymentSourcesValidator().isValid(deploymentSources)) {
                         throw new RunnerException(
@@ -345,36 +346,77 @@ public abstract class Runner {
         return ALL_VALID;
     }
 
-    protected java.io.File downloadFile(String url, java.io.File downloadDir) throws IOException {
-        return downloadFile(url, downloadDir, false, null);
+    protected DeploymentSources createDeploymentSources(RunRequest request, java.io.File dir) throws IOException {
+        Link link = null;
+        final BuildTaskDescriptor buildTaskDescriptor = request.getBuildTaskDescriptor();
+        boolean artifactTarball = false;
+        if (buildTaskDescriptor != null) {
+            final List<Link> artifactLinks =
+                    buildTaskDescriptor.getLinks(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULT);
+            if (artifactLinks.size() == 1) {
+                link = artifactLinks.get(0);
+            } else if (artifactLinks.size() > 1) {
+                link = buildTaskDescriptor.getLink(com.codenvy.api.builder.internal.Constants.LINK_REL_DOWNLOAD_RESULTS_TARBALL);
+                artifactTarball = link != null;
+            }
+        } else {
+            link = request.getProjectDescriptor().getLink(com.codenvy.api.project.server.Constants.LINK_REL_EXPORT_ZIP);
+        }
+        String url = null;
+        if (link != null) {
+            final String href = link.getHref();
+            final String token = request.getUserToken();
+            if (href.indexOf('?') > 0) {
+                url = href + "&token=" + token;
+            } else {
+                url = href + "?token=" + token;
+            }
+        }
+        if (url == null) {
+            return NO_SOURCES;
+        }
+        final DownloadCallback callback = new DownloadCallback();
+        downloadPlugin.download(url, dir, callback);
+        if (callback.getError() != null) {
+            throw callback.getError();
+        }
+        final java.io.File downloaded = callback.getDownloadedFile();
+        if (artifactTarball && downloaded != null) {
+            final java.io.File parent = downloaded.getParentFile();
+            final java.io.File unpack = new java.io.File(parent, downloaded.getName() + "_untar");
+            TarUtils.untar(downloaded, unpack);
+            FileCleaner.addFile(downloaded);
+            return new DeploymentSources(unpack);
+        }
+        return new DeploymentSources(downloaded);
     }
 
-    protected java.io.File downloadFile(String url, java.io.File downloadDir, boolean replaceExisting, String fileName)
-            throws IOException {
-        final ValueHolder<IOException> errorHolder = new ValueHolder<>();
-        final ValueHolder<java.io.File> resultHolder = new ValueHolder<>();
-        final DownloadPlugin.Callback callback = new DownloadPlugin.Callback() {
-            @Override
-            public void done(java.io.File downloaded) {
-                resultHolder.set(downloaded);
-            }
+    private static class DownloadCallback implements DownloadPlugin.Callback {
+        java.io.File downloaded;
+        IOException  error;
 
-            @Override
-            public void error(IOException e) {
-                LOG.error(e.getMessage(), e);
-                errorHolder.set(e);
-            }
-        };
-        if (fileName == null) {
-            downloadPlugin.download(url, downloadDir, callback);
-        } else {
-            downloadPlugin.download(url, downloadDir, fileName, replaceExisting, callback);
+        @Override
+        public void done(java.io.File downloaded) {
+            this.downloaded = downloaded;
         }
-        final IOException ioError = errorHolder.get();
-        if (ioError != null) {
-            throw ioError;
+
+        @Override
+        public void error(IOException e) {
+            error = e;
         }
-        return resultHolder.get();
+
+        public java.io.File getDownloadedFile() {
+            return downloaded;
+        }
+
+        public IOException getError() {
+            return error;
+        }
+    }
+
+    protected java.io.File downloadFile(String url, java.io.File downloadDir, String fileName, boolean replaceExisting) throws IOException {
+        downloadPlugin.download(url, downloadDir, fileName, replaceExisting);
+        return new java.io.File(downloadDir, fileName);
     }
 
     protected void registerDisposer(ApplicationProcess application, Disposer disposer) {

@@ -38,7 +38,7 @@ public interface DownloadPlugin {
     }
 
     /**
-     * Download file from specified location to local directory {@code downloadTo}
+     * Download file from specified location to local directory {@code downloadTo}.
      *
      * @param downloadUrl
      *         download URL
@@ -50,7 +50,7 @@ public interface DownloadPlugin {
     void download(String downloadUrl, java.io.File downloadTo, Callback callback);
 
     /**
-     * Download file from specified location to local directory {@code downloadTo}
+     * Download file from specified location to local directory {@code downloadTo} and save it in file {@code fileName}.
      *
      * @param downloadUrl
      *         download URL
@@ -60,8 +60,7 @@ public interface DownloadPlugin {
      *         name of local file to save download result
      * @param replaceExisting
      *         replace existed file with the same name
-     * @param callback
-     *         notified when download is done or an error occurs
+     * @throws IOException if i/o error occurs when try download file or save it on local filesystem
      */
-    void download(String downloadUrl, java.io.File downloadTo, String fileName, boolean replaceExisting, Callback callback);
+    void download(String downloadUrl, java.io.File downloadTo, String fileName, boolean replaceExisting) throws IOException;
 }

@@ -15,7 +15,6 @@ import com.codenvy.commons.lang.NameGenerator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -78,7 +77,7 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
     }
 
     @Override
-    public void download(String downloadUrl, File downloadTo, String fileName, boolean replaceExisting, Callback callback) {
+    public void download(String downloadUrl, java.io.File downloadTo, String fileName, boolean replaceExisting) throws IOException {
         HttpURLConnection conn = null;
         try {
             conn = (HttpURLConnection)new URL(downloadUrl).openConnection();
@@ -96,10 +95,6 @@ public final class HttpDownloadPlugin implements DownloadPlugin {
                     Files.copy(in, downloadFile.toPath());
                 }
             }
-            callback.done(downloadFile);
-        } catch (IOException e) {
-            LOG.debug(String.format("Failed access: %s, error: %s", downloadUrl, e.getMessage()), e);
-            callback.error(e);
         } finally {
             if (conn != null) {
                 conn.disconnect();

@@ -22,12 +22,12 @@ import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 
 import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;
 import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
-import com.codenvy.api.project.shared.dto.*;
 
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
+import com.codenvy.api.project.shared.dto.ImportProject;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
@@ -35,6 +35,7 @@ import com.codenvy.api.project.shared.dto.ProjectReference;
 import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.shared.dto.TreeElement;
 
 import com.codenvy.api.user.server.dao.UserDao;
@@ -174,7 +175,6 @@ public class ProjectServiceTest {
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
         dependencies.addComponent(EventService.class, eventService);
-        dependencies.addComponent(ProjectEventRegistry.class, new ProjectEventRegistry());
 
 
         ResourceBinder resources = new ResourceBinderImpl();

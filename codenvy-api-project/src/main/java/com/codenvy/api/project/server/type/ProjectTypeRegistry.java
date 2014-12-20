@@ -137,7 +137,7 @@ public class ProjectTypeRegistry {
                                 " is duplicated in its ancestor(s).");
                     }
                 }
-                myType.addAttributeDefinition(attr);
+                ((ProjectType2)myType).addAttributeDefinition(attr);
             }
             initAttributesRecursively(myType, supertype);
         }

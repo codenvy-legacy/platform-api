@@ -27,7 +27,7 @@ public class ProjectTemplateRegistry {
     private final Map<String, List<ProjectTemplateDescriptor>> templates = new ConcurrentHashMap<>();
 
     public void register(ProjectTemplateDescriptor template) {
-        List<ProjectTemplateDescriptor> tmpls = this.templates.get(template.getProjectType());
+        List<ProjectTemplateDescriptor> tmpls = templates.get(template.getProjectType());
         if (tmpls == null) {
             tmpls = new LinkedList<>();
         }

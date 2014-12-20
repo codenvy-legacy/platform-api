@@ -22,9 +22,6 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
-import com.codenvy.api.project.newproj.server.event.GetItemEvent;
-import com.codenvy.api.project.newproj.server.event.GetItemHandler;
-import com.codenvy.api.project.newproj.server.event.ProjectEventRegistry;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.project.shared.dto.ImportProject;
@@ -117,8 +114,8 @@ public class ProjectService extends Service {
     @Inject
     private EventService                eventService;
 
-    @Inject
-    private ProjectEventRegistry projectServiceEventSubscriberRegistry;
+//    @Inject
+//    private ProjectEventRegistry projectServiceEventSubscriberRegistry;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(1 + Runtime.getRuntime().availableProcessors(),
                                                                           new NamedThreadFactory("ProjectService-IndexingThread-", true));
@@ -1038,14 +1035,14 @@ public class ProjectService extends Service {
 
         //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, projectPath(path))+" "+ this.projectServiceEventSubscriberRegistry.getGetItemSubcribers().size());
 
-        for(GetItemHandler subs : this.projectServiceEventSubscriberRegistry.getGetItemSubcribers()) {
-
-
-            //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, path));
-
-            String typeId = projectManager.getProject(workspace, path).getConfig().getTypeId();
-          subs.onEvent(new GetItemEvent(this.projectManager.getProjectTypeRegistry().getProjectType(typeId), item));
-        }
+//        for(GetItemHandler subs : this.projectServiceEventSubscriberRegistry.getGetItemSubcribers()) {
+//
+//
+//            //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, path));
+//
+//            String typeId = projectManager.getProject(workspace, path).getConfig().getTypeId();
+//          subs.onEvent(new GetItemEvent(this.projectManager.getProjectTypeRegistry().getProjectType(typeId), item));
+//        }
 
 
         return item;

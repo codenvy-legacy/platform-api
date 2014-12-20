@@ -58,6 +58,7 @@ public final class DefaultProjectManager implements ProjectManager {
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
     private final ProjectTypeRegistry projectTypeRegistry;
+    private final ProjectGeneratorRegistry    generators;
 
 
 
@@ -65,12 +66,13 @@ public final class DefaultProjectManager implements ProjectManager {
     @SuppressWarnings("unchecked")
     public DefaultProjectManager(VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService,
-                                 ProjectTypeRegistry projectTypeRegistry) {
+                                 ProjectTypeRegistry projectTypeRegistry,
+                                 ProjectGeneratorRegistry    generators) {
 
         this.fileSystemRegistry = fileSystemRegistry;
-        //this.valueProviderFactories = new HashMap<>();
         this.eventService = eventService;
         this.projectTypeRegistry = projectTypeRegistry;
+        this.generators = generators;
 
 //        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
 //            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
@@ -166,7 +168,7 @@ public final class DefaultProjectManager implements ProjectManager {
         if (generatorName != null) {
             final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
             if (generator != null) {
-                generator.generateProject(project.getBaseFolder(), newProject);
+                generator.generateProject(project.getBaseFolder());
             }
         }
 

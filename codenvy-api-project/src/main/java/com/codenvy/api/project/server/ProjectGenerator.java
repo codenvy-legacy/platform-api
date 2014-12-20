@@ -43,6 +43,6 @@ public interface ProjectGenerator {
      * @throws ServerException
      *         if project generation causes some errors that should be treated as internal errors
      */
-    void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+    void generateProject(FolderEntry baseFolder)
             throws ForbiddenException, ConflictException, ServerException;
 }

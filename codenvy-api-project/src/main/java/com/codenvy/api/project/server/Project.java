@@ -95,8 +95,6 @@ public class Project {
         }
 
 
-        //final List<Attribute2> attributes = new ArrayList<>();
-
         final Map<String, AttributeValue> attributes = new HashMap<>();
 
         for(Attribute2 attr : type.getAttributes()) {
@@ -104,20 +102,16 @@ public class Project {
             if(attr.isVariable()) {
                 Variable var = (Variable) attr;
                 final ValueProviderFactory factory = var.getValueProviderFactory();
-                        //manager.getValueProviderFactories().get(attr.getId());
 
                 List <String> val;
                 if (factory != null) {
 
                     val = factory.newInstance(this).getValues(var.getName());
 
-                    //System.out.println("GET CONFIG2 >> "+var.getName()+" "+val);
-
                     if(val == null)
                         throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable "+var.getId());
                  } else {
                     val = projectJson.getAttributes().get(attr.getName());
-                    //val = new AttributeValue(projectJson.getAttributeValues(attr.getName()));
                 }
 
                 if(val == null || val.isEmpty()) {
@@ -191,8 +185,6 @@ public class Project {
             }
 
         }
-
-
 
         projectJson.save(this);
 

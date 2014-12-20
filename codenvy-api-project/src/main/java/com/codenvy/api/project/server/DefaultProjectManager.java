@@ -16,6 +16,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.commons.lang.Pair;
@@ -62,9 +63,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
     @Inject
     @SuppressWarnings("unchecked")
-    public DefaultProjectManager(
-            //Set<ValueProviderFactory> valueProviderFactories,
-                                 VirtualFileSystemRegistry fileSystemRegistry,
+    public DefaultProjectManager(VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService,
                                  ProjectTypeRegistry projectTypeRegistry) {
 
@@ -155,27 +154,23 @@ public final class DefaultProjectManager implements ProjectManager {
         return null;
     }
 
-//    @Override
-//    /**
-//     * @deprecated
-//     */
-//    public Project createProject(String workspace, String name, ProjectDescription projectDescription)
-//            throws ConflictException, ForbiddenException, ServerException {
-//        final FolderEntry myRoot = getProjectsRoot(workspace);
-//        final FolderEntry projectFolder = myRoot.createFolder(name);
-//        final Project project = new Project(projectFolder, this);
-//        project.updateDescription(projectDescription);
-//        getProjectMisc(project).setCreationDate(System.currentTimeMillis());
-//        return project;
-//    }
 
     @Override
-    public Project createProject(String workspace, String name, ProjectConfig projectConfig)
+    public Project createProject(String workspace, String name, ProjectConfig projectConfig, String generatorName)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);
-        project.updateConfig(projectConfig);
+
+
+        if (generatorName != null) {
+            final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
+            if (generator != null) {
+                generator.generateProject(project.getBaseFolder(), newProject);
+            }
+        }
+
+
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }

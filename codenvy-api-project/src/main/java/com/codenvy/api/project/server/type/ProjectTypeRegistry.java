@@ -29,7 +29,7 @@ public class ProjectTypeRegistry {
 
     public static final ProjectType2 BASE_TYPE = new BaseProjectType();
 
-    private final static Pattern NAME_PATTERN = Pattern.compile("[^a-zA-Z0-9-_]");
+    private final static Pattern NAME_PATTERN = Pattern.compile("[^a-zA-Z0-9-_.]");
 
     private final Map<String, ProjectType2> projectTypes = new HashMap<>();
 
@@ -93,7 +93,7 @@ public class ProjectTypeRegistry {
 
         // ID spelling (no spaces, only alphanumeric)
         if(NAME_PATTERN.matcher(pt.getId()).find()) {
-            throw new ProjectTypeConstraintException("Could not register Project Type with invalid ID (only Alphanumeric, dash and underscore allowed): " +pt.getClass().getName()+ " ID: '"+pt.getId()+"'");
+            throw new ProjectTypeConstraintException("Could not register Project Type with invalid ID (only Alphanumeric, dash, point and underscore allowed): " +pt.getClass().getName()+ " ID: '"+pt.getId()+"'");
         }
 
         if(pt.getDisplayName() == null || pt.getDisplayName().isEmpty()) {
@@ -139,6 +139,7 @@ public class ProjectTypeRegistry {
                 }
                 myType.addAttributeDefinition(attr);
             }
+            //myType.addParent(supertype);
             initAttributesRecursively(myType, supertype);
         }
 

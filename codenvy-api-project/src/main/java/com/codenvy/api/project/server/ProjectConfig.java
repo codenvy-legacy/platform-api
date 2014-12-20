@@ -31,9 +31,10 @@ public class ProjectConfig {
     private Runners runners;
     private Builders builders;
     private List <String> mixinTypes;
+    private Map<String, String> generatorParams;
 
     public ProjectConfig(String description, String typeId, Map<String, AttributeValue> attributes, Runners runners,
-                         Builders builders, List <String> mixinTypes) {
+                         Builders builders, List <String> mixinTypes /*, Map<String, String> generatorParams*/) {
 
         this.description = description;
         this.typeId = typeId;
@@ -41,6 +42,7 @@ public class ProjectConfig {
         this.builders = (builders == null)?new Builders():builders;
         this.runners = (runners == null)?new Runners():runners;
         this.mixinTypes = (mixinTypes == null)?new ArrayList<String>():mixinTypes;
+        this.generatorParams = (generatorParams == null)?new HashMap<String, String>():generatorParams;
 
     }
 
@@ -77,5 +79,9 @@ public class ProjectConfig {
 
     public List<String> getMixinTypes() {
         return mixinTypes;
+    }
+
+    public Map<String, String> getGeneratorParams() {
+        return generatorParams;
     }
 }

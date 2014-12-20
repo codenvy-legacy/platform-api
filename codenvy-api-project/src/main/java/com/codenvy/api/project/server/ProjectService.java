@@ -239,23 +239,25 @@ public class ProjectService extends Service {
                                            @Description("descriptor of project") NewProject newProject)
             throws ConflictException, ForbiddenException, ServerException {
 
+        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
+
         final Project project = projectManager.createProject(workspace, name,
-                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()));
+                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getName());
 
 
         final ProjectMisc misc = project.getMisc();
         misc.setCreationDate(System.currentTimeMillis());
         misc.save(); // Important to save misc!!
 
-        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
+//        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
 
 
-        if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
-            if (generator != null) {
-                generator.generateProject(project.getBaseFolder(), newProject);
-            }
-        }
+//        if (generatorDescription != null) {
+//            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
+//            if (generator != null) {
+//                generator.generateProject(project.getBaseFolder(), newProject);
+//            }
+//        }
 
         final String visibility = newProject.getVisibility();
         if (visibility != null) {

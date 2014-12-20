@@ -75,7 +75,7 @@ public interface ProjectManager {
 //            throws ConflictException, ForbiddenException, ServerException;
 
 
-    Project createProject(String workspace, String name, ProjectConfig projectConfig)
+    Project createProject(String workspace, String name, ProjectConfig projectConfig, String generatorName)
             throws ConflictException, ForbiddenException, ServerException;
 
     /**

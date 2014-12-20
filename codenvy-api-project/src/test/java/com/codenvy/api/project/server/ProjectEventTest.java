@@ -68,7 +68,7 @@ public class ProjectEventTest {
 
         ProjectConfig config = new ProjectConfig("descr", "my_project_type");
 
-        pm.createProject("my_ws", "my_project", config);
+        pm.createProject("my_ws", "my_project", config, );
 
         projectEventService = new ProjectEventService(eventService);
     }

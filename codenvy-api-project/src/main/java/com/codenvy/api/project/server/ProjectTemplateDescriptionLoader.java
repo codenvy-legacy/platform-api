@@ -17,6 +17,7 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -27,6 +28,8 @@ import java.util.List;
  */
 @Singleton
 public class ProjectTemplateDescriptionLoader {
+
+
 
     /**
      * Load project template descriptions for the specified project type.
@@ -50,5 +53,19 @@ public class ProjectTemplateDescriptionLoader {
                 list.add(DtoConverter.fromDto(template));
             }
         }
+    }
+
+
+    public List<ProjectTemplateDescriptor> load(String projectTypeId) throws IOException {
+        final URL url = Thread.currentThread().getContextClassLoader().getResource(projectTypeId + ".json");
+        if (url != null) {
+            final List<ProjectTemplateDescriptor> templates;
+            try (InputStream inputStream = url.openStream()) {
+                // re-use DTO for storing description of project templates in file.
+                templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
+            }
+            return  templates;
+        }
+        return Collections.emptyList();
     }
 }

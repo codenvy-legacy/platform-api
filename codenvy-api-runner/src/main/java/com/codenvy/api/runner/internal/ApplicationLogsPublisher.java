@@ -31,7 +31,7 @@ public class ApplicationLogsPublisher extends DelegateApplicationLogger {
 
     private boolean outputEnabled = true;
 
-    int maxLogsRate = 30;
+    int maxLogsRate = 60;
 
     public ApplicationLogsPublisher(ApplicationLogger delegate,
                                     EventService eventService,

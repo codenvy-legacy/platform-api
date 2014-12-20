@@ -60,6 +60,7 @@ import org.apache.commons.fileupload.FileItem;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PreDestroy;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -81,7 +82,13 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -267,9 +274,9 @@ public class ProjectService extends Service {
                 projectManager.getProjectTypeRegistry());
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
+
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
+
         return descriptor;
     }
 
@@ -341,11 +348,10 @@ public class ProjectService extends Service {
         module.updateConfig(DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()));
 
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-        if (generatorDescription != null) {
-            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
-            if (generator != null) {
-                generator.generateProject(module.getBaseFolder(), newProject);
-            }
+        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
+        final ProjectGenerator generator = generators.getGenerator(generatorId, newProject.getType());
+        if (generator != null) {
+            generator.generateProject(module.getBaseFolder(), newProject);
         }
 
 
@@ -353,9 +359,9 @@ public class ProjectService extends Service {
                 projectManager.getProjectTypeRegistry());
 
         eventService.publish(new ProjectCreatedEvent(module.getWorkspace(), module.getPath()));
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", descriptor.getName(),
-                 descriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                 EnvironmentContext.getCurrent().getUser().getName());
+
+        logProjectCreatedEvent(descriptor.getName(), descriptor.getType());
+
         return descriptor;
     }
 
@@ -603,8 +609,8 @@ public class ProjectService extends Service {
             final String name = project.getName();
             final String projectType = project.getConfig().getTypeId();
             entry.remove();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", name, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -639,8 +645,8 @@ public class ProjectService extends Service {
             entry.remove();
             LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", name, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+
+            logProjectCreatedEvent(name, projectType);
         }
         return Response.created(location).build();
     }
@@ -805,7 +811,7 @@ public class ProjectService extends Service {
             public void run() {
                 try {
                     searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
-                } catch (ServerException e) {
+                } catch (Exception e) {
                     LOG.error(e.getMessage());
                 }
             }
@@ -858,19 +864,17 @@ public class ProjectService extends Service {
 
         final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto2(project,
                 getServiceContext().getServiceUriBuilder(), projectManager.getProjectTypeRegistry());
-        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", projectDescriptor.getName(),
-                projectDescriptor.getType(), EnvironmentContext.getCurrent().getWorkspaceName(),
-                EnvironmentContext.getCurrent().getUser().getName());
+       
+
+        logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
+
         if (problem != null) {
             List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
             projectProblems.add(problem);
             projectDescriptor.setProblems(projectProblems);
         }
-
         return projectDescriptor;
-
     }
-
 
     @ApiOperation(value = "Import zip",
                   notes = "Import resources as zip",
@@ -897,8 +901,7 @@ public class ProjectService extends Service {
             Project project = new Project(parent, projectManager);
             eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
             final String projectType = project.getConfig().getTypeId();
-            LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#", path, projectType,
-                     EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
+            logProjectCreatedEvent(path, projectType);
         }
         return Response.created(getServiceContext().getServiceUriBuilder()
                                                    .path(getClass(), "getChildren")
@@ -1289,6 +1292,14 @@ public class ProjectService extends Service {
             throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
+    }
+
+    private void logProjectCreatedEvent(@Nonnull String projectName, @Nonnull String projectType) {
+        LOG.info("EVENT#project-created# PROJECT#{}# TYPE#{}# WS#{}# USER#{}# PAAS#default#",
+                 projectName,
+                 projectType,
+                 EnvironmentContext.getCurrent().getWorkspaceId(),
+                 EnvironmentContext.getCurrent().getUser().getId());
     }
 
     private String projectPath(String path) {

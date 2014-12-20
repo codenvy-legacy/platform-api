@@ -16,6 +16,15 @@ import com.codenvy.dto.shared.DTO;
 @DTO
 public interface ProjectTemplateDescriptor {
 
+    /** Get project type of project template. */
+    String getProjectType();
+
+    /** Set project type of project template. */
+    void setProjectType(String projectType);
+
+    ProjectTemplateDescriptor withProjectType(String projectType);
+
+
     /** Get category of project template. */
     String getCategory();
 

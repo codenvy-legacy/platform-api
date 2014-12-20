@@ -12,38 +12,36 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.project.shared.dto.ProjectImporterDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 
 import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Provide information about registered ProjectImporter's via REST.
+ * Provide information about registered ProjectTemplates via REST.
  *
  * @author Vitaly Parfonov
  */
 @Path("project-template")
 public class ProjectTemplateService extends Service {
 
-    private final ProjectImporterRegistry importersRegistry;
+    private ProjectTemplateRegistry templateRegistry;
 
     @Inject
-    public ProjectTemplateService(ProjectImporterRegistry importersRegistry) {
-        this.importersRegistry = importersRegistry;
+    public ProjectTemplateService(ProjectTemplateRegistry templateRegistry) {
+        this.templateRegistry = templateRegistry;
     }
 
     @GET
+    @Path("{projectType}")
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ProjectImporterDescriptor> getImporters() {
-        final List<ProjectImporter> importers = importersRegistry.getImporters();
-        final List<ProjectImporterDescriptor> descriptors = new ArrayList<>(importers.size());
-        for (ProjectImporter importer : importers) {
-            descriptors.add(DtoConverter.toImporterDescriptor(importer));
-        }
-        return descriptors;
+    public List<ProjectTemplateDescriptor> getImporters(@PathParam("projectType") String projectType) {
+        return templateRegistry.getTemplates(projectType);
     }
 }

@@ -12,8 +12,8 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.core.rest.shared.Links;
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.api.project.server.type.Attribute2;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.BaseProjectType;
@@ -21,7 +21,19 @@ import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
-import com.codenvy.api.project.shared.dto.*;
+import com.codenvy.api.project.shared.dto.AttributeDescriptor;
+import com.codenvy.api.project.shared.dto.BuildersDescriptor;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.ItemReference;
+import com.codenvy.api.project.shared.dto.ProjectDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectImporterDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectProblem;
+import com.codenvy.api.project.shared.dto.ProjectReference;
+import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectTypeDefinition;
+import com.codenvy.api.project.shared.dto.ProjectUpdate;
+import com.codenvy.api.project.shared.dto.RunnerConfiguration;
+import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -30,7 +42,12 @@ import com.codenvy.dto.server.DtoFactory;
 
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.UriBuilder;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Helper methods for convert server essentials to DTO and back.
@@ -344,13 +361,14 @@ public class DtoConverter {
         final String relPath = project.getPath().substring(1);
         final String workspace = project.getWorkspace();
         links.add(
-                Links.createLink("PUT", uriBuilder.clone().path(ProjectService.class, "updateProject").build(workspace, relPath).toString(),
-                                 MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
+                LinksHelper.createLink("PUT",
+                                       uriBuilder.clone().path(ProjectService.class, "updateProject").build(workspace, relPath).toString(),
+                                       MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_UPDATE_PROJECT));
         links.add(
-                Links.createLink("GET",
-                                 uriBuilder.clone().path(ProjectService.class, "getRunnerEnvironments").build(workspace, relPath)
-                                           .toString(),
-                                 MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_GET_RUNNER_ENVIRONMENTS));
+                LinksHelper.createLink("GET",
+                                       uriBuilder.clone().path(ProjectService.class, "getRunnerEnvironments").build(workspace, relPath)
+                                                 .toString(),
+                                       MediaType.APPLICATION_JSON, MediaType.APPLICATION_JSON, Constants.LINK_REL_GET_RUNNER_ENVIRONMENTS));
         return links;
     }
 
@@ -359,16 +377,21 @@ public class DtoConverter {
         final String workspace = folder.getWorkspace();
         final String relPath = folder.getPath().substring(1);
         //String method, String href, String produces, String rel
-        links.add(Links.createLink("GET", uriBuilder.clone().path(ProjectService.class, "exportZip").build(workspace, relPath).toString(),
-                                   "application/zip", Constants.LINK_REL_EXPORT_ZIP));
-        links.add(Links.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getChildren").build(workspace, relPath).toString(),
-                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_CHILDREN));
-        links.add(Links.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getTree").build(workspace, relPath).toString(),
-                                   null, MediaType.APPLICATION_JSON, Constants.LINK_REL_TREE));
-        links.add(Links.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getModules").build(workspace, relPath).toString(),
-                                   MediaType.APPLICATION_JSON, Constants.LINK_REL_MODULES));
-        links.add(Links.createLink("DELETE", uriBuilder.clone().path(ProjectService.class, "delete").build(workspace, relPath).toString(),
-                                   Constants.LINK_REL_DELETE));
+        links.add(LinksHelper.createLink("GET",
+                                         uriBuilder.clone().path(ProjectService.class, "exportZip").build(workspace, relPath).toString(),
+                                         "application/zip", Constants.LINK_REL_EXPORT_ZIP));
+        links.add(LinksHelper.createLink("GET",
+                                         uriBuilder.clone().path(ProjectService.class, "getChildren").build(workspace, relPath).toString(),
+                                         MediaType.APPLICATION_JSON, Constants.LINK_REL_CHILDREN));
+        links.add(
+                LinksHelper.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getTree").build(workspace, relPath).toString(),
+                                       null, MediaType.APPLICATION_JSON, Constants.LINK_REL_TREE));
+        links.add(LinksHelper.createLink("GET",
+                                         uriBuilder.clone().path(ProjectService.class, "getModules").build(workspace, relPath).toString(),
+                                         MediaType.APPLICATION_JSON, Constants.LINK_REL_MODULES));
+        links.add(LinksHelper.createLink("DELETE",
+                                         uriBuilder.clone().path(ProjectService.class, "delete").build(workspace, relPath).toString(),
+                                         Constants.LINK_REL_DELETE));
         return links;
     }
 
@@ -376,12 +399,15 @@ public class DtoConverter {
         final List<Link> links = new LinkedList<>();
         final String workspace = file.getWorkspace();
         final String relPath = file.getPath().substring(1);
-        links.add(Links.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getFile").build(workspace, relPath).toString(),
-                                   null, file.getMediaType(), Constants.LINK_REL_GET_CONTENT));
-        links.add(Links.createLink("PUT", uriBuilder.clone().path(ProjectService.class, "updateFile").build(workspace, relPath).toString(),
-                                   MediaType.WILDCARD, null, Constants.LINK_REL_UPDATE_CONTENT));
-        links.add(Links.createLink("DELETE", uriBuilder.clone().path(ProjectService.class, "delete").build(workspace, relPath).toString(),
-                                   Constants.LINK_REL_DELETE));
+        links.add(
+                LinksHelper.createLink("GET", uriBuilder.clone().path(ProjectService.class, "getFile").build(workspace, relPath).toString(),
+                                       null, file.getMediaType(), Constants.LINK_REL_GET_CONTENT));
+        links.add(LinksHelper.createLink("PUT",
+                                         uriBuilder.clone().path(ProjectService.class, "updateFile").build(workspace, relPath).toString(),
+                                         MediaType.WILDCARD, null, Constants.LINK_REL_UPDATE_CONTENT));
+        links.add(LinksHelper.createLink("DELETE",
+                                         uriBuilder.clone().path(ProjectService.class, "delete").build(workspace, relPath).toString(),
+                                         Constants.LINK_REL_DELETE));
         return links;
     }
 

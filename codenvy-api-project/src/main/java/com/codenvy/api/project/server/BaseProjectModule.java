@@ -24,8 +24,6 @@ public class BaseProjectModule extends AbstractModule {
         Multibinder.newSetBinder(binder(), ProjectImporter.class).addBinding().to(ZipProjectImporter.class);
         Multibinder.newSetBinder(binder(), ValueProviderFactory.class); /* empty binding */
         Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding */
-        bind(ProjectTypeDescriptionsExtension.class);
-        bind(BaseProjectTypeExtension.class);
         bind(ProjectService.class);
         bind(ProjectTypeService.class);
         bind(ProjectImportersService.class);

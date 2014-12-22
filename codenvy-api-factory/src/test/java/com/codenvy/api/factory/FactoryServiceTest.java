@@ -897,6 +897,45 @@ public class FactoryServiceTest {
 
     }
 
+    @Test
+    public void shouldNotFindWhenNoAttributesProvided() throws Exception {
+        // when
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).when().get(
+                        "/private" + SERVICE_PATH + "/find");
+        // then
+        assertEquals(response.getStatusCode(), 500);
+    }
+
+    @Test
+    public void shoutFindByAttribute() throws Exception {
+        // given
+        Factory factory = (Factory)dto.createDto(Factory.class)
+                                      .withV("2.0")
+                                      .withSource(dto.createDto(Source.class)
+                                                     .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                     .withType("git")
+                                                                     .withLocation(
+                                                                             "http://github.com/codenvy/platform-api.git")
+                                                                     .withParameters(ImmutableMap.of("commitId", "12345679"))))
+
+                                      .withId(CORRECT_FACTORY_ID)
+                                      .withCreator(dto.createDto(Author.class).withAccountId("testorg"));
+
+
+        when(factoryStore.findByAttribute(Pair.of("orgid", "testorg"))).thenReturn(
+                Arrays.asList(factory, factory));
+
+        // when
+        Response response = given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).
+                when().get("/private" + SERVICE_PATH + "/find?accountid=testorg");
+
+        // then
+        assertEquals(response.getStatusCode(), 200);
+        List<Link> responseLinks = dto.createListDtoFromJson(response.getBody().asString(), Link.class);
+        assertEquals(responseLinks.size(), 2);
+    }
+
     private class FactorySaveAnswer implements Answer<Object> {
 
         private Factory savedFactory;

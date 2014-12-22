@@ -84,6 +84,26 @@ public class InMemoryFactoryStore implements FactoryStore {
     }
 
     @Override
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws ApiException {
+        final List<Factory> result = new LinkedList<>();
+        lock.readLock().lock();
+        try {
+            for (Factory factory : factories.values()) {
+                for (Pair<String, String> attribute : attributes) {
+                    final String name = attribute.first;
+                    final String value = attribute.second;
+                    if (name == null || value == null) {
+                        continue;
+                    }
+                }
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+        return result;
+    }
+
+    @Override
     public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws ApiException {
         lock.readLock().lock();
         try {

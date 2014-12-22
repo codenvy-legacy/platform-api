@@ -51,6 +51,17 @@ public interface FactoryStore {
     public Factory getFactory(String id) throws ApiException;
 
     /**
+     * Retrieve factory by given attribute name and value.
+     *
+     * @param  attributes
+     *              - attribute pairs to search for
+     *
+     * @return - List {@code AdvancedFactoryUrl} if factory(s) exist and found, empty list otherwise
+     * @throws com.codenvy.api.core.ApiException
+     */
+    public List<Factory> findByAttribute(Pair<String, String>... attributes) throws ApiException;
+
+    /**
      * Retrieve factory images by factory id
      *
      * @param factoryId

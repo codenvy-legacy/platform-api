@@ -288,6 +288,51 @@ public class FactoryService extends Service {
     }
 
     /**
+     * Get list of factory links which conform specified attributes.
+     *
+     * @param uriInfo
+     *         - url context
+     * @return - stored data, if id is correct.
+     * @throws com.codenvy.api.core.ApiException
+     *         - {@link com.codenvy.api.core.NotFoundException} when factory with given id doesn't exist
+     */
+    @RolesAllowed("user")
+    @GET
+    @Path("/find")
+    @Produces({MediaType.APPLICATION_JSON})
+    @SuppressWarnings("unchecked")
+    public List<Link> getFactoryByAttribute(@Context UriInfo uriInfo) throws ApiException {
+        List<Link> result = new ArrayList<>();
+        URI uri = UriBuilder.fromUri(uriInfo.getRequestUri()).replaceQueryParam("token", null).build();
+        Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
+        if (queryParams.isEmpty()) {
+            throw new IllegalArgumentException("Query must contain at least one attribute.");
+        }
+        if (queryParams.containsKey("accountid")) {
+            queryParams.put("orgid", queryParams.remove("accountid"));
+        }
+        ArrayList<Pair> pairs = new ArrayList<>();
+        for (Map.Entry<String, Set<String>> entry : queryParams.entrySet()) {
+            if (!entry.getValue().isEmpty())
+                pairs.add(Pair.of(entry.getKey(), entry.getValue().iterator().next()));
+        }
+        List<Factory> factories = factoryStore.findByAttribute(pairs.toArray(new Pair[pairs.size()]));
+        for (Factory factory : factories) {
+            result.add(DtoFactory.getInstance().createDto(Link.class)
+                                 .withMethod("GET")
+                                 .withRel("self")
+                                 .withProduces(MediaType.APPLICATION_JSON)
+                                 .withConsumes(null)
+                                 .withHref(UriBuilder.fromUri(uriInfo.getBaseUri())
+                                                     .path(FactoryService.class)
+                                                     .path(FactoryService.class, "getFactory").build(factory.getId())
+                                                     .toString())
+                                 .withParameters(null));
+        }
+        return result;
+    }
+
+    /**
      * Get image information by its id.
      *
      * @param factoryId

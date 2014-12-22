@@ -58,8 +58,8 @@ public interface Policies {
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "requireAuthentication")
     Boolean getRequireAuthentication();
-    @Deprecated
+
     void setRequireAuthentication(Boolean requireAuthentication);
-    @Deprecated
+
     Policies withRequireAuthentication(Boolean requireAuthentication);
 }

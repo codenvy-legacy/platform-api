@@ -177,11 +177,6 @@ public class FactoryService extends Service {
                 throw new ConflictException("No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            if (factory.getV().equals("1.0")) {
-                throw new ConflictException("Storing of Factory 1.0 is unsupported.");
-            }
-
-
             if (null == factory.getCreator()) {
                 factory.setCreator(DtoFactory.getInstance().createDto(Author.class));
             }

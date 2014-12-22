@@ -37,4 +37,21 @@ public interface FactoryV2_1 extends FactoryV2_0 {
 
     FactoryV2_1 withIde(Ide ide);
 
+    // For method call chain
+
+    FactoryV2_1 withV(String v);
+
+    FactoryV2_1 withSource(Source source);
+
+    FactoryV2_1 withWorkspace(Workspace workspace);
+
+    FactoryV2_1 withPolicies(Policies policies);
+
+    FactoryV2_1 withProject(NewProject project);
+
+    FactoryV2_1 withCreator(Author creator);
+
+    FactoryV2_1 withButton(Button button);
+
+    FactoryV2_1 withId(String id);
 }

@@ -22,7 +22,7 @@ public interface SubscriptionQueryBuilder {
         List<Subscription> execute() throws ServerException;
     }
 
-    SubscriptionQuery getTrialExistQuery(String service, String accountId);
+    SubscriptionQuery getTrialQuery(String service, String accountId);
 
     SubscriptionQuery getChargeQuery(String service);
 

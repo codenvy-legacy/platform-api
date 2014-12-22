@@ -708,7 +708,7 @@ public class AccountServiceTest {
         prepareSuccessfulSubscriptionAddition();
 
         when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
-        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
         when(subscriptionQuery.execute()).thenReturn(Collections.singletonList(createSubscription()));
 
         ContainerResponse response =
@@ -727,7 +727,7 @@ public class AccountServiceTest {
         prepareSuccessfulSubscriptionAddition();
 
         when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
-        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
         when(subscriptionQuery.execute()).thenThrow(new ServerException(""));
 
         ContainerResponse response =
@@ -737,7 +737,7 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "Can't add subscription. Please, contact support");
 
         verify(accountDao).getSubscriptionQueryBuilder();
-        verify(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString()));
+        verify(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString()));
         verify(subscriptionQuery.execute());
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
@@ -1230,7 +1230,7 @@ public class AccountServiceTest {
             }
         }));
         verify(accountDao).getSubscriptionQueryBuilder();
-        verify(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString()));
+        verify(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString()));
         verify(subscriptionQuery.execute());
     }
 
@@ -1320,7 +1320,7 @@ public class AccountServiceTest {
     public void shouldRespondForbiddenIfUserHasGotTrialOfTheSameServiceBeforeOnVerifySubsAddition() throws Exception {
         prepareSuccessfulSubscriptionAddition();
         when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
-        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
         when(subscriptionQuery.execute()).thenReturn(Collections.singletonList(createSubscription()));
 
         final NewSubscriptionTemplate subscriptionTemplate = DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
@@ -1339,7 +1339,7 @@ public class AccountServiceTest {
     public void shouldRespondServerErrorIfServerExceptionIsThrownOnCheckTrialHistoryOnVerifySubsAddition() throws Exception {
         prepareSuccessfulSubscriptionAddition();
         when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
-        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
         when(subscriptionQuery.execute()).thenThrow(new ServerException(""));
 
         final NewSubscriptionTemplate subscriptionTemplate = DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
@@ -1772,7 +1772,7 @@ public class AccountServiceTest {
                                                                                    .withAccountId(ACCOUNT_ID)
                                                                                    .withUserId(USER_ID)));
         when(accountDao.getSubscriptionQueryBuilder()).thenReturn(subscriptionQueryBuilder);
-        when(subscriptionQueryBuilder.getTrialExistQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
+        when(subscriptionQueryBuilder.getTrialQuery(anyString(), anyString())).thenReturn(subscriptionQuery);
         when(subscriptionQuery.execute()).thenReturn(Collections.<Subscription>emptyList());
         prepareSecurityContext("user");
     }

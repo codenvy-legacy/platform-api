@@ -725,7 +725,7 @@ public class AccountService extends Service {
             securityContext.isUserInRole("user")) {
             try {
                 List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
-                                                             .getTrialExistQuery(subscription.getServiceId(), subscription.getAccountId())
+                                                             .getTrialQuery(subscription.getServiceId(), subscription.getAccountId())
                                                              .execute();
 
                 if (!subscriptions.isEmpty()) {
@@ -884,7 +884,7 @@ public class AccountService extends Service {
         if (subscription.getTrialStartDate() != null && !isUserAdmin) {
             try {
                 List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
-                                                             .getTrialExistQuery(subscription.getServiceId(), subscription.getAccountId())
+                                                             .getTrialQuery(subscription.getServiceId(), subscription.getAccountId())
                                                              .execute();
 
                 if (!subscriptions.isEmpty()) {

@@ -137,17 +137,19 @@ public class ProjectServiceTest {
         projTypes.add(chuck);
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
 
+        generatorRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
 
-        pm = new DefaultProjectManager(/*Collections.<ValueProviderFactory>emptySet(),*/ vfsRegistry, eventService,
-                ptRegistry);
+
+        pm = new DefaultProjectManager(vfsRegistry, eventService,
+                ptRegistry, generatorRegistry);
 
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
-                new HashMap<String, AttributeValue>(), null, null, null));
+                new HashMap<String, AttributeValue>(), null, null, null), null);
 
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
-        generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
+        //generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
 
         HashSet<ProjectTypeResolver> resolvers = new HashSet<>();
         resolvers.add(new ProjectTypeResolver() {
@@ -406,7 +408,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
                     throws ConflictException, ForbiddenException, ServerException {
 
 
@@ -515,7 +517,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, NewProject newProjectDescriptor)
+            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
                     throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");
@@ -655,7 +657,7 @@ public class ProjectServiceTest {
 
         };
         pm.getProjectTypeRegistry().registerProjectType(pt);
-        pm.createProject(workspace, "testUpdateProject", new ProjectConfig("created project", "testUpdateProject"));
+        pm.createProject(workspace, "testUpdateProject", new ProjectConfig("created project", "testUpdateProject"), null);
 
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));

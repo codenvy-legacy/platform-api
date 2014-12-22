@@ -16,7 +16,6 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
-import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 import com.codenvy.commons.lang.Pair;
@@ -166,13 +165,15 @@ public final class DefaultProjectManager implements ProjectManager {
 
 
         if (generatorName != null) {
+
             final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
             if (generator != null) {
-                generator.generateProject(project.getBaseFolder());
+                generator.generateProject(project.getBaseFolder(),
+                        projectConfig.getAttributes());
             }
         }
 
-
+        project.updateConfig(projectConfig);
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }

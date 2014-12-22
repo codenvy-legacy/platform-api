@@ -94,7 +94,9 @@ public class ProjectTest {
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
 
-        pm = new DefaultProjectManager(/*vpf,*/ vfsRegistry, eventService, ptRegistry);
+        ProjectGeneratorRegistry pgRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
+
+        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, pgRegistry);
 
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();

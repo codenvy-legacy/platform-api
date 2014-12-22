@@ -13,7 +13,10 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.shared.dto.NewProject;
+
+import java.util.Map;
 
 /**
  * Generates project structure.
@@ -43,6 +46,6 @@ public interface ProjectGenerator {
      * @throws ServerException
      *         if project generation causes some errors that should be treated as internal errors
      */
-    void generateProject(FolderEntry baseFolder)
+    void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
             throws ForbiddenException, ConflictException, ServerException;
 }

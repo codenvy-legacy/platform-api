@@ -64,11 +64,13 @@ public class ProjectEventTest {
 
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
-        pm = new DefaultProjectManager(/*Collections.<ValueProviderFactory>emptySet(),*/ vfsRegistry, eventService, ptRegistry);
+        ProjectGeneratorRegistry pgRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
+
+        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, pgRegistry);
 
         ProjectConfig config = new ProjectConfig("descr", "my_project_type");
 
-        pm.createProject("my_ws", "my_project", config, );
+        Project p = pm.createProject("my_ws", "my_project", config, null);
 
         projectEventService = new ProjectEventService(eventService);
     }
@@ -107,6 +109,7 @@ public class ProjectEventTest {
                 events.add(event);
             }
         }));
+
         pm.getProject("my_ws", "my_project").getBaseFolder().createFile("test.txt", "test".getBytes(), "text/plain");
         Assert.assertEquals(events.size(), 1);
         Assert.assertEquals(events.get(0).getType(), ProjectEvent.EventType.CREATED);

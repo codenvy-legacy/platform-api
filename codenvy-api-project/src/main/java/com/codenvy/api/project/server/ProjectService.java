@@ -338,7 +338,8 @@ public class ProjectService extends Service {
                                           @ApiParam(value = "New module name", required = true)
                                           @QueryParam("name") String name,
                                           NewProject newProject)
-            throws NotFoundException, ConflictException, ForbiddenException, ServerException {
+            throws NotFoundException, ConflictException, ForbiddenException, ServerException, ValueStorageException,
+    ProjectTypeConstraintException, InvalidValueException {
 
 
         final FolderEntry folder = asFolder(workspace, parentPath);
@@ -351,7 +352,7 @@ public class ProjectService extends Service {
         final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
         final ProjectGenerator generator = generators.getGenerator(generatorId, newProject.getType());
         if (generator != null) {
-            generator.generateProject(module.getBaseFolder(), newProject);
+            generator.generateProject(module.getBaseFolder(), module.getConfig().getAttributes());
         }
 
 

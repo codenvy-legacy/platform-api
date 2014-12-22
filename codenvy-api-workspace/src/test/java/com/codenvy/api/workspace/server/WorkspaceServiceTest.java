@@ -737,7 +737,7 @@ public class WorkspaceServiceTest {
         Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
                                                           .withServiceId("Saas")
                                                           .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
+        when(accountDao.getActiveSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
 
         doDelete(SERVICE_PATH + "/" + extraWorkspace.getId(), NO_CONTENT);
 
@@ -753,7 +753,7 @@ public class WorkspaceServiceTest {
         Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
                                                           .withServiceId("Saas")
                                                           .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
+        when(accountDao.getActiveSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
 
         doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), NO_CONTENT);
 
@@ -769,7 +769,7 @@ public class WorkspaceServiceTest {
         Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
                                                           .withServiceId("Saas")
                                                           .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions("test_account_id", "Saas")).thenReturn(Arrays.asList(saasSubscription));
+        when(accountDao.getActiveSubscriptions("test_account_id", "Saas")).thenReturn(Arrays.asList(saasSubscription));
 
         final String errorJson = doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), CONFLICT);
 

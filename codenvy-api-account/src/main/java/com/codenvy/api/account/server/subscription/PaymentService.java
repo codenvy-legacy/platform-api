@@ -8,16 +8,26 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.server;
+package com.codenvy.api.account.server.subscription;
 
-import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
+import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 
 /**
- * Validates attributes of the subscription.
+ * Process payments.
  *
  * @author Alexander Garagatyi
  */
-public interface SubscriptionAttributesValidator {
-    void validate(NewSubscriptionAttributes subscriptionAttributes) throws ConflictException;
+public interface PaymentService {
+    /**
+     * Charge subscription.
+     *
+     * @param subscription
+     *         subscription for which the user pays
+     * @throws ServerException
+     *         if internal server error occurs
+     */
+    void charge(Subscription subscription) throws ConflictException, ServerException, ForbiddenException;
 }

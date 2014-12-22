@@ -92,7 +92,7 @@ public class FactoryUrlBaseValidatorTest {
                 .withServiceId("Factory")
                 .withProperties(Collections.singletonMap("Package", "Tracked"));
         member = new Member().withUserId("userid").withRoles(Arrays.asList("account/owner"));
-        when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(member));
         when(userDao.getById("userid")).thenReturn(user);
         when(profileDao.getById(anyString())).thenReturn(new Profile());
@@ -260,7 +260,7 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldNotValidateIfAccountDoesntHaveFactorySubscriptions()
             throws ApiException, ParseException {
         // given
-        when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Collections.<Subscription>emptyList());
+        when(accountDao.getActiveSubscriptions(ID, "Factory")).thenReturn(Collections.<Subscription>emptyList());
         // when, then
         validator.validateTrackedFactoryAndParams(factory);
     }
@@ -272,7 +272,7 @@ public class FactoryUrlBaseValidatorTest {
         Subscription subscription = new Subscription()
                 .withServiceId("Factory")
                 .withProperties(Collections.singletonMap("Package", "Another"));
-        when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
         // when, then
         validator.validateTrackedFactoryAndParams(factory);
     }

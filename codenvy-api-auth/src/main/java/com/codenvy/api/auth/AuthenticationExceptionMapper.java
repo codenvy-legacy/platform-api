@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.auth;
 
+import com.codenvy.dto.server.DtoFactory;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +38,8 @@ public class AuthenticationExceptionMapper implements ExceptionMapper<Authentica
         int responseStatus = exception.getResponseStatus();
         String message = exception.getMessage();
         if (message != null) {
-            return Response.status(responseStatus).entity(message).type(MediaType.TEXT_PLAIN).build();
+            return Response.status(responseStatus).entity(DtoFactory.getInstance().toJson(exception.getServiceError()))
+                           .type(MediaType.APPLICATION_JSON).build();
         }
         return Response.status(responseStatus).build();
     }

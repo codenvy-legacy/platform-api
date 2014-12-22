@@ -27,6 +27,7 @@ public class BaseProjectModule extends AbstractModule {
         bind(ProjectService.class);
         bind(ProjectTypeService.class);
         bind(ProjectImportersService.class);
-        bind(ProjectEventService.class).asEagerSingleton();
+        bind(ProjectTemplateDescriptionLoader.class);
+        bind(ProjectTemplateRegistry.class);
     }
 }

@@ -438,7 +438,7 @@ public class DtoConverter {
 //            final ProjectType projectType = projectDescription.getProjectType();
 //            dto.withType(projectType.getId()).withTypeName(projectType.getName());
         } catch (ServerException | ValueStorageException | ProjectTypeConstraintException e) {
-            dto.withType(ProjectType.BLANK.getId()).withTypeName(ProjectType.BLANK.getName());
+            dto.withType("blank").withTypeName("blank");
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
         }
 

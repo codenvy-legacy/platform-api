@@ -12,7 +12,11 @@ package com.codenvy.api.project.server.type;
 
 import com.codenvy.api.project.server.ValueProviderFactory;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 
 /**
  * @author gazarenkov
@@ -20,14 +24,14 @@ import java.util.*;
 public abstract class ProjectType2 {
 
 
-    private final String id;
-    private final String displayName;
-    private final Map<String, Attribute2> attributes;
-    private final List<ProjectType2> parents;
-    protected final List<String> runnerCategories;
-    protected final List<String> builderCategories;
+    private final   String                  id;
+    private final   String                  displayName;
+    private final   Map<String, Attribute2> attributes;
+    private final   List<ProjectType2>      parents;
+    protected final List<String>            runnerCategories;
+    protected final List<String>            builderCategories;
     private String defaultBuilder = null;
-    private String defaultRunner = null;
+    private String defaultRunner  = null;
 
     protected ProjectType2(String id, String displayName) {
         this.id = id;
@@ -58,7 +62,7 @@ public abstract class ProjectType2 {
     }
 
     public boolean isTypeOf(String typeId) {
-        if(this.id.equals(typeId))
+        if (this.id.equals(typeId))
             return true;
         for(ProjectType2 type : getParents()) {
             if (type.getId().equals(typeId))

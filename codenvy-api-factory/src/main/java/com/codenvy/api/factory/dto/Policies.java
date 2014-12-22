@@ -52,4 +52,14 @@ public interface Policies {
     void setValidUntil(Long validUntil);
 
     Policies withValidUntil(Long validUntil);
+
+    /**
+     * Restrict access for factories only to authenticated users
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "requireAuthentication")
+    Boolean getRequireAuthentication();
+    @Deprecated
+    void setRequireAuthentication(Boolean requireAuthentication);
+    @Deprecated
+    Policies withRequireAuthentication(Boolean requireAuthentication);
 }

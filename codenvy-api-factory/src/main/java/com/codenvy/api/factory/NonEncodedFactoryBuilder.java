@@ -186,6 +186,7 @@ public abstract class NonEncodedFactoryBuilder {
             appendIfNotNull(builder, "&policies.validSince=", policies.getValidSince(), false);
             appendIfNotNull(builder, "&policies.validUntil=", policies.getValidUntil(), false);
             appendIfNotNull(builder, "&policies.refererHostname=", policies.getRefererHostname(), true);
+            appendIfNotNull(builder, "&policies.requireAuthentication=", policies.getRequireAuthentication(), true);
         }
 
         final Actions actions = factory.getActions();

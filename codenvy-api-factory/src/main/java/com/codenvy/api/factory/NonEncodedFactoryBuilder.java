@@ -20,7 +20,6 @@ import com.codenvy.api.factory.dto.Ide;
 import com.codenvy.api.factory.dto.OnAppClosed;
 import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
-import com.codenvy.api.factory.dto.Part;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
@@ -69,8 +68,6 @@ public abstract class NonEncodedFactoryBuilder {
         }
         return result.toString();
     }
-
-
 
 
     private void buildNonEncoded(FactoryV2_0 factory, StringBuilder builder) {

@@ -20,7 +20,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.factory.dto.Author;
 import com.codenvy.api.factory.dto.Factory;
 import com.codenvy.api.factory.dto.FactoryV2_0;
-import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.api.project.server.Builders;
 import com.codenvy.api.project.server.Project;
 import com.codenvy.api.project.server.ProjectDescription;
@@ -29,10 +28,10 @@ import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.server.Runners;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
-import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
 import com.wordnik.swagger.annotations.Api;
@@ -65,18 +64,15 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.List;
-import java.util.Map;
 import java.util.Set;
 
 import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
 /** Service for factory rest api features */
 @Api(value = "/factory",
-        description = "Factory manager")
+     description = "Factory manager")
 @Path("/factory")
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
@@ -126,9 +122,9 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
     @ApiOperation(value = "Create a Factory and return data",
-            notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
-            response = Factory.class,
-            position = 1)
+                  notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
+                  response = Factory.class,
+                  position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
@@ -250,9 +246,9 @@ public class FactoryService extends Service {
      */
 
     @ApiOperation(value = "Get Factory information by its ID",
-            notes = "Get JSON with Factory information. Factory ID is passed in a path parameter",
-            response = Factory.class,
-            position = 2)
+                  notes = "Get JSON with Factory information. Factory ID is passed in a path parameter",
+                  response = Factory.class,
+                  position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Factory not found"),
@@ -264,10 +260,10 @@ public class FactoryService extends Service {
     public Factory getFactory(@ApiParam(value = "Factory ID", required = true)
                               @PathParam("id") String id,
                               @ApiParam(value = "Legacy. Whether or not to transform Factory into the most recent format",
-                                      allowableValues = "true,false", defaultValue = "false")
+                                        allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                               @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
-                                      allowableValues = "true,false", defaultValue = "false")
+                                        allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
@@ -307,8 +303,8 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.NotFoundException} when image with given image id doesn't exist
      */
     @ApiOperation(value = "Get Factory image information",
-            notes = "Get Factory image information by Factory and image ID",
-            position = 3)
+                  notes = "Get Factory image information by Factory and image ID",
+                  position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Factory or Image ID Not Found"),
@@ -362,8 +358,8 @@ public class FactoryService extends Service {
      *         is unsupported
      */
     @ApiOperation(value = "Get Factory snippet by ID",
-            notes = "Get Factory snippet by ID",
-            position = 4)
+                  notes = "Get Factory snippet by ID",
+                  position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Factory not Found"),
@@ -375,7 +371,7 @@ public class FactoryService extends Service {
     public String getFactorySnippet(@ApiParam(value = "Factory ID", required = true)
                                     @PathParam("id") String id,
                                     @ApiParam(value = "Snippet type", required = true, allowableValues = "url,html,iframe,markdown",
-                                            defaultValue = "url")
+                                              defaultValue = "url")
                                     @DefaultValue("url") @QueryParam("type") String type,
                                     @Context UriInfo uriInfo)
             throws ApiException {
@@ -433,7 +429,7 @@ public class FactoryService extends Service {
         NewProject newProject;
         try {
             final ProjectDescription projectDescription = project.getDescription();
-            if ("git" .equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
+            if ("git".equals(projectDescription.getAttributeValue("vcs.provider.name"))) {
                 final Link importSourceLink = dtoFactory.createDto(Link.class)
                                                         .withMethod("GET")
                                                         .withHref(UriBuilder.fromUri(baseApiUrl)

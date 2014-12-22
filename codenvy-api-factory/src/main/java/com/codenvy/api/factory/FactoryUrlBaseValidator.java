@@ -126,25 +126,24 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateOrgid(Factory factory) throws ApiException {
-        // validate accountid
-        String orgid;
-        String userid;
+        String accountId;
+        String userId;
         // TODO do we need check if user is temporary?
 
-        orgid = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
-        userid = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
+        accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+        userId = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
-        if (null != orgid) {
-            if (null != userid) {
+        if (null != accountId) {
+            if (null != userId) {
                 try {
-                    User user = userDao.getById(userid);
-                    Profile profile = profileDao.getById(userid);
+                    User user = userDao.getById(userId);
+                    Profile profile = profileDao.getById(userId);
                     if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary")))
                         throw new ConflictException("Current user is not allowed for using this method.");
                     boolean isOwner = false;
-                    List<Member> members = accountDao.getMembers(orgid);
+                    List<Member> members = accountDao.getMembers(accountId);
                     if (members.isEmpty()) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
                     }
                     for (Member accountMember : members) {
                         if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
@@ -169,11 +168,11 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         // validate tracked parameters
-        String orgid = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+        String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
 
-        if (orgid != null) {
+        if (accountId != null) {
             try {
-                List<Subscription> subscriptions = accountDao.getSubscriptions(orgid, "Factory");
+                List<Subscription> subscriptions = accountDao.getSubscriptions(accountId, "Factory");
                 boolean isTracked = false;
                 for (Subscription one : subscriptions) {
                     if ("Tracked".equalsIgnoreCase(one.getProperties().get("Package"))) {
@@ -182,10 +181,10 @@ public abstract class FactoryUrlBaseValidator {
                     }
                 }
                 if (!isTracked) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
                 }
             } catch (NotFoundException | ServerException | NumberFormatException e) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
             }
         }
 
@@ -195,31 +194,31 @@ public abstract class FactoryUrlBaseValidator {
             Long validUntil = policies.getValidUntil();
 
             if (validSince != null && validSince > 0) {
-                if (null == orgid) {
+                if (null == accountId) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
                 }
             }
 
             if (validUntil != null && validUntil > 0) {
-                if (null == orgid) {
+                if (null == accountId) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
                 }
             }
         }
 
         if (policies != null && policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
-            if (null == orgid) {
+            if (null == accountId) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
             }
         }
 
-        if (factory.getV().equals("2.0")) {
+        if ("2.0".equals(factory.getV())) {
             WelcomePage welcomePage = null;
             if (factory.getActions() != null) {
                 welcomePage = factory.getActions().getWelcome();
             }
             if (null != welcomePage) {
-                if (null == orgid) {
+                if (null == accountId) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
                 }
             }
@@ -228,7 +227,7 @@ public abstract class FactoryUrlBaseValidator {
                 if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
                     List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
                     for (Action onLoadedAction : onLoadedActions) {
-                        if ("openWelcomePage".equals(onLoadedAction.getId()) && null == orgid) {
+                        if ("openWelcomePage".equals(onLoadedAction.getId()) && null == accountId) {
                             throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
                                                                "ide.onAppLoaded.actions.[%index%].id=openWelcomePage"));
                         }
@@ -286,7 +285,7 @@ public abstract class FactoryUrlBaseValidator {
 
 
     protected void validateProjectActions(Factory factory) throws ConflictException {
-        if (factory.getV() == null || !factory.getV().equals("2.1") || factory.getIde() == null) {
+        if (!"2.1".equals(factory.getV()) || factory.getIde() == null) {
             return;
         }
 
@@ -300,7 +299,7 @@ public abstract class FactoryUrlBaseValidator {
 
         for (Action applicationAction : applicationActions) {
             String id = applicationAction.getId();
-            if (id.equals("openFile") || id.equals("findReplace")) {
+            if ("openFile".equals(id) || "findReplace".equals(id)) {
                 throw new ConflictException(String.format(FactoryConstants.INVALID_ACTION_SECTION, id));
             }
         }

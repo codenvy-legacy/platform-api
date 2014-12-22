@@ -10,21 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
-import static com.codenvy.api.core.factory.FactoryParameter.Obligation;
-import static com.codenvy.api.core.factory.FactoryParameter.Version;
-import static com.codenvy.api.factory.FactoryConstants.INVALID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.INVALID_VERSION_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.MISSING_MANDATORY_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
-import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
-import static java.lang.String.format;
-
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
@@ -64,6 +49,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
+import static com.codenvy.api.core.factory.FactoryParameter.Obligation;
+import static com.codenvy.api.core.factory.FactoryParameter.Version;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_VERSION_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.MISSING_MANDATORY_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
+import static java.lang.String.format;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -186,24 +186,24 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
-        String orgid = null;
+        String accountId;
 
         Class usedFactoryVersionMethodProvider;
         switch (v) {
             case V2_0:
                 usedFactoryVersionMethodProvider = FactoryV2_0.class;
-                orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
+                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             case V2_1:
                 usedFactoryVersionMethodProvider = FactoryV2_1.class;
-                orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
+                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             default:
                 throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
-        orgid = Strings.emptyToNull(orgid);
+        accountId = Strings.emptyToNull(accountId);
 
-        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, orgid, "");
+        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, accountId, "");
     }
 
     /**
@@ -239,8 +239,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - version of factory
      * @param sourceFormat
      *         - factory format
-     * @param orgid
-     *         - orgid of a factory
+     * @param accountId
+     *         - account id of a factory
      * @param parentName
      *         - parent parameter queryParameterName
      * @throws com.codenvy.api.core.ApiException
@@ -250,7 +250,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                Class allowedMethodsProvider,
                                Version version,
                                FactoryFormat sourceFormat,
-                               String orgid,
+                               String accountId,
                                String parentName) throws ApiException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
@@ -295,7 +295,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     }
 
                     // check tracked-only fields
-                    if (null == orgid && factoryParameter.trackedOnly() && !onPremises) {
+                    if (null == accountId && factoryParameter.trackedOnly() && !onPremises) {
                         throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 
@@ -303,7 +303,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     if (method.getReturnType().isAnnotationPresent(DTO.class)) {
                         // validate inner objects such Git ot ProjectAttributes
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
-                                              orgid, fullName);
+                                              accountId, fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
                         Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 
@@ -324,7 +324,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                 Map<Object, Object> map = (Map)parameterValue;
                                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
                                     validateCompatibility(entry.getValue(), secMapParamClass, secMapParamClass, version, sourceFormat,
-                                                          orgid, fullName + "." + (String)entry.getKey());
+                                                          accountId, fullName + "." + (String)entry.getKey());
                                 }
                             } else {
                                 throw new RuntimeException("This type of fields is not supported by factory.");

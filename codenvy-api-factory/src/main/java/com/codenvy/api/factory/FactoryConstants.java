@@ -72,8 +72,11 @@ public class FactoryConstants {
 
     public static final String INVALID_OPENFILE_ACTION = "The openFile action requires 'file' property to be set.";
 
-    public static final String INVALID_FIND_REPLACE_ACTION = "The findReplace action requires 'in', "+
+    public static final String INVALID_FIND_REPLACE_ACTION = "The findReplace action requires 'in', " +
                                                              "'find' and 'replace' properties to be set.";
+
+    public static final String INVALID_WELCOME_PAGE_ACTION = "The openWelcomePage action requires 'nonAuthenticatedContentUrl', " +
+                                                             "'authenticatedContentUrl' properties to be set.";
 
     public static final String ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE =
             "This Factory is not yet valid due to time restrictions applied by its owner. Please, " +
@@ -86,4 +89,6 @@ public class FactoryConstants {
     public static final String PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE =
             "The parameter %s has a value submitted %s with a value that is unexpected. For more information, " +
             "please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference";
+
+    private FactoryConstants() {}
 }

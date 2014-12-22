@@ -27,7 +27,6 @@ import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.commons.lang.Strings;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -39,8 +38,11 @@ import java.util.regex.Pattern;
 
 import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
+import static com.codenvy.commons.lang.Strings.emptyToNull;
+import static com.codenvy.commons.lang.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 
 /**
@@ -129,7 +131,7 @@ public abstract class FactoryUrlBaseValidator {
         String userid;
         // TODO do we need check if user is temporary?
 
-        orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
+        orgid = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
         userid = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
         if (null != orgid) {
@@ -167,7 +169,7 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         // validate tracked parameters
-        String orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
+        String orgid = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
 
         if (orgid != null) {
             try {
@@ -303,6 +305,21 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
+        final OnAppLoaded onAppLoaded = factory.getIde().getOnAppLoaded();
+        if (onAppLoaded != null) {
+            final List<Action> actions = onAppLoaded.getActions();
+            if (actions != null) {
+                for (Action action : actions) {
+                    final Map<String, String> properties = action.getProperties();
+                    if ("openWelcomePage".equals(action.getId()) && (isNullOrEmpty(properties.get("nonAuthenticatedContentUrl")) ||
+                                                                     isNullOrEmpty(properties.get("authenticatedContentUrl")))) {
+
+                        throw new ConflictException(INVALID_WELCOME_PAGE_ACTION);
+                    }
+                }
+            }
+        }
+
         OnProjectOpened onOpened = factory.getIde().getOnProjectOpened();
         if (onOpened != null) {
             List<Action> onProjectOpenedActions = onOpened.getActions();
@@ -312,18 +329,19 @@ public abstract class FactoryUrlBaseValidator {
 
                 switch (id) {
                     case "openFile":
-                        if (Strings.isNullOrEmpty(properties.get("file"))) {
+                        if (isNullOrEmpty(properties.get("file"))) {
                             throw new ConflictException(INVALID_OPENFILE_ACTION);
                         }
                         break;
 
                     case "findReplace":
-                        if (Strings.isNullOrEmpty(properties.get("in")) ||
-                            Strings.isNullOrEmpty(properties.get("find")) ||
-                            Strings.isNullOrEmpty(properties.get("replace"))) {
+                        if (isNullOrEmpty(properties.get("in")) ||
+                            isNullOrEmpty(properties.get("find")) ||
+                            isNullOrEmpty(properties.get("replace"))) {
 
                             throw new ConflictException(INVALID_FIND_REPLACE_ACTION);
                         }
+                        break;
                 }
             }
         }

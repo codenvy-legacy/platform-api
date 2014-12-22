@@ -541,8 +541,18 @@ public class FactoryUrlBaseValidatorTest {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
-        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
-                dto.createDto(OnProjectOpened.class).withActions(actions));
+        Ide ide = dto.createDto(Ide.class).withOnProjectOpened(dto.createDto(OnProjectOpened.class).withActions(actions));
+        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        //when
+        validator.validateProjectActions(factoryWithAccountId);
+    }
+
+    @Test(expectedExceptions = ConflictException.class)
+    public void shouldNotValidateIfOpenWelcomePageActionInsufficientParams() throws Exception {
+        //given
+        validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
+        List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openWelcomePage"));
+        Ide ide = dto.createDto(Ide.class).withOnAppLoaded((dto.createDto(OnAppLoaded.class).withActions(actions)));
         Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);

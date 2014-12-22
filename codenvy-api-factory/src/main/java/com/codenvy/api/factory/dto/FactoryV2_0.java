@@ -11,14 +11,14 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.dto.shared.DTO;
-import com.codenvy.api.project.shared.dto.NewProject;
 
-import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.BOTH;
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Version.V2_1;
 
 /**
  * Factory of version 2.0
@@ -93,7 +93,7 @@ public interface FactoryV2_0 {
      * Describes actions that should be done after loading of the IDE
      */
     @Deprecated
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions", deprecatedSince = V2_1)
     Actions getActions();
 
     @Deprecated

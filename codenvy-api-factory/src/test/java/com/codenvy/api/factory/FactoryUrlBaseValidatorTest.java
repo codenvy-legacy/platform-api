@@ -351,61 +351,29 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class)
-    public void shouldNotValidateEncodedFactoryWithWelcomePageInOnProjectOpenedIfOrgIdIsEmpty() throws ApiException {
-        // given
-        factory.withIde(dto.createDto(Ide.class)
-                           .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                                   .withActions(singletonList(dto.createDto(Action.class)
-                                                                                 .withId("welcomePanel")
-                                                                                 .withProperties(ImmutableMap
-                                                                                                         .<String,
-                                                                                                                 String>builder()
-                                                                                                         .put("authenticatedTitle",
-                                                                                                              "title")
-                                                                                                         .put("authenticatedIconUrl",
-                                                                                                              "url")
-                                                                                                         .put("authenticatedContentUrl",
-                                                                                                              "url")
-                                                                                                         .put("nonAuthenticatedTitle",
-                                                                                                              "title")
-                                                                                                         .put("nonAuthenticatedIconUrl",
-                                                                                                              "url")
-                                                                                                         .put("nonAuthenticatedContentUrl",
-                                                                                                              "url")
-                                                                                                         .build()))
-                                                               )));
-        factory.withCreator(dto.createDto(Author.class)
-                               .withAccountId("")
-                               .withUserId("userid"));
-
-        // when, then
-        validator.validateTrackedFactoryAndParams(factory);
-    }
-
-    @Test(expectedExceptions = ApiException.class)
     public void shouldNotValidateEncodedFactoryWithWelcomePageInOnAppLoadedIfOrgIdIsEmpty() throws ApiException {
         // given
         factory.withIde(dto.createDto(Ide.class)
                            .withOnAppLoaded(dto.createDto(OnAppLoaded.class)
-                                                   .withActions(singletonList(dto.createDto(Action.class)
-                                                                                 .withId("welcomePanel")
-                                                                                 .withProperties(ImmutableMap
-                                                                                                         .<String,
-                                                                                                                 String>builder()
-                                                                                                         .put("authenticatedTitle",
-                                                                                                              "title")
-                                                                                                         .put("authenticatedIconUrl",
-                                                                                                              "url")
-                                                                                                         .put("authenticatedContentUrl",
-                                                                                                              "url")
-                                                                                                         .put("nonAuthenticatedTitle",
-                                                                                                              "title")
-                                                                                                         .put("nonAuthenticatedIconUrl",
-                                                                                                              "url")
-                                                                                                         .put("nonAuthenticatedContentUrl",
-                                                                                                              "url")
-                                                                                                         .build()))
-                                                               )));
+                                               .withActions(singletonList(dto.createDto(Action.class)
+                                                                             .withId("openWelcomePage")
+                                                                             .withProperties(ImmutableMap
+                                                                                                     .<String,
+                                                                                                             String>builder()
+                                                                                                     .put("authenticatedTitle",
+                                                                                                          "title")
+                                                                                                     .put("authenticatedIconUrl",
+                                                                                                          "url")
+                                                                                                     .put("authenticatedContentUrl",
+                                                                                                          "url")
+                                                                                                     .put("nonAuthenticatedTitle",
+                                                                                                          "title")
+                                                                                                     .put("nonAuthenticatedIconUrl",
+                                                                                                          "url")
+                                                                                                     .put("nonAuthenticatedContentUrl",
+                                                                                                          "url")
+                                                                                                     .build()))
+                                                           )));
         factory.withCreator(dto.createDto(Author.class)
                                .withAccountId("")
                                .withUserId("userid"));
@@ -508,9 +476,9 @@ public class FactoryUrlBaseValidatorTest {
         validator.validateTrackedFactoryAndParams(factory);
     }
 
-    @Test(dataProvider = "trackedFactoryParameterWithoutOrgIdProvider",
-            expectedExceptions = ConflictException.class,
-            expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountId. Your Factory configuration has a parameter that.*")
+    @Test(dataProvider = "trackedFactoryParameterWithoutValidAccountId",
+          expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountId. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
 
@@ -527,7 +495,7 @@ public class FactoryUrlBaseValidatorTest {
 
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateTrackedParamsIfSubscribtionIsMissing() throws Exception {
+    public void shouldNotValidateTrackedParamsIfSubscriptionIsMissing() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
@@ -537,7 +505,7 @@ public class FactoryUrlBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ConflictException.class)
-    public void shouldNotValidateTrackedParamsIfSubscribtionIsNotFound() throws Exception {
+    public void shouldNotValidateTrackedParamsIfSubscriptionIsNotFound() throws Exception {
         //given
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, false);
         Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
@@ -627,8 +595,6 @@ public class FactoryUrlBaseValidatorTest {
     }
 
 
-
-
     @DataProvider(name = "trackedFactoryParameterWithoutValidAccountId")
     public Object[][] trackedFactoryParameterWithoutValidAccountId() throws URISyntaxException, IOException, NoSuchMethodException {
         return new Object[][]{
@@ -636,27 +602,27 @@ public class FactoryUrlBaseValidatorTest {
                         dto.createDto(Factory.class)
                            .withV("2.1")
                            .withIde(dto.createDto(Ide.class)
-                                       .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
-                                                               .withActions(singletonList(dto.createDto(Action.class)
-                                                                                             .withId("welcomePanel")
-                                                                                             .withProperties(
-                                                                                                     ImmutableMap
-                                                                                                             .<String,
-                                                                                                                     String>builder()
-                                                                                                             .put("authenticatedTitle",
-                                                                                                                  "title")
-                                                                                                             .put("authenticatedIconUrl",
-                                                                                                                  "url")
-                                                                                                             .put("authenticatedContentUrl",
-                                                                                                                  "url")
-                                                                                                             .put("nonAuthenticatedTitle",
-                                                                                                                  "title")
-                                                                                                             .put("nonAuthenticatedIconUrl",
-                                                                                                                  "url")
-                                                                                                             .put("nonAuthenticatedContentUrl",
-                                                                                                                  "url")
-                                                                                                             .build()))
-                                                                           )))},
+                                       .withOnAppLoaded(dto.createDto(OnAppLoaded.class)
+                                                           .withActions(singletonList(dto.createDto(Action.class)
+                                                                                         .withId("openWelcomePage")
+                                                                                         .withProperties(
+                                                                                                 ImmutableMap
+                                                                                                         .<String,
+                                                                                                                 String>builder()
+                                                                                                         .put("authenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("authenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("authenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedTitle",
+                                                                                                              "title")
+                                                                                                         .put("nonAuthenticatedIconUrl",
+                                                                                                              "url")
+                                                                                                         .put("nonAuthenticatedContentUrl",
+                                                                                                              "url")
+                                                                                                         .build()))
+                                                                       )))},
 
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidSince(10000l))},
                 {dto.createDto(Factory.class).withV("2.1").withPolicies(dto.createDto(Policies.class).withValidUntil(10000l))},

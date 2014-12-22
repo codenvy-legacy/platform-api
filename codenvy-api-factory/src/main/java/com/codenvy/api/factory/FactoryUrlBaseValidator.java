@@ -19,7 +19,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.OnAppClosed;
+import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
@@ -162,6 +162,10 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateTrackedFactoryAndParams(Factory factory) throws ApiException {
+        if (onPremises) {
+            return;
+        }
+
         // validate tracked parameters
         String orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
 
@@ -175,7 +179,7 @@ public abstract class FactoryUrlBaseValidator {
                         break;
                     }
                 }
-                if (!isTracked && !onPremises) {
+                if (!isTracked) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
                 }
             } catch (NotFoundException | ServerException | NumberFormatException e) {
@@ -183,29 +187,26 @@ public abstract class FactoryUrlBaseValidator {
             }
         }
 
-        Long validSince = null;
-        Long validUntil = null;
-
-
         final Policies policies = factory.getPolicies();
         if (policies != null) {
-            validSince = policies.getValidSince();
-            validUntil = policies.getValidUntil();
-        }
+            Long validSince = policies.getValidSince();
+            Long validUntil = policies.getValidUntil();
 
-        if (validSince != null && validSince > 0) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
+            if (validSince != null && validSince > 0) {
+                if (null == orgid) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
+                }
+            }
+
+            if (validUntil != null && validUntil > 0) {
+                if (null == orgid) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
+                }
             }
         }
 
-        if (validUntil != null && validUntil > 0) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
-            }
-        }
         if (policies != null && policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
-            if (null == orgid && !onPremises) {
+            if (null == orgid) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
             }
         }
@@ -216,28 +217,18 @@ public abstract class FactoryUrlBaseValidator {
                 welcomePage = factory.getActions().getWelcome();
             }
             if (null != welcomePage) {
-                if (null == orgid && !onPremises) {
+                if (null == orgid) {
                     throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
                 }
             }
         } else {
             if (factory.getIde() != null) {
-                if (factory.getIde().getOnProjectOpened() != null && factory.getIde().getOnProjectOpened().getActions() != null) {
-                    List<Action> onOpenedActions = factory.getIde().getOnProjectOpened().getActions();
-                    for (Action onOpenedAction : onOpenedActions) {
-                        if ("welcomePanel".equals(onOpenedAction.getId()) && null == orgid && !onPremises) {
-                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                               "ide.onProjectOpened.parts.[%index%].id=welcomePanel"));
-                        }
-                    }
-                }
-
                 if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
                     List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
                     for (Action onLoadedAction : onLoadedActions) {
-                        if ("welcomePanel".equals(onLoadedAction.getId()) && null == orgid && !onPremises) {
+                        if ("openWelcomePage".equals(onLoadedAction.getId()) && null == orgid) {
                             throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                               "ide.onAppLoaded.parts.[%index%].id=welcomePanel"));
+                                                               "ide.onAppLoaded.actions.[%index%].id=openWelcomePage"));
                         }
                     }
                 }
@@ -293,11 +284,11 @@ public abstract class FactoryUrlBaseValidator {
 
 
     protected void validateProjectActions(Factory factory) throws ConflictException {
-        if (factory.getV() ==  null || !factory.getV().equals("2.1") || factory.getIde() == null) {
+        if (factory.getV() == null || !factory.getV().equals("2.1") || factory.getIde() == null) {
             return;
         }
 
-        List<Action> applicationActions  =  new ArrayList<>();
+        List<Action> applicationActions = new ArrayList<>();
         if (factory.getIde().getOnAppClosed() != null) {
             applicationActions.addAll(factory.getIde().getOnAppClosed().getActions());
         }
@@ -306,27 +297,33 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         for (Action applicationAction : applicationActions) {
-            String id =  applicationAction.getId();
+            String id = applicationAction.getId();
             if (id.equals("openFile") || id.equals("findReplace")) {
                 throw new ConflictException(String.format(FactoryConstants.INVALID_ACTION_SECTION, id));
             }
         }
 
-        OnProjectOpened onOpened  = factory.getIde().getOnProjectOpened();
+        OnProjectOpened onOpened = factory.getIde().getOnProjectOpened();
         if (onOpened != null) {
-            List<Action> onProjectOpenedActions = factory.getIde().getOnProjectOpened().getActions();
+            List<Action> onProjectOpenedActions = onOpened.getActions();
             for (Action applicationAction : onProjectOpenedActions) {
                 String id = applicationAction.getId();
                 Map<String, String> properties = applicationAction.getProperties();
-                if (id.equals("openFile") && Strings.isNullOrEmpty(properties.get("file"))) {
-                    throw new ConflictException(INVALID_OPENFILE_ACTION);
-                }
 
-                if (id.equals("findReplace") && (Strings.isNullOrEmpty(properties.get("in")) ||
-                                                 Strings.isNullOrEmpty(properties.get("find")) ||
-                                                 Strings.isNullOrEmpty(properties.get("replace"))
-                )) {
-                    throw new ConflictException(INVALID_FIND_REPLACE_ACTION);
+                switch (id) {
+                    case "openFile":
+                        if (Strings.isNullOrEmpty(properties.get("file"))) {
+                            throw new ConflictException(INVALID_OPENFILE_ACTION);
+                        }
+                        break;
+
+                    case "findReplace":
+                        if (Strings.isNullOrEmpty(properties.get("in")) ||
+                            Strings.isNullOrEmpty(properties.get("find")) ||
+                            Strings.isNullOrEmpty(properties.get("replace"))) {
+
+                            throw new ConflictException(INVALID_FIND_REPLACE_ACTION);
+                        }
                 }
             }
         }

@@ -26,7 +26,7 @@ import java.util.Map;
  */
 public interface ProjectGenerator {
     /** ID of the project generator. Should be unique within project type ID. */
-    String getId();
+    //String getId();
 
     /** Returns ID of the project type for which this generator may generate content. */
     String getProjectTypeId();
@@ -46,6 +46,6 @@ public interface ProjectGenerator {
      * @throws ServerException
      *         if project generation causes some errors that should be treated as internal errors
      */
-    void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
+    void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map <String, String> options)
             throws ForbiddenException, ConflictException, ServerException;
 }

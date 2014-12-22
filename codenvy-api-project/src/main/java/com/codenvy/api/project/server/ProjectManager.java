@@ -18,6 +18,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * A manager for codenvy projects.
@@ -75,7 +76,7 @@ public interface ProjectManager {
 //            throws ConflictException, ForbiddenException, ServerException;
 
 
-    Project createProject(String workspace, String name, ProjectConfig projectConfig, String generatorName)
+    Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options)
             throws ConflictException, ForbiddenException, ServerException;
 
     /**

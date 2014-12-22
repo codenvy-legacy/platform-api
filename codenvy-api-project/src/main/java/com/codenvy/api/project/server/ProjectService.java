@@ -246,7 +246,7 @@ public class ProjectService extends Service {
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
 
         final Project project = projectManager.createProject(workspace, name,
-                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getName());
+                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getOptions());
 
 
         final ProjectMisc misc = project.getMisc();
@@ -346,10 +346,11 @@ public class ProjectService extends Service {
         module.updateConfig(DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()));
 
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
-        final ProjectGenerator generator = generators.getGenerator(generatorId, newProject.getType());
+//        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
+        final ProjectGenerator generator = generators.getGenerator(newProject.getType());
         if (generator != null) {
-            generator.generateProject(module.getBaseFolder(), module.getConfig().getAttributes());
+            generator.generateProject(module.getBaseFolder(), module.getConfig().getAttributes(),
+                    newProject.getGeneratorDescription().getOptions());
         }
 
 

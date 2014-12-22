@@ -34,6 +34,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -157,21 +158,28 @@ public final class DefaultProjectManager implements ProjectManager {
 
 
     @Override
-    public Project createProject(String workspace, String name, ProjectConfig projectConfig, String generatorName)
+    public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options)
             throws ConflictException, ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);
 
+        final ProjectGenerator generator = generators.getGenerator(projectConfig.getTypeId());
 
-        if (generatorName != null) {
-
-            final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
-            if (generator != null) {
-                generator.generateProject(project.getBaseFolder(),
-                        projectConfig.getAttributes());
-            }
+        if (generator != null) {
+            generator.generateProject(project.getBaseFolder(),
+                    projectConfig.getAttributes(), options);
         }
+
+//
+//        if (generatorName != null) {
+//
+//            final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
+//            if (generator != null) {
+//                generator.generateProject(project.getBaseFolder(),
+//                        projectConfig.getAttributes());
+//            }
+//        }
 
         project.updateConfig(projectConfig);
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());

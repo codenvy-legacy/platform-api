@@ -397,10 +397,10 @@ public class ProjectServiceTest {
 
 
         generatorRegistry.register(new ProjectGenerator() {
-            @Override
-            public String getId() {
-                return "my_generator";
-            }
+//            @Override
+//            public String getId() {
+//                return "my_generator";
+//            }
 
             @Override
             public String getProjectTypeId() {
@@ -408,7 +408,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
+            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options)
                     throws ConflictException, ForbiddenException, ServerException {
 
 
@@ -439,8 +439,8 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
-        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class)
-                                                          .withName("my_generator");
+        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class);
+//                                                          .withName("my_generator");
 
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
                                           .withType("testCreateProject")
@@ -506,10 +506,10 @@ public class ProjectServiceTest {
     @Test
     public void testCreateModule() throws Exception {
         generatorRegistry.register(new ProjectGenerator() {
-            @Override
-            public String getId() {
-                return "my_generator";
-            }
+//            @Override
+//            public String getId() {
+//                return "my_generator";
+//            }
 
             @Override
             public String getProjectTypeId() {
@@ -517,7 +517,7 @@ public class ProjectServiceTest {
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes)
+            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options)
                     throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");
@@ -541,8 +541,8 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
-        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class)
-                                                          .withName("my_generator");
+        GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class);
+//                                                          .withName("my_generator");
 
 
         NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)

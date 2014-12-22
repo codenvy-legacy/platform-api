@@ -27,62 +27,67 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class ProjectGeneratorRegistry {
-    private final Map<String, List<ProjectGenerator>> generators;
+    private final Map<String, ProjectGenerator> generators;
 
     @Inject
     public ProjectGeneratorRegistry(Set<ProjectGenerator> generators) {
         this.generators = new ConcurrentHashMap<>();
         for (ProjectGenerator generator : generators) {
-            register(generator);
+            this.generators.put(generator.getProjectTypeId(), generator);
+            //register(generator);
         }
     }
 
+    // for tests only?
     public void register(ProjectGenerator generator) {
-        List<ProjectGenerator> projectGenerators = generators.get(generator.getProjectTypeId());
-        if (projectGenerators == null) {
-            projectGenerators = new LinkedList<>();
-        }
-        projectGenerators.add(generator);
-        generators.put(generator.getProjectTypeId(), projectGenerators);
+
+        this.generators.put(generator.getProjectTypeId(), generator);
+
+//        List<ProjectGenerator> projectGenerators = generators.get(generator.getProjectTypeId());
+//        if (projectGenerators == null) {
+//            projectGenerators = new LinkedList<>();
+//        }
+//        projectGenerators.add(generator);
+//        generators.put(generator.getProjectTypeId(), projectGenerators);
+    }
+//
+//    public ProjectGenerator unregister(String projectTypeId) {
+//        if (projectTypeId == null) {
+//            return null;
+//        }
+//        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
+//        if (projectGenerators != null) {
+//            for (ProjectGenerator generator : projectGenerators) {
+//                if (id.equals(generator.getId())) {
+//                    projectGenerators.remove(generator);
+//                    return generator;
+//                }
+//            }
+//        }
+//
+//        return null;
+//    }
+
+    public ProjectGenerator getGenerator(String projectTypeId) {
+//        if (id == null || projectTypeId == null) {
+//            return null;
+//        }
+//        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
+//        if (projectGenerators != null) {
+//            for (ProjectGenerator generator : projectGenerators) {
+//                if (id.equals(generator.getId())) {
+//                    return generator;
+//                }
+//            }
+//        }
+        return generators.get(projectTypeId);
     }
 
-    public ProjectGenerator unregister(String id, String projectTypeId) {
-        if (id == null || projectTypeId == null) {
-            return null;
-        }
-        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
-        if (projectGenerators != null) {
-            for (ProjectGenerator generator : projectGenerators) {
-                if (id.equals(generator.getId())) {
-                    projectGenerators.remove(generator);
-                    return generator;
-                }
-            }
-        }
-
-        return null;
-    }
-
-    public ProjectGenerator getGenerator(String id, String projectTypeId) {
-        if (id == null || projectTypeId == null) {
-            return null;
-        }
-        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
-        if (projectGenerators != null) {
-            for (ProjectGenerator generator : projectGenerators) {
-                if (id.equals(generator.getId())) {
-                    return generator;
-                }
-            }
-        }
-        return null;
-    }
-
-    public List<ProjectGenerator> getGenerators() {
-        List<ProjectGenerator> list = new ArrayList<>();
-        for (List<ProjectGenerator> projectGenerators : generators.values()) {
-            list.addAll(projectGenerators);
-        }
-        return list;
-    }
+//    public List<ProjectGenerator> getGenerators() {
+//        List<ProjectGenerator> list = new ArrayList<>();
+//        for (List<ProjectGenerator> projectGenerators : generators.values()) {
+//            list.addAll(projectGenerators);
+//        }
+//        return list;
+//    }
 }

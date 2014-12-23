@@ -11,9 +11,9 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.dto.shared.DTO;
-import com.codenvy.api.project.shared.dto.NewProject;
 
 import java.util.List;
 
@@ -23,7 +23,7 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface Factory extends FactoryV2_0 {
+public interface Factory extends FactoryV2_1 {
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
@@ -45,4 +45,6 @@ public interface Factory extends FactoryV2_0 {
     Factory withActions(Actions actions);
 
     Factory withButton(Button button);
+
+    Factory withIde(Ide ide);
 }

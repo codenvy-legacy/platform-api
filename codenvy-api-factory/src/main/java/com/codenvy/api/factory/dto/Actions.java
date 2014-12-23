@@ -26,59 +26,59 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
  * @author Alexander Garagatyi
  */
 @DTO
+@Deprecated
 public interface Actions {
     /**
      * Welcome page configuration.
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "welcome", format = ENCODED, trackedOnly = true)
     WelcomePage getWelcome();
 
+    @Deprecated
     void setWelcome(WelcomePage welcome);
 
+    @Deprecated
     Actions withWelcome(WelcomePage welcome);
 
     /**
      * Allow to use text replacement in project files after clone
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "findReplace")
+    @Deprecated
     List<ReplacementSet> getFindReplace();
 
+    @Deprecated
     void setFindReplace(List<ReplacementSet> variable);
 
+    @Deprecated
     Actions withFindReplace(List<ReplacementSet> variable);
 
-    // TODO
-//    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "macro")
-//    String getMacro();
-//
-//    void setMacro(String macro);
-//
-//    Actions withMacro(String macro);
 
     /**
      * Path of the file to open in the project.
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "openFile")
+    @Deprecated
     String getOpenFile();
 
+    @Deprecated
     void setOpenFile(String openFile);
 
+    @Deprecated
     Actions withOpenFile(String openFile);
 
     /**
      * Warn on leave page
      */
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "warnOnClose")
+    @Deprecated
     Boolean getWarnOnClose();
 
+    @Deprecated
     void setWarnOnClose(Boolean warnOnClose);
 
+    @Deprecated
     Actions withWarnOnClose(Boolean warnOnClose);
 
-    // TODO add plugins section
-//    Plugins getPlugins();
-//
-//    void setPlugins(Plugins plugins);
-//
-//    Actions withPlugins(Plugins plugins);
 }

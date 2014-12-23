@@ -13,16 +13,11 @@ package com.codenvy.api.factory;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.factory.FactoryParameter;
-import com.codenvy.api.factory.converter.IdCommitConverter;
+import com.codenvy.api.factory.converter.ActionsConverter;
 import com.codenvy.api.factory.converter.LegacyConverter;
-import com.codenvy.api.factory.converter.ProjectNameConverter;
-import com.codenvy.api.factory.converter.ProjectTypeConverter;
-import com.codenvy.api.factory.converter.WorkspaceNameConverter;
 import com.codenvy.api.factory.dto.Factory;
-import com.codenvy.api.factory.dto.FactoryV1_0;
-import com.codenvy.api.factory.dto.FactoryV1_1;
-import com.codenvy.api.factory.dto.FactoryV1_2;
 import com.codenvy.api.factory.dto.FactoryV2_0;
+import com.codenvy.api.factory.dto.FactoryV2_1;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.commons.lang.Strings;
@@ -49,9 +44,11 @@ import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.TreeSet;
 
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat;
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
@@ -84,11 +81,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     static final List<LegacyConverter> LEGACY_CONVERTERS;
 
     static {
-        List<LegacyConverter> l = new ArrayList<>(4);
-        l.add(new IdCommitConverter());
-        l.add(new ProjectNameConverter());
-        l.add(new ProjectTypeConverter());
-        l.add(new WorkspaceNameConverter());
+        List<LegacyConverter> l = new ArrayList<>(1);
+        l.add(new ActionsConverter());
         LEGACY_CONVERTERS = Collections.unmodifiableList(l);
     }
 
@@ -113,6 +107,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         if (uri == null) {
             throw new ConflictException("Passed in invalid query parameters.");
         }
+
         Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
 
         Factory factory = buildDtoObject(queryParams, "", Factory.class);
@@ -192,31 +187,24 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
 
-        String orgid = null;
+        String accountId;
 
         Class usedFactoryVersionMethodProvider;
         switch (v) {
-            case V1_0:
-                usedFactoryVersionMethodProvider = FactoryV1_0.class;
-                break;
-            case V1_1:
-                usedFactoryVersionMethodProvider = FactoryV1_1.class;
-                orgid = factory.getOrgid();
-                break;
-            case V1_2:
-                usedFactoryVersionMethodProvider = FactoryV1_2.class;
-                orgid = factory.getOrgid();
-                break;
             case V2_0:
                 usedFactoryVersionMethodProvider = FactoryV2_0.class;
-                orgid = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
+                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
+                break;
+            case V2_1:
+                usedFactoryVersionMethodProvider = FactoryV2_1.class;
+                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             default:
                 throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
-        orgid = Strings.emptyToNull(orgid);
+        accountId = Strings.emptyToNull(accountId);
 
-        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, orgid, "");
+        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, accountId, "");
     }
 
     /**
@@ -229,7 +217,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      */
     public Factory convertToLatest(Factory factory) throws ApiException {
         Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        resultFactory.setV("2.0");
+        resultFactory.setV("2.1");
         for (LegacyConverter converter : LEGACY_CONVERTERS) {
             converter.convert(resultFactory);
         }
@@ -237,23 +225,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         return resultFactory;
     }
 
-    /**
-     * Convert factory of given version to the V1.2 factory format.
-     *
-     * @param factory
-     *         - given factory.
-     * @return - factory in V1_2 format.
-     * @throws com.codenvy.api.core.ApiException
-     */
-    public Factory convertToV1_2(Factory factory) throws ApiException {
-        Factory resultFactory = DtoFactory.getInstance().clone(factory);
-        resultFactory.setV("1.2");
-        for (LegacyConverter converter : LEGACY_CONVERTERS) {
-            converter.convertToV1_2(resultFactory);
-        }
-
-        return resultFactory;
-    }
 
     /**
      * Validate compatibility of factory parameters.
@@ -269,8 +240,8 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - version of factory
      * @param sourceFormat
      *         - factory format
-     * @param orgid
-     *         - orgid of a factory
+     * @param accountId
+     *         - account id of a factory
      * @param parentName
      *         - parent parameter queryParameterName
      * @throws com.codenvy.api.core.ApiException
@@ -280,7 +251,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                Class allowedMethodsProvider,
                                Version version,
                                FactoryFormat sourceFormat,
-                               String orgid,
+                               String accountId,
                                String parentName) throws ApiException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
@@ -325,7 +296,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     }
 
                     // check tracked-only fields
-                    if (null == orgid && factoryParameter.trackedOnly() && !onPremises) {
+                    if (null == accountId && factoryParameter.trackedOnly() && !onPremises) {
                         throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 
@@ -333,7 +304,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     if (method.getReturnType().isAnnotationPresent(DTO.class)) {
                         // validate inner objects such Git ot ProjectAttributes
                         validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version, sourceFormat,
-                                              orgid, fullName);
+                                              accountId, fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
                         Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 
@@ -354,7 +325,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                 Map<Object, Object> map = (Map)parameterValue;
                                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
                                     validateCompatibility(entry.getValue(), secMapParamClass, secMapParamClass, version, sourceFormat,
-                                                          orgid, fullName + "." + (String)entry.getKey());
+                                                          accountId, fullName + "." + (String)entry.getKey());
                                 }
                             } else {
                                 throw new RuntimeException("This type of fields is not supported by factory.");
@@ -428,6 +399,41 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     } else if (returnClass.isAnnotationPresent(DTO.class)) {
                         // use recursion if parameter is DTO object
                         param = buildDtoObject(queryParams, fullName, returnClass);
+                    } else if (List.class.isAssignableFrom(returnClass)) {
+                        Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[0];
+                        Class listClass;
+                        if (tp instanceof ParameterizedType) {
+                            listClass = (Class)((ParameterizedType)tp).getRawType();
+                        } else {
+                            listClass = (Class)tp;
+                        }
+
+                        Set<String> keys = new TreeSet<>();
+                        for (String key : queryParams.keySet()) {
+                            if (key.startsWith(fullName)) {
+                                keys.add(key.substring(fullName.length() + 1, key.indexOf(".", fullName.length() + 1)));
+                            }
+                        }
+                        if (!keys.isEmpty()) {
+                            param = new ArrayList<>(keys.size());
+                            for (String key : keys) {
+                                Map<String, Set<String>> listQueryParams = new HashMap<>();
+                                Set<String> removeKeys = new HashSet<>();
+                                for (Map.Entry<String, Set<String>> queryParam : queryParams.entrySet()) {
+                                    String queryParamKey = queryParam.getKey();
+                                    if (queryParamKey.startsWith(fullName + "." + key + ".")) {
+                                        removeKeys.add(queryParamKey);
+                                        listQueryParams
+                                                .put(queryParamKey.substring(fullName.length() + key.length() + 2), queryParam.getValue());
+                                    }
+                                }
+                                ((List)param).add(buildDtoObject(listQueryParams, "", listClass));
+                                //cleanup in list of query params.
+                                for (String removeKey : removeKeys) {
+                                    queryParams.remove(removeKey);
+                                }
+                            }
+                        }
                     } else if (Map.class.isAssignableFrom(returnClass)) {
                         Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 

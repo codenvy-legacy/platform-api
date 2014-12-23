@@ -20,6 +20,4 @@ import com.codenvy.api.factory.dto.Factory;
  */
 public interface LegacyConverter {
     void convert(Factory factory) throws ApiException;
-
-    void convertToV1_2(Factory factory) throws ApiException;
 }

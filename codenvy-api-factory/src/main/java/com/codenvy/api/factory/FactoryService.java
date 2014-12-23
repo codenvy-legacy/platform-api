@@ -149,14 +149,14 @@ public class FactoryService extends Service {
             }
 
             Set<FactoryImage> images = new HashSet<>();
-            Factory factoryUrl = null;
+            Factory factory = null;
 
             while (formData.hasNext()) {
                 FileItem item = formData.next();
                 String fieldName = item.getFieldName();
                 if (fieldName.equals("factoryUrl")) {
                     try {
-                        factoryUrl = factoryBuilder.buildEncoded(item.getInputStream());
+                        factory = factoryBuilder.buildEncoded(item.getInputStream());
                     } catch (JsonSyntaxException e) {
                         throw new ConflictException(
                                 "You have provided an invalid JSON.  For more information, " +
@@ -173,61 +173,35 @@ public class FactoryService extends Service {
                 }
             }
 
-            if (factoryUrl == null) {
+            if (factory == null) {
                 LOG.warn("No factory URL information found in 'factoryUrl' section of multipart form-data.");
                 throw new ConflictException("No factory URL information found in 'factoryUrl' section of multipart/form-data.");
             }
 
-            if (factoryUrl.getV().equals("1.0")) {
-                throw new ConflictException("Storing of Factory 1.0 is unsupported.");
+            if (null == factory.getCreator()) {
+                factory.setCreator(DtoFactory.getInstance().createDto(Author.class));
             }
+            factory.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
 
-            String orgid;
-            String repoUrl;
-            String ptype;
-            if (factoryUrl.getV().startsWith("1.")) {
-                factoryUrl.setUserid(context.getUser().getId());
-                factoryUrl.setCreated(System.currentTimeMillis());
 
-                // for logging purposes
-                orgid = factoryUrl.getOrgid();
-                repoUrl = factoryUrl.getVcsurl();
-                ptype = factoryUrl.getProjectattributes() != null ? factoryUrl.getProjectattributes().getPtype() : null;
-            } else {
-                if (null == factoryUrl.getCreator()) {
-                    factoryUrl.setCreator(DtoFactory.getInstance().createDto(Author.class));
-                }
-                factoryUrl.getCreator().withUserId(context.getUser().getId()).withCreated(System.currentTimeMillis());
-
-                // for logging purposes
-                orgid = factoryUrl.getCreator().getAccountId();
-                repoUrl = factoryUrl.getSource().getProject().getLocation();
-                ptype = factoryUrl.getProject() != null ? factoryUrl.getProject().getType() : null;
-            }
-
-            createValidator.validateOnCreate(factoryUrl);
-            String factoryId = factoryStore.saveFactory(factoryUrl, images);
-            factoryUrl = factoryStore.getFactory(factoryId);
-            factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, images, uriInfo));
-
-            String createProjectLink = "";
-            Iterator<Link> createProjectLinksIterator = linksHelper.getLinkByRelation(factoryUrl.getLinks(), "create-project").iterator();
-            if (createProjectLinksIterator.hasNext()) {
-                createProjectLink = createProjectLinksIterator.next().getHref();
-            }
+            createValidator.validateOnCreate(factory);
+            String factoryId = factoryStore.saveFactory(factory, images);
+            factory = factoryStore.getFactory(factoryId);
+            factory = factory.withLinks(linksHelper.createLinks(factory, images, uriInfo));
 
             LOG.info(
+
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     context.getUser().getName(),
                     "",
-                    nullToEmpty(ptype),
-                    repoUrl,
-                    createProjectLink,
-                    nullToEmpty(factoryUrl.getAffiliateid()),
-                    nullToEmpty(orgid));
+                    nullToEmpty(factory.getProject() != null ? factory.getProject().getType() : null),
+                    factory.getSource().getProject().getLocation(),
+                    linksHelper.getLinkByRelation(factory.getLinks(), "create-project").iterator().next().getHref(),
+                    "",
+                    nullToEmpty(factory.getCreator().getAccountId()));
 
-            return factoryUrl;
+            return factory;
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage(), e);
             throw new ServerException(e.getLocalizedMessage(), e);
@@ -248,25 +222,15 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory getFactoryFromNonEncoded(@DefaultValue("false") @QueryParam("legacy") Boolean legacy,
                                             @DefaultValue("false") @QueryParam("validate") Boolean validate,
-                                            @QueryParam("maxVersion") String maxVersion,
                                             @Context UriInfo uriInfo) throws ApiException {
         final URI uri = UriBuilder.fromUri(uriInfo.getRequestUri())
                                   .replaceQueryParam("legacy", null)
                                   .replaceQueryParam("token", null)
                                   .replaceQueryParam("validate", null)
-                                  .replaceQueryParam("maxVersion", null)
                                   .build();
         Factory factory = factoryBuilder.buildEncoded(uri);
         if (legacy) {
-            if (maxVersion != null) {
-                if ("1.2".equals(maxVersion)) {
-                    factory = factoryBuilder.convertToV1_2(factory);
-                } else {
-                    factory = factoryBuilder.convertToLatest(factory);
-                }
-            } else {
-                factory = factoryBuilder.convertToLatest(factory);
-            }
+            factory = factoryBuilder.convertToLatest(factory);
         }
         if (validate) {
             acceptValidator.validateOnAccept(factory, false);
@@ -306,7 +270,6 @@ public class FactoryService extends Service {
                               @ApiParam(value = "Whether or not to validate values like it is done when accepting a Factory",
                                         allowableValues = "true,false", defaultValue = "false")
                               @DefaultValue("false") @QueryParam("validate") Boolean validate,
-                              @QueryParam("maxVersion") String maxVersion,
                               @Context UriInfo uriInfo) throws ApiException {
         Factory factoryUrl = factoryStore.getFactory(id);
         if (factoryUrl == null) {
@@ -315,15 +278,7 @@ public class FactoryService extends Service {
         }
 
         if (legacy) {
-            if (maxVersion != null) {
-                if ("1.2".equals(maxVersion)) {
-                    factoryUrl = factoryBuilder.convertToV1_2(factoryUrl);
-                } else {
-                    factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
-                }
-            } else {
-                factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
-            }
+            factoryUrl = factoryBuilder.convertToLatest(factoryUrl);
         }
 
         try {

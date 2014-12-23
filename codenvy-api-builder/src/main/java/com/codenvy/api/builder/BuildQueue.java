@@ -975,7 +975,7 @@ public class BuildQueue {
                         }
                     }
                 } catch (Exception e) {
-                    LOG.error(e.getMessage(), e);
+                    LOG.warn(e.getMessage(), e);
                 }
             }
         }
@@ -1016,7 +1016,7 @@ public class BuildQueue {
                 }
                 WSConnectionContext.sendMessage(bm);
             } catch (Exception e) {
-                LOG.error(e.getMessage(), e);
+                LOG.warn(e.getMessage(), e);
             }
         }
     }

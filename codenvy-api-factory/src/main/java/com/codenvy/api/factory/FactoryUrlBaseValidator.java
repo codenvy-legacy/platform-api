@@ -17,24 +17,32 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.factory.dto.Action;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.factory.dto.OnAppLoaded;
+import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
-import com.codenvy.api.factory.dto.Restriction;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
-import com.codenvy.commons.lang.Strings;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.regex.Pattern;
 
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
+import static com.codenvy.commons.lang.Strings.emptyToNull;
+import static com.codenvy.commons.lang.Strings.isNullOrEmpty;
 import static java.lang.String.format;
 
 /**
@@ -48,8 +56,8 @@ public abstract class FactoryUrlBaseValidator {
 
     private final boolean onPremises;
 
-    private final AccountDao accountDao;
-    private final UserDao userDao;
+    private final AccountDao     accountDao;
+    private final UserDao        userDao;
     private final UserProfileDao profileDao;
 
     public FactoryUrlBaseValidator(AccountDao accountDao,
@@ -71,26 +79,16 @@ public abstract class FactoryUrlBaseValidator {
      * @throws ApiException
      */
     protected void validateSource(Factory factory) throws ApiException {
-        String type;
-        String location;
-        String parameterTypeName;
-        String parameterLocationName;
-        if (factory.getV().startsWith("1.")) {
-            type = factory.getVcs();
-            location = factory.getVcsurl();
-            parameterTypeName = "vcs";
-            parameterLocationName = "vcsurl";
-        } else {
-            type = factory.getSource().getProject().getType();
-            location = factory.getSource().getProject().getLocation();
-            parameterTypeName = "source.project.type";
-            parameterLocationName = "source.project.location";
-        }
+        String type = factory.getSource().getProject().getType();
+        String location = factory.getSource().getProject().getLocation();
+        String parameterTypeName = "source.project.type";
+        String parameterLocationName = "source.project.location";
+
         // check that vcs value is correct
         if (!("git".equals(type) || "esbwso2".equals(type))) {
             throw new ConflictException("Parameter '" + parameterTypeName + "' has illegal value.");
         }
-        if (location == null || location.isEmpty()) {
+        if (isNullOrEmpty(location)) {
             throw new ConflictException(
                     format(FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, parameterLocationName, location));
         } else {
@@ -105,55 +103,41 @@ public abstract class FactoryUrlBaseValidator {
 
     protected void validateProjectName(Factory factory) throws ApiException {
         // validate project name
-        String pname = null;
+        String projectName = null;
         switch (factory.getV()) {
-            case "1.0":
-                pname = factory.getPname();
-                break;
-            case "1.1":
-            case "1.2":
-                if (factory.getProjectattributes() != null) {
-                    pname = factory.getProjectattributes().getPname();
-                }
-                break;
             case "2.0":
+            case "2.1":
                 if (null != factory.getProject()) {
-                    pname = factory.getProject().getName();
+                    projectName = factory.getProject().getName();
                 }
                 break;
             default:
                 // do nothing
         }
-        if (null != pname && !PROJECT_NAME_VALIDATOR.matcher(pname).matches()) {
+        if (null != projectName && !PROJECT_NAME_VALIDATOR.matcher(projectName).matches()) {
             throw new ConflictException(
                     "Project name must contain only Latin letters, digits or these following special characters -._.");
         }
     }
 
-    protected void validateOrgid(Factory factory) throws ApiException {
-        // validate accountid
-        String orgid;
-        String userid;
+    protected void validateAccountId(Factory factory) throws ApiException {
         // TODO do we need check if user is temporary?
-        if (factory.getV().startsWith("1.")) {
-            orgid = Strings.emptyToNull(factory.getOrgid());
-            userid = factory.getUserid();
-        } else {
-            orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
-            userid = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
-        }
+        String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+        String userId = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
-        if (null != orgid) {
-            if (null != userid) {
+        if (null != accountId) {
+            if (null != userId) {
                 try {
-                    User user = userDao.getById(userid);
-                    Profile profile = profileDao.getById(userid);
-                    if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary")))
+                    User user = userDao.getById(userId);
+                    Profile profile = profileDao.getById(userId);
+                    if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary"))) {
                         throw new ConflictException("Current user is not allowed for using this method.");
+                    }
+
                     boolean isOwner = false;
-                    List<Member> members = accountDao.getMembers(orgid);
+                    List<Member> members = accountDao.getMembers(accountId);
                     if (members.isEmpty()) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
                     }
                     for (Member accountMember : members) {
                         if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
@@ -169,21 +153,19 @@ public abstract class FactoryUrlBaseValidator {
                 }
             }
         }
-
     }
 
     protected void validateTrackedFactoryAndParams(Factory factory) throws ApiException {
-        // validate tracked parameters
-        String orgid;
-        if (factory.getV().startsWith("1.")) {
-            orgid = Strings.emptyToNull(factory.getOrgid());
-        } else {
-            orgid = factory.getCreator() != null ? Strings.emptyToNull(factory.getCreator().getAccountId()) : null;
+        if (onPremises) {
+            return;
         }
 
-        if (orgid != null) {
+        // validate tracked parameters
+        String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+
+        if (accountId != null) {
             try {
-                List<Subscription> subscriptions = accountDao.getSubscriptions(orgid, "Factory");
+                List<Subscription> subscriptions = accountDao.getSubscriptions(accountId, "Factory");
                 boolean isTracked = false;
                 for (Subscription one : subscriptions) {
                     if ("Tracked".equalsIgnoreCase(one.getProperties().get("Package"))) {
@@ -191,75 +173,71 @@ public abstract class FactoryUrlBaseValidator {
                         break;
                     }
                 }
-                if (!isTracked && !onPremises) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                if (!isTracked) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
                 }
             } catch (NotFoundException | ServerException | NumberFormatException e) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, orgid));
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
             }
         }
 
-        Long validSince = null;
-        Long validUntil = null;
-        WelcomePage welcomePage = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
+        final Policies policies = factory.getPolicies();
+        if (policies != null) {
+            Long validSince = policies.getValidSince();
+            Long validUntil = policies.getValidUntil();
+
+            if (validSince != null && validSince > 0) {
+                if (null == accountId) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
+                }
             }
 
-            welcomePage = factory.getWelcome();
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
+            if (validUntil != null && validUntil > 0) {
+                if (null == accountId) {
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
+                }
             }
+        }
 
+        if (policies != null && policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
+            if (null == accountId) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
+            }
+        }
+
+        if ("2.0".equals(factory.getV())) {
+            WelcomePage welcomePage = null;
             if (factory.getActions() != null) {
                 welcomePage = factory.getActions().getWelcome();
             }
-        }
 
-        if (validSince != null && validSince > 0) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "restriction.validsince" : "policies.validSince"));
+            if (null != welcomePage && null == accountId) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
             }
-        }
-
-        if (validUntil != null && validUntil > 0) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "restriction.validuntil" : "policies.validUntil"));
-            }
-        }
-
-        if (null != welcomePage) {
-            if (null == orgid && !onPremises) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                   factory.getV().startsWith("1.") ? "welcome" : "actions.welcome"));
+        } else {//Version 2.1
+            if (factory.getIde() != null) {
+                if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
+                    List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
+                    for (Action onLoadedAction : onLoadedActions) {
+                        if ("openWelcomePage".equals(onLoadedAction.getId()) && null == accountId) {
+                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
+                                                               "ide.onAppLoaded.actions.[%index%].id=openWelcomePage"));
+                        }
+                    }
+                }
             }
         }
     }
 
     protected void validateCurrentTimeBetweenSinceUntil(Factory factory) throws ConflictException {
-        Long validSince = null;
-        Long validUntil = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
-            }
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
-            }
+        final Policies policies = factory.getPolicies();
+
+        if (policies == null) {
+            return;
         }
+
+        Long validSince = policies.getValidSince();
+        Long validUntil = policies.getValidUntil();
 
         if (validSince != null && validSince != 0) {
             if (new Date().before(new Date(validSince))) {
@@ -275,21 +253,13 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateCurrentTimeBeforeSinceUntil(Factory factory) throws ConflictException {
-        Long validSince = null;
-        Long validUntil = null;
-        if (factory.getV().startsWith("1.")) {
-            final Restriction restriction = factory.getRestriction();
-            if (restriction != null) {
-                validSince = restriction.getValidsince();
-                validUntil = restriction.getValiduntil();
-            }
-        } else {
-            final Policies policies = factory.getPolicies();
-            if (policies != null) {
-                validSince = policies.getValidSince();
-                validUntil = policies.getValidUntil();
-            }
+        final Policies policies = factory.getPolicies();
+        if (policies == null) {
+            return;
         }
+
+        Long validSince = policies.getValidSince();
+        Long validUntil = policies.getValidUntil();
 
         if (validSince != null && validSince != 0 && validUntil != null && validUntil != 0 && validSince >= validUntil) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE);
@@ -301,6 +271,69 @@ public abstract class FactoryUrlBaseValidator {
 
         if (validUntil != null && validUntil != 0 && new Date().after(new Date(validUntil))) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDUNTIL_MESSAGE);
+        }
+    }
+
+
+    protected void validateProjectActions(Factory factory) throws ConflictException {
+        if (!"2.1".equals(factory.getV()) || factory.getIde() == null) {
+            return;
+        }
+
+        List<Action> applicationActions = new ArrayList<>();
+        if (factory.getIde().getOnAppClosed() != null) {
+            applicationActions.addAll(factory.getIde().getOnAppClosed().getActions());
+        }
+        if (factory.getIde().getOnAppLoaded() != null) {
+            applicationActions.addAll(factory.getIde().getOnAppLoaded().getActions());
+        }
+
+        for (Action applicationAction : applicationActions) {
+            String id = applicationAction.getId();
+            if ("openFile".equals(id) || "findReplace".equals(id)) {
+                throw new ConflictException(String.format(FactoryConstants.INVALID_ACTION_SECTION, id));
+            }
+        }
+
+        final OnAppLoaded onAppLoaded = factory.getIde().getOnAppLoaded();
+        if (onAppLoaded != null) {
+            final List<Action> actions = onAppLoaded.getActions();
+            if (actions != null) {
+                for (Action action : actions) {
+                    final Map<String, String> properties = action.getProperties();
+                    if ("openWelcomePage".equals(action.getId()) && (isNullOrEmpty(properties.get("nonAuthenticatedContentUrl")) ||
+                                                                     isNullOrEmpty(properties.get("authenticatedContentUrl")))) {
+
+                        throw new ConflictException(INVALID_WELCOME_PAGE_ACTION);
+                    }
+                }
+            }
+        }
+
+        OnProjectOpened onOpened = factory.getIde().getOnProjectOpened();
+        if (onOpened != null) {
+            List<Action> onProjectOpenedActions = onOpened.getActions();
+            for (Action applicationAction : onProjectOpenedActions) {
+                String id = applicationAction.getId();
+                Map<String, String> properties = applicationAction.getProperties();
+
+                switch (id) {
+                    case "openFile":
+                        if (isNullOrEmpty(properties.get("file"))) {
+                            throw new ConflictException(INVALID_OPENFILE_ACTION);
+                        }
+                        break;
+
+                    case "findReplace":
+                        if (isNullOrEmpty(properties.get("in")) ||
+                            isNullOrEmpty(properties.get("find")) ||
+                            isNullOrEmpty(properties.get("replace"))) {
+
+                            throw new ConflictException(INVALID_FIND_REPLACE_ACTION);
+                        }
+                        break;
+                }
+            }
         }
     }
 }

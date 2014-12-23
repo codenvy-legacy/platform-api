@@ -11,13 +11,14 @@
 package com.codenvy.api.factory.dto;
 
 import com.codenvy.api.core.factory.FactoryParameter;
+import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.dto.shared.DTO;
-import com.codenvy.api.project.shared.dto.NewProject;
 
 import static com.codenvy.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.MANDATORY;
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
+import static com.codenvy.api.core.factory.FactoryParameter.Version.V2_1;
 
 /**
  * Factory of version 2.0
@@ -26,7 +27,18 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface FactoryV2_0 extends FactoryV1_2 {
+public interface FactoryV2_0 {
+
+    /**
+     * @return Version for Codenvy Factory API.
+     */
+    @FactoryParameter(obligation = MANDATORY, queryParameterName = "v")
+    String getV();
+
+    void setV(String v);
+
+    FactoryV2_0 withV(String v);
+
     /**
      * Describes source where project's files can be retrieved
      */
@@ -80,11 +92,14 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     /**
      * Describes actions that should be done after loading of the IDE
      */
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions")
+    @Deprecated
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "actions", deprecatedSince = V2_1)
     Actions getActions();
 
+    @Deprecated
     void setActions(Actions actions);
 
+    @Deprecated
     FactoryV2_0 withActions(Actions actions);
 
     /**
@@ -96,4 +111,16 @@ public interface FactoryV2_0 extends FactoryV1_2 {
     void setButton(Button button);
 
     FactoryV2_0 withButton(Button button);
+
+
+    /**
+     * @return - id of stored factory object
+     */
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "id", format = ENCODED, setByServer = true)
+    String getId();
+
+    void setId(String id);
+
+    FactoryV2_0 withId(String id);
+
 }

@@ -18,23 +18,26 @@ import com.codenvy.dto.shared.DTO;
  * Contains two configuration for authenticated users and non authenticated.
  */
 @DTO
+@Deprecated
 public interface WelcomePage {
 
     /**
      * @return
      */
+    @Deprecated
     WelcomeConfiguration getAuthenticated();
-
+    @Deprecated
     void setAuthenticated(WelcomeConfiguration authenticated);
-
+    @Deprecated
     WelcomePage withAuthenticated(WelcomeConfiguration authenticated);
 
     /**
      * @return
      */
+    @Deprecated
     WelcomeConfiguration getNonauthenticated();
-
+    @Deprecated
     void setNonauthenticated(WelcomeConfiguration nonauthenticated);
-
+    @Deprecated
     WelcomePage withNonauthenticated(WelcomeConfiguration nonauthenticated);
 }

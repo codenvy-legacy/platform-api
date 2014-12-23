@@ -63,19 +63,16 @@ public class ActionsConverter implements LegacyConverter {
 
             if (welcomePage.getAuthenticated() != null) {
                 welcomeProperties.put("authenticatedTitle", welcomePage.getAuthenticated().getTitle());
-                welcomeProperties.put("authenticatedIconUrl", welcomePage.getAuthenticated().getIconurl());
                 welcomeProperties.put("authenticatedContentUrl", welcomePage.getAuthenticated().getContenturl());
                 welcomeProperties.put("authenticatedNotification", welcomePage.getAuthenticated().getNotification());
             }
 
             if (welcomePage.getNonauthenticated() != null) {
                 welcomeProperties.put("nonAuthenticatedTitle", welcomePage.getNonauthenticated().getTitle());
-                welcomeProperties.put("nonAuthenticatedIconUrl", welcomePage.getNonauthenticated().getIconurl());
                 welcomeProperties.put("nonAuthenticatedContentUrl", welcomePage.getNonauthenticated().getContenturl());
                 welcomeProperties.put("nonAuthenticatedNotification", welcomePage.getNonauthenticated().getNotification());
             }
 
-            //TODO add to on AppLoaded
             addToOnAppLoaded(factory, singletonList(dto.createDto(Action.class)
                                                        .withId("openWelcomePage")
                                                        .withProperties(welcomeProperties)));

@@ -125,7 +125,7 @@ public class FactoryUrlBaseValidatorTest {
     public void shouldBeAbleToValidateFactoryUrlObject() throws ApiException {
         validator.validateSource(factory);
         validator.validateProjectName(factory);
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
         validator.validateTrackedFactoryAndParams(factory);
     }
 
@@ -139,7 +139,7 @@ public class FactoryUrlBaseValidatorTest {
 
         validator.validateSource(factory);
         validator.validateProjectName(factory);
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
         validator.validateTrackedFactoryAndParams(factory);
     }
 
@@ -276,21 +276,21 @@ public class FactoryUrlBaseValidatorTest {
 
     @Test
     public void shouldBeAbleToValidateIfOrgIdIsValid() throws ApiException, ParseException {
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
     }
 
     @Test
     public void shouldBeAbleToValidateIfOrgIdAndOwnerAreValid()
             throws ApiException, ParseException {
         // when, then
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
     public void shouldNotValidateIfAccountDoesNotExist() throws ApiException {
         when(accountDao.getMembers(anyString())).thenReturn(Collections.<Member>emptyList());
 
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
     }
 
     @Test(expectedExceptions = ApiException.class, expectedExceptionsMessageRegExp = "You are not authorized to use this accountId.")
@@ -301,7 +301,7 @@ public class FactoryUrlBaseValidatorTest {
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(wronMember));
 
         // when, then
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
     }
 
     @Test(expectedExceptions = ApiException.class)
@@ -472,7 +472,7 @@ public class FactoryUrlBaseValidatorTest {
                                       .withWelcome(dtoFactory.createDto(WelcomePage.class)));
         validator = new TestFactoryUrlBaseValidator(accountDao, userDao, profileDao, true);
 
-        validator.validateOrgid(factory);
+        validator.validateAccountId(factory);
         validator.validateTrackedFactoryAndParams(factory);
     }
 

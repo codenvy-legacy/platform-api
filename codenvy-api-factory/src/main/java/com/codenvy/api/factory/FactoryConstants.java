@@ -44,7 +44,7 @@ public class FactoryConstants {
             "You have provided an invalid parameter %s for this version of Factory parameters %s. For more " +
             "information, please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference";
 
-    public static final String PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE =
+    public static final String PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE =
             "You do not have a valid accountId. You could have provided the wrong value, your subscription has expired, " +
             "or you do not have a valid subscription account. " +
             "Please contact info@codenvy.com with any questions. \n" +

@@ -39,7 +39,7 @@ import java.util.regex.Pattern;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
-import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE;
+import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
 import static com.codenvy.commons.lang.Strings.emptyToNull;
 import static com.codenvy.commons.lang.Strings.isNullOrEmpty;
@@ -79,21 +79,16 @@ public abstract class FactoryUrlBaseValidator {
      * @throws ApiException
      */
     protected void validateSource(Factory factory) throws ApiException {
-        String type;
-        String location;
-        String parameterTypeName;
-        String parameterLocationName;
-
-        type = factory.getSource().getProject().getType();
-        location = factory.getSource().getProject().getLocation();
-        parameterTypeName = "source.project.type";
-        parameterLocationName = "source.project.location";
+        String type = factory.getSource().getProject().getType();
+        String location = factory.getSource().getProject().getLocation();
+        String parameterTypeName = "source.project.type";
+        String parameterLocationName = "source.project.location";
 
         // check that vcs value is correct
         if (!("git".equals(type) || "esbwso2".equals(type))) {
             throw new ConflictException("Parameter '" + parameterTypeName + "' has illegal value.");
         }
-        if (location == null || location.isEmpty()) {
+        if (isNullOrEmpty(location)) {
             throw new ConflictException(
                     format(FactoryConstants.PARAMETRIZED_ILLEGAL_PARAMETER_VALUE_MESSAGE, parameterLocationName, location));
         } else {
@@ -108,42 +103,41 @@ public abstract class FactoryUrlBaseValidator {
 
     protected void validateProjectName(Factory factory) throws ApiException {
         // validate project name
-        String pname = null;
+        String projectName = null;
         switch (factory.getV()) {
             case "2.0":
             case "2.1":
                 if (null != factory.getProject()) {
-                    pname = factory.getProject().getName();
+                    projectName = factory.getProject().getName();
                 }
                 break;
             default:
                 // do nothing
         }
-        if (null != pname && !PROJECT_NAME_VALIDATOR.matcher(pname).matches()) {
+        if (null != projectName && !PROJECT_NAME_VALIDATOR.matcher(projectName).matches()) {
             throw new ConflictException(
                     "Project name must contain only Latin letters, digits or these following special characters -._.");
         }
     }
 
-    protected void validateOrgid(Factory factory) throws ApiException {
-        String accountId;
-        String userId;
+    protected void validateAccountId(Factory factory) throws ApiException {
         // TODO do we need check if user is temporary?
-
-        accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
-        userId = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
+        String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+        String userId = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
         if (null != accountId) {
             if (null != userId) {
                 try {
                     User user = userDao.getById(userId);
                     Profile profile = profileDao.getById(userId);
-                    if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary")))
+                    if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary"))) {
                         throw new ConflictException("Current user is not allowed for using this method.");
+                    }
+
                     boolean isOwner = false;
                     List<Member> members = accountDao.getMembers(accountId);
                     if (members.isEmpty()) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
+                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
                     }
                     for (Member accountMember : members) {
                         if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
@@ -159,7 +153,6 @@ public abstract class FactoryUrlBaseValidator {
                 }
             }
         }
-
     }
 
     protected void validateTrackedFactoryAndParams(Factory factory) throws ApiException {
@@ -181,10 +174,10 @@ public abstract class FactoryUrlBaseValidator {
                     }
                 }
                 if (!isTracked) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
+                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
                 }
             } catch (NotFoundException | ServerException | NumberFormatException e) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ORGID_PARAMETER_MESSAGE, accountId));
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
             }
         }
 
@@ -217,12 +210,11 @@ public abstract class FactoryUrlBaseValidator {
             if (factory.getActions() != null) {
                 welcomePage = factory.getActions().getWelcome();
             }
-            if (null != welcomePage) {
-                if (null == accountId) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
-                }
+
+            if (null != welcomePage && null == accountId) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
             }
-        } else {
+        } else {//Version 2.1
             if (factory.getIde() != null) {
                 if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
                     List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
@@ -238,14 +230,14 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateCurrentTimeBetweenSinceUntil(Factory factory) throws ConflictException {
-        Long validSince = null;
-        Long validUntil = null;
-
         final Policies policies = factory.getPolicies();
-        if (policies != null) {
-            validSince = policies.getValidSince();
-            validUntil = policies.getValidUntil();
+
+        if (policies == null) {
+            return;
         }
+
+        Long validSince = policies.getValidSince();
+        Long validUntil = policies.getValidUntil();
 
         if (validSince != null && validSince != 0) {
             if (new Date().before(new Date(validSince))) {
@@ -261,14 +253,13 @@ public abstract class FactoryUrlBaseValidator {
     }
 
     protected void validateCurrentTimeBeforeSinceUntil(Factory factory) throws ConflictException {
-        Long validSince = null;
-        Long validUntil = null;
-
         final Policies policies = factory.getPolicies();
-        if (policies != null) {
-            validSince = policies.getValidSince();
-            validUntil = policies.getValidUntil();
+        if (policies == null) {
+            return;
         }
+
+        Long validSince = policies.getValidSince();
+        Long validUntil = policies.getValidUntil();
 
         if (validSince != null && validSince != 0 && validUntil != null && validUntil != 0 && validSince >= validUntil) {
             throw new ConflictException(FactoryConstants.INVALID_VALIDSINCEUNTIL_MESSAGE);

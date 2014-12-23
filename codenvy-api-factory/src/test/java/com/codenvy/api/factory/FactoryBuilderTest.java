@@ -98,9 +98,7 @@ public class FactoryBuilderTest {
 
     @Test(dataProvider = "jsonprovider")
     public void shouldBeAbleToParserJsonV1_1(String json) {
-
         dto.createDtoFromJson(json, Factory.class);
-        //System.out.println(FactoryBuilder.buildEncoded(factory));
     }
 
 
@@ -166,12 +164,10 @@ public class FactoryBuilderTest {
                               .withWelcome(dto.createDto(WelcomePage.class)
                                               .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
                                                                     .withContenturl("url")
-                                                                    .withIconurl("url")
                                                                     .withNotification("notification")
                                                                     .withTitle("title"))
                                               .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
                                                                        .withContenturl("url")
-                                                                       .withIconurl("url")
                                                                        .withNotification("notification")
                                                                        .withTitle("title"))))
               .withButton(dto.createDto(Button.class)
@@ -294,8 +290,6 @@ public class FactoryBuilderTest {
                                                                    .withProperties(ImmutableMap.of(
                                                                            "authenticatedTitle",
                                                                            "Greeting title for authenticated users",
-                                                                           "authenticatedIconUrl",
-                                                                           "http://example.com/icon.url",
                                                                            "authenticatedContentUrl",
                                                                            "http://example.com/content.url")))))
                           .withOnProjectOpened(dto.createDto(OnProjectOpened.class)
@@ -364,10 +358,7 @@ public class FactoryBuilderTest {
                                                              .withId("openWelcomePage")
                                                              .withProperties(ImmutableMap.of(
                                                                      "authenticatedTitle",
-                                                                     "Greeting title for authenticated " +
-                                                                     "users",
-                                                                     "authenticatedIconUrl",
-                                                                     "http://example.com/icon.url",
+                                                                     "Greeting title for authenticated users",
                                                                      "authenticatedContentUrl",
                                                                      "http://example.com/content.url")),
                                                           dto.createDto(Action.class)
@@ -388,10 +379,24 @@ public class FactoryBuilderTest {
     }
 
     @Test(expectedExceptions = ApiException.class, dataProvider = "TFParamsProvider",
-            expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId.*")
-    public void shouldNotAllowUsingParamsForTrackedFactoriesIfOrgidDoesntSet(Factory factory)
+          expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId.*")
+    public void shouldNotAllowUsingParamsForTrackedFactoriesIfAccountIdDoesNotSet(Factory factory)
             throws InvocationTargetException, IllegalAccessException, ApiException, NoSuchMethodException {
         factoryBuilder.checkValid(factory, ENCODED);
+    }
+
+    @DataProvider(name = "TFParamsProvider")
+    public static Object[][] tFParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
+        Factory v2 = dto.createDto(Factory.class).withV("2.0")
+                        .withSource(dto.createDto(Source.class)
+                                       .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                       .withType("git")
+                                                       .withLocation("location")));
+
+        return new Object[][]{
+                {dto.clone(v2).withActions(dto.createDto(Actions.class).withWelcome(dto.createDto(WelcomePage.class)))},
+                {dto.clone(v2).withPolicies(dto.createDto(Policies.class))}
+        };
     }
 
     @Test(expectedExceptions = ApiException.class)
@@ -418,9 +423,10 @@ public class FactoryBuilderTest {
 
     @DataProvider(name = "setByServerParamsProvider")
     public static Object[][] setByServerParamsProvider() throws URISyntaxException, IOException, NoSuchMethodException {
-        //Factory v1 = (Factory)dto.createDto(Factory.class).withV("1.1").withVcs("vcs").withVcsurl("vcsurl");
-        Factory v2 = dto.createDto(Factory.class).withV("2.0").withSource(dto.createDto(Source.class).withProject(
-                dto.createDto(ImportSourceDescriptor.class).withType("git").withLocation("location")));
+        Factory v2 = dto.createDto(Factory.class).withV("2.0")
+                        .withSource(dto.createDto(Source.class).withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                               .withType("git")
+                                                                               .withLocation("location")));
         return new Object[][]{
                 {dto.clone(v2).withId("id")},
                 {dto.clone(v2).withCreator(dto.createDto(Author.class).withUserId("id"))},
@@ -475,12 +481,10 @@ public class FactoryBuilderTest {
                                            .withWelcome(dto.createDto(WelcomePage.class)
                                                            .withAuthenticated(dto.createDto(WelcomeConfiguration.class)
                                                                                  .withContenturl("url")
-                                                                                 .withIconurl("url")
                                                                                  .withNotification("notification")
                                                                                  .withTitle("title"))
                                                            .withNonauthenticated(dto.createDto(WelcomeConfiguration.class)
                                                                                     .withContenturl("url")
-                                                                                    .withIconurl("url")
                                                                                     .withNotification("notification")
                                                                                     .withTitle("title"))));
 
@@ -522,16 +526,12 @@ public class FactoryBuilderTest {
                                                                               .withProperties(ImmutableMap.<String, String>builder()
                                                                                                           .put("authenticatedTitle",
                                                                                                                "title")
-                                                                                                          .put("authenticatedIconUrl",
-                                                                                                               "url")
                                                                                                           .put("authenticatedContentUrl",
                                                                                                                "url")
                                                                                                           .put("authenticatedNotification",
                                                                                                                "notification")
                                                                                                           .put("nonAuthenticatedTitle",
                                                                                                                "title")
-                                                                                                          .put("nonAuthenticatedIconUrl",
-                                                                                                               "url")
                                                                                                           .put("nonAuthenticatedContentUrl",
                                                                                                                "url")
                                                                                                           .put("nonAuthenticatedNotification",
@@ -770,10 +770,7 @@ public class FactoryBuilderTest {
                                                                .withId("openWelcomePage")
                                                                .withProperties(ImmutableMap.of(
                                                                        "authenticatedTitle",
-                                                                       "Greeting title for authenticated " +
-                                                                       "users",
-                                                                       "authenticatedIconUrl",
-                                                                       "http://example.com/icon.url",
+                                                                       "Greeting title for authenticated users",
                                                                        "authenticatedContentUrl",
                                                                        "http://example.com/content.url"))))));
 
@@ -817,7 +814,6 @@ public class FactoryBuilderTest {
         sb.append("ide.onProjectOpened.actions.%5B2%5D.properties.replace=NEW_VALUE_2").append("&");
         sb.append("ide.onProjectOpened.actions.%5B3%5D.id=openWelcomePage").append("&");
         sb.append("ide.onProjectOpened.actions.%5B3%5D.properties.authenticatedTitle=Greeting+title+for+authenticated+users").append("&");
-        sb.append("ide.onProjectOpened.actions.%5B3%5D.properties.authenticatedIconUrl=http%3A%2F%2Fexample.com%2Ficon.url").append("&");
         sb.append("ide.onProjectOpened.actions.%5B3%5D.properties.authenticatedContentUrl=http%3A%2F%2Fexample.com%2Fcontent.url")
           .append("&");
         sb.append("ide.onAppClosed.actions.%5B0%5D.id=warnonclose").append("&");
@@ -848,7 +844,8 @@ public class FactoryBuilderTest {
         factoryBuilder.checkValid(factory, FactoryFormat.ENCODED);
     }
 
-    @Test(expectedExceptions = ConflictException.class, expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId. .*")
+    @Test(expectedExceptions = ConflictException.class,
+          expectedExceptionsMessageRegExp = "You have provided a Tracked Factory parameter .*, and you do not have a valid accountId. .*")
     public void shouldThrowExceptionOnValidationV2_0WithTrackedParamsWithoutAccountIdIfOnPremisesIsDisabled() throws Exception {
         factoryBuilder = new FactoryBuilder(sourceProjectParametersValidator, false);
 

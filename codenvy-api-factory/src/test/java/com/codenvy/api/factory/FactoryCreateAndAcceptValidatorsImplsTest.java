@@ -55,7 +55,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
     public void testValidateOnCreate() throws ApiException {
         FactoryUrlCreateValidatorImpl spy = spy(createValidator);
         doNothing().when(spy).validateSource(any(Factory.class));
-        doNothing().when(spy).validateOrgid(any(Factory.class));
+        doNothing().when(spy).validateAccountId(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
@@ -65,7 +65,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         spy.validateOnCreate(factoryUrl);
 
         verify(spy).validateSource(any(Factory.class));
-        verify(spy).validateOrgid(any(Factory.class));
+        verify(spy).validateAccountId(any(Factory.class));
         verify(spy).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy).validateProjectName(any(Factory.class));
         verify(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));

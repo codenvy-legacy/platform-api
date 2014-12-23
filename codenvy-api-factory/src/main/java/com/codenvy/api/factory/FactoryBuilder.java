@@ -107,6 +107,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
         if (uri == null) {
             throw new ConflictException("Passed in invalid query parameters.");
         }
+
         Map<String, Set<String>> queryParams = URLEncodedUtils.parse(uri, "UTF-8");
 
         Factory factory = buildDtoObject(queryParams, "", Factory.class);

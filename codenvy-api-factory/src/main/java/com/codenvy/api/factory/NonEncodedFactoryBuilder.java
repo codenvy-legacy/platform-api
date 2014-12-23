@@ -244,7 +244,6 @@ public abstract class NonEncodedFactoryBuilder {
 
     }
 
-
     private void appendIfNotNull(StringBuilder sb, String key, Object value, boolean encodeValue) {
         if (value != null) {
             if (encodeValue) {

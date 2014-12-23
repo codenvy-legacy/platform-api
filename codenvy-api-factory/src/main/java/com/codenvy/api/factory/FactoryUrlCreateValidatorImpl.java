@@ -37,7 +37,7 @@ public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator imple
     public void validateOnCreate(Factory factory) throws ApiException {
         validateSource(factory);
         validateProjectName(factory);
-        validateOrgid(factory);
+        validateAccountId(factory);
         validateTrackedFactoryAndParams(factory);
         validateCurrentTimeBeforeSinceUntil(factory);
         validateProjectActions(factory);

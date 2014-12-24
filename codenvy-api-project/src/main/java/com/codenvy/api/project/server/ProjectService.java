@@ -22,6 +22,8 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.project.shared.dto.ImportProject;
@@ -105,17 +107,16 @@ public class ProjectService extends Service {
     private ProjectManager              projectManager;
     @Inject
     private ProjectImporterRegistry     importers;
-    @Inject
-    private ProjectGeneratorRegistry    generators;
+    //@Inject
+    //private ProjectGeneratorRegistry    generators;
     @Inject
     private SearcherProvider            searcherProvider;
     @Inject
     private ProjectTypeResolverRegistry resolverRegistry;
     @Inject
     private EventService                eventService;
-
-//    @Inject
-//    private ProjectEventRegistry projectServiceEventSubscriberRegistry;
+    @Inject
+    private ProjectHandlerRegistry      projectHandlerRegistry;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(1 + Runtime.getRuntime().availableProcessors(),
                                                                           new NamedThreadFactory("ProjectService-IndexingThread-", true));
@@ -345,11 +346,13 @@ public class ProjectService extends Service {
 
         module.updateConfig(DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()));
 
-        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-//        final String generatorId = generatorDescription != null ? generatorDescription.getName() : newProject.getType();
-        final ProjectGenerator generator = generators.getGenerator(newProject.getType());
+
+        // TODO move it to Project
+
+
+        final CreateProjectHandler generator = projectHandlerRegistry.getCreateProjectHandler(newProject.getType());
         if (generator != null) {
-            generator.generateProject(module.getBaseFolder(), module.getConfig().getAttributes(),
+            generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(),
                     newProject.getGeneratorDescription().getOptions());
         }
 
@@ -1027,7 +1030,14 @@ public class ProjectService extends Service {
             throws NotFoundException, ForbiddenException, ServerException, ValueStorageException,
             ProjectTypeConstraintException {
 
-        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+        Project project = projectManager.getProject(workspace, projectPath(path));
+        final VirtualFileEntry entry = project.getItem(path);
+
+//        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
+
+//        final String projectType = projectManager.getProject(workspace, projectPath(path)).getConfig().getTypeId();
+//        this.projectHandlerRegistry.getGetItemHandler(projectType).onGetItem(entry);
+
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
 
         ItemReference item;
@@ -1036,18 +1046,6 @@ public class ProjectService extends Service {
         } else {
             item = DtoConverter.toItemReferenceDto((FolderEntry)entry, uriBuilder.clone());
         }
-
-        //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, projectPath(path))+" "+ this.projectServiceEventSubscriberRegistry.getGetItemSubcribers().size());
-
-//        for(GetItemHandler subs : this.projectServiceEventSubscriberRegistry.getGetItemSubcribers()) {
-//
-//
-//            //System.out.println("TYPE >>>> "+projectManager.getProject(workspace, path));
-//
-//            String typeId = projectManager.getProject(workspace, path).getConfig().getTypeId();
-//          subs.onEvent(new GetItemEvent(this.projectManager.getProjectTypeRegistry().getProjectType(typeId), item));
-//        }
-
 
         return item;
 

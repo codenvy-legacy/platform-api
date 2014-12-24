@@ -11,6 +11,10 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.GetItemHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
@@ -94,9 +98,11 @@ public class ProjectTest {
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
 
 
-        ProjectGeneratorRegistry pgRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
+        //ProjectGeneratorRegistry pgRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
 
-        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, pgRegistry);
+        ProjectHandlerRegistry phRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
+
+        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, phRegistry);
 
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();

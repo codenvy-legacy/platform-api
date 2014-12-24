@@ -211,6 +211,7 @@ public class DtoConverter {
                          .withPath(file.getPath())
                          .withType("file")
                          .withMediaType(file.getMediaType())
+                         .withAttributes(file.getAttributes())
                          .withLinks(generateFileLinks(file, uriBuilder));
     }
 
@@ -220,6 +221,7 @@ public class DtoConverter {
                          .withPath(folder.getPath())
                          .withType(folder.isProjectFolder() ? "project" : "folder")
                          .withMediaType("text/directory")
+                         .withAttributes(folder.getAttributes())
                          .withLinks(generateFolderLinks(folder, uriBuilder));
     }
 

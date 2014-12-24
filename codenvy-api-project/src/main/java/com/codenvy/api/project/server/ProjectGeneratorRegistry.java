@@ -24,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
  *
  * @author andrew00x
  * @author Artem Zatsarynnyy
+ *
+ * @deprecated use ProjectHandlerRegistry instead
  */
 @Singleton
 public class ProjectGeneratorRegistry {
@@ -34,7 +36,6 @@ public class ProjectGeneratorRegistry {
         this.generators = new ConcurrentHashMap<>();
         for (ProjectGenerator generator : generators) {
             this.generators.put(generator.getProjectTypeId(), generator);
-            //register(generator);
         }
     }
 
@@ -43,51 +44,11 @@ public class ProjectGeneratorRegistry {
 
         this.generators.put(generator.getProjectTypeId(), generator);
 
-//        List<ProjectGenerator> projectGenerators = generators.get(generator.getProjectTypeId());
-//        if (projectGenerators == null) {
-//            projectGenerators = new LinkedList<>();
-//        }
-//        projectGenerators.add(generator);
-//        generators.put(generator.getProjectTypeId(), projectGenerators);
     }
-//
-//    public ProjectGenerator unregister(String projectTypeId) {
-//        if (projectTypeId == null) {
-//            return null;
-//        }
-//        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
-//        if (projectGenerators != null) {
-//            for (ProjectGenerator generator : projectGenerators) {
-//                if (id.equals(generator.getId())) {
-//                    projectGenerators.remove(generator);
-//                    return generator;
-//                }
-//            }
-//        }
-//
-//        return null;
-//    }
 
     public ProjectGenerator getGenerator(String projectTypeId) {
-//        if (id == null || projectTypeId == null) {
-//            return null;
-//        }
-//        List<ProjectGenerator> projectGenerators = generators.get(projectTypeId);
-//        if (projectGenerators != null) {
-//            for (ProjectGenerator generator : projectGenerators) {
-//                if (id.equals(generator.getId())) {
-//                    return generator;
-//                }
-//            }
-//        }
+
         return generators.get(projectTypeId);
     }
 
-//    public List<ProjectGenerator> getGenerators() {
-//        List<ProjectGenerator> list = new ArrayList<>();
-//        for (List<ProjectGenerator> projectGenerators : generators.values()) {
-//            list.addAll(projectGenerators);
-//        }
-//        return list;
-//    }
 }

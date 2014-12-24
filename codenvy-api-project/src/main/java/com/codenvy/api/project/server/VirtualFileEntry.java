@@ -17,6 +17,8 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 
+import java.util.Map;
+
 /**
  * Wrapper for VirtualFile.
  *
@@ -25,6 +27,7 @@ import com.codenvy.api.vfs.server.VirtualFile;
 public abstract class VirtualFileEntry {
     private final String      workspace;
     private       VirtualFile virtualFile;
+    private Map<String, String> attributes;
 
     public VirtualFileEntry(String workspace, VirtualFile virtualFile) {
         this.workspace = workspace;
@@ -151,6 +154,14 @@ public abstract class VirtualFileEntry {
 
     public VirtualFile getVirtualFile() {
         return virtualFile;
+    }
+
+    public Map<String, String> getAttributes() {
+        return attributes;
+    }
+
+    public void setAttributes(Map<String, String> attributes) {
+        this.attributes = attributes;
     }
 
     void setVirtualFile(VirtualFile virtualFile) {

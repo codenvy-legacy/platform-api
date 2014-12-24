@@ -21,6 +21,10 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.core.util.ValueHolder;
 
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.GetItemHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
@@ -95,7 +99,8 @@ public class ProjectServiceTest {
     private ProjectManager           pm;
     private ResourceLauncher         launcher;
     private ProjectImporterRegistry  importerRegistry;
-    private ProjectGeneratorRegistry generatorRegistry;
+    private ProjectHandlerRegistry phRegistry;
+    //private ProjectGeneratorRegistry generatorRegistry;
 
     private com.codenvy.commons.env.EnvironmentContext env;
 
@@ -138,11 +143,12 @@ public class ProjectServiceTest {
         projTypes.add(chuck);
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
 
-        generatorRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
+        //generatorRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
 
+        phRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
 
         pm = new DefaultProjectManager(vfsRegistry, eventService,
-                ptRegistry, generatorRegistry);
+                ptRegistry, phRegistry);
 
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
                 new HashMap<String, AttributeValue>(), null, null, null), null);
@@ -173,7 +179,7 @@ public class ProjectServiceTest {
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(ProjectManager.class, pm);
         dependencies.addComponent(ProjectImporterRegistry.class, importerRegistry);
-        dependencies.addComponent(ProjectGeneratorRegistry.class, generatorRegistry);
+        dependencies.addComponent(ProjectHandlerRegistry.class, phRegistry);
         dependencies.addComponent(SearcherProvider.class, mmp.getSearcherProvider());
         dependencies.addComponent(ProjectTypeResolverRegistry.class, resolverRegistry);
         dependencies.addComponent(EventService.class, eventService);
@@ -396,25 +402,17 @@ public class ProjectServiceTest {
     public void testCreateProject() throws Exception {
 
 
-        generatorRegistry.register(new ProjectGenerator() {
-//            @Override
-//            public String getId() {
-//                return "my_generator";
-//            }
-
+        phRegistry.register(new CreateProjectHandler() {
             @Override
-            public String getProjectTypeId() {
-                return "testCreateProject";
-            }
-
-            @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options)
-                    throws ConflictException, ForbiddenException, ServerException {
-
-
+            public void onCreateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options) throws ForbiddenException, ConflictException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");
                 baseFolder.createFile("test.txt", "test".getBytes(), "text/plain");
+            }
+
+            @Override
+            public String getProjectType() {
+                return "testCreateProject";
             }
         });
 
@@ -505,19 +503,19 @@ public class ProjectServiceTest {
 
     @Test
     public void testCreateModule() throws Exception {
-        generatorRegistry.register(new ProjectGenerator() {
+        phRegistry.register(new CreateProjectHandler() {
 //            @Override
 //            public String getId() {
 //                return "my_generator";
 //            }
 
             @Override
-            public String getProjectTypeId() {
+            public String getProjectType() {
                 return "my_project_type";
             }
 
             @Override
-            public void generateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options)
+            public void onCreateProject(FolderEntry baseFolder, Map<String, AttributeValue> attributes, Map<String, String> options)
                     throws ConflictException, ForbiddenException, ServerException {
                 baseFolder.createFolder("a");
                 baseFolder.createFolder("b");
@@ -1794,6 +1792,61 @@ public class ProjectServiceTest {
         result = (ItemReference)response.getEntity();
         Assert.assertEquals(result.getType(), "file");
         Assert.assertEquals(result.getMediaType(), "text/plain");
+
+    }
+
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetItemWithHandler() throws Exception {
+
+
+
+        final Project myProject = pm.getProject(workspace, "my_project");
+
+
+        final Map <String, String> attrs = new HashMap<>();
+        attrs.put("my", "myValue");
+
+        GetItemHandler myHandler = new GetItemHandler() {
+            @Override
+            public void onGetItem(VirtualFileEntry virtualFile) {
+
+                virtualFile.setAttributes(attrs);
+                if(virtualFile.isFile())
+                    virtualFile.getAttributes().put("file", "a");
+            }
+
+            @Override
+            public String getProjectType() {
+                return "my_project_type";
+            }
+        };
+        pm.getHandlers().register(myHandler);
+
+        FolderEntry a = myProject.getBaseFolder().createFolder("a");
+        a.createFolder("b");
+        a.createFile("test.txt", "test".getBytes(), "text/plain");
+        ContainerResponse response = launcher.service("GET",
+                String.format("http://localhost:8080/api/project/%s/item/my_project/a/b",
+                        workspace),
+                "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+
+        ItemReference result = (ItemReference)response.getEntity();
+        Assert.assertEquals(result.getType(), "folder");
+        Assert.assertEquals(result.getName(), "b");
+        Assert.assertEquals(result.getAttributes().size(), 1);
+
+        response = launcher.service("GET",
+                String.format("http://localhost:8080/api/project/%s/item/my_project/a/test.txt",
+                        workspace),
+                "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        result = (ItemReference)response.getEntity();
+        Assert.assertEquals(result.getType(), "file");
+        Assert.assertEquals(result.getMediaType(), "text/plain");
+        Assert.assertEquals(result.getAttributes().size(), 2);
 
     }
 

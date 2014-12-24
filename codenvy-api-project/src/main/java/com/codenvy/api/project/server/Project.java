@@ -11,7 +11,9 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.server.handlers.GetItemHandler;
 import com.codenvy.api.project.server.type.Attribute2;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType2;
@@ -284,4 +286,25 @@ public class Project {
             baseFolder.getVirtualFile().updateACL(acl, false, null);
         }
     }
+
+    public VirtualFileEntry getItem(String path) throws ProjectTypeConstraintException,
+             ValueStorageException, ServerException, NotFoundException, ForbiddenException {
+        final VirtualFileEntry entry = getVirtualFileEntry(path);
+        GetItemHandler handler = manager.getHandlers().getGetItemHandler(getConfig().getTypeId());
+        if(handler != null)
+            handler.onGetItem(entry);
+        //getConfig().getMixinTypes()
+        return entry;
+    }
+
+    private VirtualFileEntry getVirtualFileEntry(String path)
+            throws NotFoundException, ForbiddenException, ServerException {
+        final FolderEntry root = manager.getProjectsRoot(this.getWorkspace());
+        final VirtualFileEntry entry = root.getChild(path);
+        if (entry == null) {
+            throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
+        }
+        return entry;
+    }
+
 }

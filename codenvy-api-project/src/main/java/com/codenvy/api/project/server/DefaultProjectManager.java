@@ -15,6 +15,8 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
@@ -53,12 +55,12 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Lock[]                                     miscLocks;
     private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
-    //private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
     private final ProjectTypeRegistry projectTypeRegistry;
-    private final ProjectGeneratorRegistry    generators;
+    //private final ProjectGeneratorRegistry    generators;
+    private final ProjectHandlerRegistry handlers;
 
 
 
@@ -67,16 +69,15 @@ public final class DefaultProjectManager implements ProjectManager {
     public DefaultProjectManager(VirtualFileSystemRegistry fileSystemRegistry,
                                  EventService eventService,
                                  ProjectTypeRegistry projectTypeRegistry,
-                                 ProjectGeneratorRegistry    generators) {
+                                 ProjectHandlerRegistry handlers) {
 
         this.fileSystemRegistry = fileSystemRegistry;
         this.eventService = eventService;
         this.projectTypeRegistry = projectTypeRegistry;
-        this.generators = generators;
+        //this.generators = generators;
+        this.handlers = handlers;
 
-//        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
-//            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
-//        }
+
         this.miscCaches = new Cache[CACHE_NUM];
         this.miscLocks = new Lock[CACHE_NUM];
         for (int i = 0; i < CACHE_NUM; i++) {
@@ -164,22 +165,12 @@ public final class DefaultProjectManager implements ProjectManager {
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);
 
-        final ProjectGenerator generator = generators.getGenerator(projectConfig.getTypeId());
+        final CreateProjectHandler generator = handlers.getCreateProjectHandler(projectConfig.getTypeId());
 
         if (generator != null) {
-            generator.generateProject(project.getBaseFolder(),
+            generator.onCreateProject(project.getBaseFolder(),
                     projectConfig.getAttributes(), options);
         }
-
-//
-//        if (generatorName != null) {
-//
-//            final ProjectGenerator generator = generators.getGenerator(generatorName, projectConfig.getTypeId());
-//            if (generator != null) {
-//                generator.generateProject(project.getBaseFolder(),
-//                        projectConfig.getAttributes());
-//            }
-//        }
 
         project.updateConfig(projectConfig);
         getProjectMisc(project).setCreationDate(System.currentTimeMillis());
@@ -284,15 +275,6 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-//    @Override
-//    public ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
-//        return typeDescriptionRegistry;
-//    }
-
-//    @Override
-//    public Map<String, ValueProviderFactory> getValueProviderFactories() {
-//        return valueProviderFactories;
-//    }
 
     @Override
     public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
@@ -323,5 +305,8 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-
+    @Override
+    public ProjectHandlerRegistry getHandlers() {
+        return handlers;
+    }
 }

@@ -10,20 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.server.type.ProjectType2;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 
-import javax.annotation.PostConstruct;
-import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.io.IOException;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CopyOnWriteArraySet;
 
 /**
  * @author Vitaly Parfonov
@@ -31,39 +24,26 @@ import java.util.concurrent.CopyOnWriteArraySet;
 @Singleton
 public class ProjectTemplateRegistry {
 
-    private final Map<String, List<ProjectTemplateDescriptor>> templates = new ConcurrentHashMap<>();
-    private final Set<ProjectType2> projectTypes;
-    private final ProjectTemplateDescriptionLoader templateLoader;
+    private final  Map<String, List<ProjectTemplateDescriptor>> templates = new ConcurrentHashMap<>();
 
-    @Inject
-    public ProjectTemplateRegistry(Set<ProjectType2> projectTypes, ProjectTemplateDescriptionLoader templateLoader) {
-        this.projectTypes = projectTypes;
-        this.templateLoader = templateLoader;
-    }
-
-
-    @PostConstruct
-    private void registerTemplates() {
-        for (ProjectType2 projectType : projectTypes) {
-            try {
-                for(ProjectTemplateDescriptor templateDescriptor : templateLoader.load(projectType.getId())) {
-                    templateDescriptor.setProjectType(projectType.getId());
-                    register(templateDescriptor);
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-//                LOG.info("MavenProjectType", "Templates not loaded for maven project type");
-            }
-        }
-    }
-
-    public void register(ProjectTemplateDescriptor template) {
-        List<ProjectTemplateDescriptor> templateList = templates.get(template.getProjectType());
+    public void register(String projectTypeId, ProjectTemplateDescriptor template) {
+        List<ProjectTemplateDescriptor> templateList = templates.get(projectTypeId);
         if (templateList == null) {
-            templates.put(template.getProjectType(), templateList = new CopyOnWriteArrayList<>());
+            templates.put(projectTypeId, templateList = new CopyOnWriteArrayList<>());
         }
         templateList.add(template);
     }
+
+
+    public void register(String projectTypeId, List<ProjectTemplateDescriptor> templates) {
+        List<ProjectTemplateDescriptor> templateList = this.templates.get(projectTypeId);
+        if (templateList == null) {
+            this.templates.put(projectTypeId, new CopyOnWriteArrayList<>(templates));
+        } else {
+            templateList.addAll(templates);
+        }
+    }
+
 
 
     public List<ProjectTemplateDescriptor> getTemplates(String projectType) {

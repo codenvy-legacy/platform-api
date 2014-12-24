@@ -53,9 +53,8 @@ public class ProjectTemplateServiceTest {
     public void setUp() {
 
         ProjectTemplateDescriptor template = mock(ProjectTemplateDescriptor.class);
-        when(template.getProjectType()).thenReturn("test");
 
-        templateRegistry.register(template);
+        templateRegistry.register("test", template);
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(ProjectTemplateRegistry.class, templateRegistry);
@@ -93,7 +92,6 @@ public class ProjectTemplateServiceTest {
         Assert.assertNotNull(result);
         Assert.assertEquals(1, result.size());
         Assert.assertNotNull(result.get(0));
-        Assert.assertEquals("test", result.get(0).getProjectType());
     }
 
 

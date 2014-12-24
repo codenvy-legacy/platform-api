@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
@@ -23,7 +24,7 @@ public class BaseProjectModule extends AbstractModule {
     protected void configure() {
         Multibinder.newSetBinder(binder(), ProjectImporter.class).addBinding().to(ZipProjectImporter.class);
         Multibinder.newSetBinder(binder(), ValueProviderFactory.class); /* empty binding */
-        Multibinder.newSetBinder(binder(), ProjectGenerator.class); /* empty binding */
+        Multibinder.newSetBinder(binder(), ProjectHandler.class); /* empty binding */
         bind(ProjectService.class);
         bind(ProjectTypeService.class);
         bind(ProjectImportersService.class);

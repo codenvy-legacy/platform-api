@@ -33,7 +33,7 @@ public class ProjectConfig {
     private List <String> mixinTypes;
 
     public ProjectConfig(String description, String typeId, Map<String, AttributeValue> attributes, Runners runners,
-                         Builders builders, List <String> mixinTypes /*, Map<String, String> generatorParams*/) {
+                         Builders builders, List <String> mixinTypes) {
 
         this.description = description;
         this.typeId = typeId;

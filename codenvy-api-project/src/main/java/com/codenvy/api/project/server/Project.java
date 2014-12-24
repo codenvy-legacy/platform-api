@@ -188,6 +188,15 @@ public class Project {
 
         }
 
+
+        // Default builders and runners
+        if(projectJson.getBuilders().getDefault() == null)
+            projectJson.getBuilders().setDefault(type.getDefaultBuilder());
+
+        if(projectJson.getRunners().getDefault() == null)
+            projectJson.getRunners().setDefault(type.getDefaultRunner());
+
+
         projectJson.save(this);
 
     }

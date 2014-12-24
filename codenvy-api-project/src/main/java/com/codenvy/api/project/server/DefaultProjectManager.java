@@ -161,6 +161,8 @@ public final class DefaultProjectManager implements ProjectManager {
     @Override
     public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options)
             throws ConflictException, ForbiddenException, ServerException {
+
+
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.handlers;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
@@ -24,6 +25,7 @@ public class ProjectHandlerRegistry {
     private Map<String, CreateProjectHandler> createProjectHandlers = new HashMap<>();
     private Map<String, GetItemHandler> getItemHandlers = new HashMap<>();
 
+    @Inject
     public ProjectHandlerRegistry(Set<ProjectHandler> projectHandlers) {
 
         for(ProjectHandler handler : projectHandlers) {

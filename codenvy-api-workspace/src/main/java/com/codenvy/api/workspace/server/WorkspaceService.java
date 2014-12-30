@@ -90,6 +90,7 @@ import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPA
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
+import static java.util.Collections.replaceAll;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.CREATED;
@@ -839,16 +840,25 @@ public class WorkspaceService extends Service {
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
-        Workspace workspaceToDelete = workspaceDao.getById(wsId);
-        if (!workspaceToDelete.isTemporary() && !workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
-            //checking active Saas subscription
-            List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
-            if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
-                //checking primary workspace
-                throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
-            }
+        final Workspace removal = workspaceDao.getById(wsId);
+        if (!removal.isTemporary() && !isExtra(removal) && hasPaidSass(removal.getAccountId())) {
+            throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
         }
         workspaceDao.remove(wsId);
+    }
+
+    private boolean isExtra(Workspace removal) {
+        return "extra".equals(removal.getAttributes().get("codenvy:role"));
+    }
+
+    private boolean hasPaidSass(String accountId) throws NotFoundException, ServerException {
+        final List<Subscription> saas = accountDao.getSubscriptions(accountId, "Saas");
+        //account may have only saas subscription
+        return !saas.isEmpty() && !isCommunity(saas.get(0));
+    }
+
+    private boolean isCommunity(Subscription subscription) {
+        return "Community".equals(subscription.getProperties().get("Package"));
     }
 
     private void createTemporaryWorkspace(Workspace workspace) throws ConflictException, ServerException {

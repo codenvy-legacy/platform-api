@@ -74,7 +74,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.codenvy.api.core.util.LinksHelper.createLink;
 import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.ID_LENGTH;
@@ -809,26 +808,8 @@ public class WorkspaceService extends Service {
                              @ApiParam(value = "User ID")
                              @PathParam("userid")
                              String userId,
-                             @Context SecurityContext context) throws NotFoundException,
-                                                                      ServerException,
-                                                                      ConflictException,
-                                                                      ForbiddenException {
-        final List<Member> members = memberDao.getWorkspaceMembers(wsId);
-        //search for member
-        Member target = null;
-        int admins = 0;
-        for (Member member : members) {
-            if (member.getRoles().contains("workspace/admin")) admins++;
-            if (member.getUserId().equals(userId)) target = member;
-        }
-        if (target == null) {
-            throw new ConflictException(String.format("User %s doesn't have membership with workspace %s", userId, wsId));
-        }
-        //workspace should have at least 1 admin
-        if (admins == 1 && target.getRoles().contains("workspace/admin")) {
-            throw new ConflictException("Workspace should have at least 1 admin");
-        }
-        memberDao.remove(target);
+                             @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
+        memberDao.remove(new Member().withUserId(userId).withWorkspaceId(wsId));
     }
 
     /**

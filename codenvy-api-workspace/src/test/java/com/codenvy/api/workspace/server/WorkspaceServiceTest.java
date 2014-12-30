@@ -668,52 +668,10 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldBeAbleToRemoveWorkspaceMember() throws Exception {
         final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("test_member")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/developer")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
-
-        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
-
-        verify(memberDao).remove(members.get(1));
-    }
-
-    @Test
-    public void shouldNotBeAbleToRemoveLastWorkspaceAdmin() throws Exception {
-        final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("test_member")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/developer")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
-
-        final String errorJson = doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), CONFLICT);
-
-        assertEquals(asError(errorJson).getMessage(), "Workspace should have at least 1 admin");
-    }
-
-    @Test
-    public void shouldBeAbleToRemoveWorkspaceAdminIfOtherOneExists() throws Exception {
-        final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("FAKE")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
 
         doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), NO_CONTENT);
 
-        verify(memberDao).remove(members.get(0));
+        verify(memberDao).remove(any(Member.class));
     }
 
     @Test

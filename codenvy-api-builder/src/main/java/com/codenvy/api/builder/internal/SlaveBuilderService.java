@@ -53,6 +53,7 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -464,8 +465,9 @@ public final class SlaveBuilderService extends Service {
                 links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_DOWNLOAD_RESULT)
                                     .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "downloadFile")
-                                                        .queryParam("path", workDirPath.relativize(ru.toPath()))
-                                                        .build(builder, taskId).toString())
+                                            //Replacing of "\" is need for windows support
+                                                      .queryParam("path", workDirPath.relativize(ru.toPath()).toString().replace("\\", "/"))
+                                                      .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(ContentTypeGuesser.guessContentType(ru)));
             }
@@ -491,16 +493,18 @@ public final class SlaveBuilderService extends Service {
                 links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
                                     .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory")
-                                                        .queryParam("path", workDirPath.relativize(br.toPath()))
-                                                        .build(builder, taskId).toString())
+                                            //Replacing of "\" is need for windows support
+                                                      .queryParam("path", workDirPath.relativize(br.toPath()).toString().replace("\\", "/"))
+                                                      .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(MediaType.TEXT_HTML));
             } else {
                 links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
                                     .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "viewFile")
-                                                        .queryParam("path", workDirPath.relativize(br.toPath()))
-                                                        .build(builder, taskId).toString())
+                                            //Replacing of "\" is need for windows support
+                                                      .queryParam("path", workDirPath.relativize(br.toPath()).toString().replace("\\", "/"))
+                                                      .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(ContentTypeGuesser.guessContentType(br)));
             }

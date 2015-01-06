@@ -938,7 +938,11 @@ public class BuildQueue {
                                     long usageTime;
                                     try {
                                         final BuildTaskDescriptor descriptor = task.getDescriptor();
-                                        usageTime = descriptor.getEndTime() - descriptor.getStartTime();
+                                        final long startTime = descriptor.getStartTime();
+                                        if (startTime <= 0) { // no start event happened
+                                            break;
+                                        }
+                                        usageTime = descriptor.getEndTime() - startTime;
                                     } catch (ApiException e) {
                                         usageTime = 0;
                                     }

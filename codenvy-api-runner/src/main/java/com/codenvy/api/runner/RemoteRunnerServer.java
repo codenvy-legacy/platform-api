@@ -91,16 +91,10 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
     }
 
     public RemoteRunner getRemoteRunner(String name) throws RunnerException {
-        try {
-            for (RunnerDescriptor runnerDescriptor : getRunnerDescriptors()) {
-                if (name.equals(runnerDescriptor.getName())) {
-                    return new RemoteRunner(baseUrl, runnerDescriptor, getLinks());
-                }
+        for (RunnerDescriptor runnerDescriptor : getRunnerDescriptors()) {
+            if (name.equals(runnerDescriptor.getName())) {
+                return createRemoteRunner(runnerDescriptor);
             }
-        } catch (IOException e) {
-            throw new RunnerException(e);
-        } catch (ServerException e) {
-            throw new RunnerException(e.getServiceError());
         }
         throw new RunnerException(String.format("Invalid runner name %s", name));
     }
@@ -135,7 +129,7 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
             if (stateLink == null) {
                 throw new RunnerException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
             }
-            return HttpJsonHelper.request(ServerState.class, stateLink);
+            return HttpJsonHelper.request(ServerState.class, 10000, stateLink);
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

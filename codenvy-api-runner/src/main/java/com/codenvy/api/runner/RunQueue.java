@@ -525,7 +525,6 @@ public class RunQueue {
         // Sometime user may request to skip build of project before run.
         final boolean skipBuild = runOptions.getSkipBuild();
         BuildOptions buildOptions = runOptions.getBuildOptions();
-        final Callable<RemoteRunnerProcess> callable;
         BuildersDescriptor builders;
         if (!skipBuild
             && ((buildOptions != null && buildOptions.getBuilderName() != null)
@@ -540,10 +539,8 @@ public class RunQueue {
             final RemoteServiceDescriptor builderService = getBuilderServiceDescriptor(workspace, serviceContext);
             // schedule build
             buildTaskHolder.set(startBuild(builderService, project, buildOptions));
-            callable = createTaskFor(matchedRunners, request, buildTaskHolder);
-        } else {
-            callable = createTaskFor(matchedRunners, request, buildTaskHolder);
         }
+        final Callable<RemoteRunnerProcess> callable = createTaskFor(matchedRunners, request, buildTaskHolder);
         final Long id = sequence.getAndIncrement();
         final InternalRunTask future = new InternalRunTask(ThreadLocalPropagateContext.wrap(callable), id, workspace, project);
         request.setId(id); // for getting callback events from remote runner

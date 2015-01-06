@@ -165,7 +165,7 @@ public class RemoteBuilder {
             throw new BuilderException("Unable get URL for getting state of a remote builder");
         }
         try {
-            return HttpJsonHelper.request(BuilderState.class, DtoFactory.getInstance().clone(link), Pair.of("builder", name));
+            return HttpJsonHelper.request(BuilderState.class, 10000, DtoFactory.getInstance().clone(link), Pair.of("builder", name));
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

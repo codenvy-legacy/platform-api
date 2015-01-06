@@ -144,7 +144,7 @@ public class RemoteRunner {
                     String.format("Unable get URL for getting state of a remote runner '%s' at '%s'", name, baseUrl));
         }
         try {
-            return HttpJsonHelper.request(RunnerState.class, stateLink, Pair.of("runner", name));
+            return HttpJsonHelper.request(RunnerState.class, 10000, stateLink, Pair.of("runner", name));
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

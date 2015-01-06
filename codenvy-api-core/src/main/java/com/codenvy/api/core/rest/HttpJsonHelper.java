@@ -57,9 +57,19 @@ public class HttpJsonHelper {
         return request(dtoInterface, link.getHref(), link.getMethod(), body, parameters);
     }
 
+    public static <DTO> DTO request(Class<DTO> dtoInterface, int timeout, Link link, Object body, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, link.getHref(), link.getMethod(), body, parameters);
+    }
+
     public static <DTO> DTO request(Class<DTO> dtoInterface, Link link, Pair<String, ?>... parameters)
             throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
         return request(dtoInterface, link, null, parameters);
+    }
+
+    public static <DTO> DTO request(Class<DTO> dtoInterface, int timeout, Link link, Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+        return request(dtoInterface, timeout, link, null, parameters);
     }
 
     public static <DTO> DTO request(Class<DTO> dtoInterface, Link link)
@@ -67,9 +77,19 @@ public class HttpJsonHelper {
         return request(dtoInterface, link, EMPTY);
     }
 
+    public static <DTO> DTO request(Class<DTO> dtoInterface, int timeout, Link link)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, link, EMPTY);
+    }
+
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link, Object body, Pair<String, ?>... parameters)
             throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return requestArray(dtoInterface, link.getHref(), link.getMethod(), body, parameters);
+    }
+
+    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, int timeout, Link link, Object body, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return requestArray(dtoInterface, timeout, link.getHref(), link.getMethod(), body, parameters);
     }
 
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link, Pair<String, ?>... parameters)
@@ -77,9 +97,19 @@ public class HttpJsonHelper {
         return requestArray(dtoInterface, link, null, parameters);
     }
 
+    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, int timeout, Link link, Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+        return requestArray(dtoInterface, timeout, link, null, parameters);
+    }
+
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, Link link)
             throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return requestArray(dtoInterface, link, EMPTY);
+    }
+
+    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface, int timeout, Link link)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return requestArray(dtoInterface, timeout, link, EMPTY);
     }
 
     public static String requestString(String url,
@@ -90,6 +120,14 @@ public class HttpJsonHelper {
         return httpJsonHelperImpl.requestString(url, method, body, parameters);
     }
 
+    public static String requestString(int timeout,
+                                       String url,
+                                       String method,
+                                       Object body,
+                                       Pair<String, ?>... parameters)
+            throws IOException, ServerException, ForbiddenException, NotFoundException, UnauthorizedException, ConflictException {
+        return httpJsonHelperImpl.requestString(timeout, url, method, body, parameters);
+    }
 
     /**
      * Sends HTTP request to specified {@code url}.
@@ -122,6 +160,16 @@ public class HttpJsonHelper {
         return httpJsonHelperImpl.request(dtoInterface, url, method, body, parameters);
     }
 
+    public static <DTO> DTO request(Class<DTO> dtoInterface,
+                                    int timeout,
+                                    String url,
+                                    String method,
+                                    Object body,
+                                    Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+        return httpJsonHelperImpl.request(dtoInterface, timeout, url, method, body, parameters);
+    }
+
     public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface,
                                                String url,
                                                String method,
@@ -131,6 +179,15 @@ public class HttpJsonHelper {
         return httpJsonHelperImpl.requestArray(dtoInterface, url, method, body, parameters);
     }
 
+    public static <DTO> List<DTO> requestArray(Class<DTO> dtoInterface,
+                                               int timeout,
+                                               String url,
+                                               String method,
+                                               Object body,
+                                               Pair<String, ?>... parameters)
+            throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+        return httpJsonHelperImpl.requestArray(dtoInterface, timeout, url, method, body, parameters);
+    }
 
     /**
      * Sends GET request to specified {@code url}.
@@ -152,6 +209,11 @@ public class HttpJsonHelper {
     public static <DTO> DTO get(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
             throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "GET", null, parameters);
+    }
+
+    public static <DTO> DTO get(Class<DTO> dtoInterface, int timeout, String url, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, url, "GET", null, parameters);
     }
 
     /**
@@ -178,6 +240,11 @@ public class HttpJsonHelper {
         return request(dtoInterface, url, "POST", body, parameters);
     }
 
+    public static <DTO> DTO post(Class<DTO> dtoInterface, int timeout, String url, Object body, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, url, "POST", body, parameters);
+    }
+
     /**
      * Sends PUT request to specified {@code url}.
      *
@@ -202,6 +269,11 @@ public class HttpJsonHelper {
         return request(dtoInterface, url, "PUT", body, parameters);
     }
 
+    public static <DTO> DTO put(Class<DTO> dtoInterface, int timeout, String url, Object body, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, url, "PUT", body, parameters);
+    }
+
     /**
      * Sends OPTIONS request to specified {@code url}.
      *
@@ -222,6 +294,11 @@ public class HttpJsonHelper {
     public static <DTO> DTO options(Class<DTO> dtoInterface, String url, Pair<String, ?>... parameters)
             throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
         return request(dtoInterface, url, "OPTIONS", null, parameters);
+    }
+
+    public static <DTO> DTO options(Class<DTO> dtoInterface, int timeout, String url, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, url, "OPTIONS", null, parameters);
     }
 
     /**
@@ -246,6 +323,11 @@ public class HttpJsonHelper {
         return request(dtoInterface, url, "DELETE", null, parameters);
     }
 
+    public static <DTO> DTO delete(Class<DTO> dtoInterface, int timeout, String url, Pair<String, ?>... parameters)
+            throws IOException, ServerException, NotFoundException, ForbiddenException, UnauthorizedException, ConflictException {
+        return request(dtoInterface, timeout, url, "DELETE", null, parameters);
+    }
+
     private HttpJsonHelper() {
     }
 
@@ -260,12 +342,21 @@ public class HttpJsonHelper {
                                  Object body,
                                  Pair<String, ?>... parameters)
                 throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
-            final String str = requestString(url, method, body, parameters);
+            return request(dtoInterface, -1, url, method, body, parameters);
+        }
+
+        public <DTO> DTO request(Class<DTO> dtoInterface,
+                                 int timeout,
+                                 String url,
+                                 String method,
+                                 Object body,
+                                 Pair<String, ?>... parameters)
+                throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+            final String str = requestString(timeout, url, method, body, parameters);
             if (dtoInterface != null) {
                 return DtoFactory.getInstance().createDtoFromJson(str, dtoInterface);
             }
             return null;
-
         }
 
         public <DTO> List<DTO> requestArray(Class<DTO> dtoInterface,
@@ -274,7 +365,17 @@ public class HttpJsonHelper {
                                             Object body,
                                             Pair<String, ?>... parameters)
                 throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
-            final String str = requestString(url, method, body, parameters);
+            return requestArray(dtoInterface, -1, url, method, body, parameters);
+        }
+
+        public <DTO> List<DTO> requestArray(Class<DTO> dtoInterface,
+                                            int timeout,
+                                            String url,
+                                            String method,
+                                            Object body,
+                                            Pair<String, ?>... parameters)
+                throws IOException, ServerException, UnauthorizedException, ForbiddenException, NotFoundException, ConflictException {
+            final String str = requestString(timeout, url, method, body, parameters);
             if (dtoInterface != null) {
                 return DtoFactory.getInstance().createListDtoFromJson(str, dtoInterface);
             }
@@ -290,6 +391,15 @@ public class HttpJsonHelper {
         }
 
         public String requestString(String url,
+                                    String method,
+                                    Object body,
+                                    Pair<String, ?>... parameters)
+                throws IOException, ServerException, ForbiddenException, NotFoundException, UnauthorizedException, ConflictException {
+            return requestString(-1, url, method, body, parameters);
+        }
+
+        public String requestString(int timeout,
+                                    String url,
                                     String method,
                                     Object body,
                                     Pair<String, ?>... parameters)
@@ -311,8 +421,8 @@ public class HttpJsonHelper {
                 url = ub.build().toString();
             }
             final HttpURLConnection conn = (HttpURLConnection)new URL(url).openConnection();
-            conn.setConnectTimeout(60 * 1000);
-            conn.setReadTimeout(60 * 1000);
+            conn.setConnectTimeout(timeout > 0 ? timeout : 60000);
+            conn.setReadTimeout(timeout > 0 ? timeout : 60000);
             try {
                 conn.setRequestMethod(method);
                 if (body != null) {

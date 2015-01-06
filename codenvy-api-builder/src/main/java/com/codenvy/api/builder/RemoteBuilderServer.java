@@ -63,21 +63,15 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
     }
 
     public RemoteBuilder getRemoteBuilder(String name) throws BuilderException {
-        try {
-            for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
-                if (name.equals(builderDescriptor.getName())) {
-                    return new RemoteBuilder(baseUrl, builderDescriptor, getLinks());
-                }
+        for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
+            if (name.equals(builderDescriptor.getName())) {
+                return createRemoteBuilder(builderDescriptor);
             }
-        } catch (IOException e) {
-            throw new BuilderException(e);
-        } catch (ServerException e) {
-            throw new BuilderException(e.getServiceError());
         }
         throw new BuilderException(String.format("Invalid builder name %s", name));
     }
 
-    public RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
+    RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
         try {
             return new RemoteBuilder(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
@@ -107,7 +101,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
             if (stateLink == null) {
                 throw new BuilderException(String.format("Unable get URL for getting state of a remote server '%s'", baseUrl));
             }
-            return HttpJsonHelper.request(ServerState.class, stateLink);
+            return HttpJsonHelper.request(ServerState.class, 10000, stateLink);
         } catch (IOException e) {
             throw new BuilderException(e);
         } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {

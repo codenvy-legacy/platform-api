@@ -48,6 +48,7 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -355,6 +356,14 @@ public class BuilderService extends Service {
     public List<BuilderDescriptor> getRegisteredServers(@ApiParam(value = "Workspace ID", required = true)
                                                         @PathParam("ws-id") String workspace) {
         final List<RemoteBuilderServer> builderServers = buildQueue.getRegisterBuilderServers();
+        for (Iterator<RemoteBuilderServer> itr = builderServers.iterator(); itr.hasNext(); ) {
+            final RemoteBuilderServer builderServer = itr.next();
+            if (!builderServer.isAvailable()) {
+                LOG.error("Builder server {} becomes unavailable", builderServer.getBaseUrl());
+                itr.remove();
+            }
+        }
+
         final List<BuilderDescriptor> result = new LinkedList<>();
         for (RemoteBuilderServer builderServer : builderServers) {
             final String assignedWorkspace = builderServer.getAssignedWorkspace();

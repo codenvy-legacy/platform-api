@@ -58,6 +58,7 @@ public class RunnerServiceTest {
     public void testGetRunnerEnvironments() throws Exception {
         List<RemoteRunnerServer> servers = new ArrayList<>(1);
         RemoteRunnerServer server1 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server1).isAvailable();
         servers.add(server1);
         List<RunnerDescriptor> runners1 = new ArrayList<>(1);
         RunnerDescriptor runner1 = dto(RunnerDescriptor.class).withName("java/web");
@@ -66,6 +67,7 @@ public class RunnerServiceTest {
         runners1.add(runner1);
 
         RemoteRunnerServer server2 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server2).isAvailable();
         servers.add(server2);
         List<RunnerDescriptor> runners2 = new ArrayList<>(1);
         RunnerDescriptor runner2 = dto(RunnerDescriptor.class).withName("java/web");
@@ -110,6 +112,7 @@ public class RunnerServiceTest {
     public void testGetRunnerEnvironmentsIfOneServerUnavailable() throws Exception {
         List<RemoteRunnerServer> servers = new ArrayList<>(2);
         RemoteRunnerServer server1 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server1).isAvailable();
         servers.add(server1);
         List<RunnerDescriptor> runners = new ArrayList<>(1);
         RunnerDescriptor runner1 = dto(RunnerDescriptor.class).withName("java/web");
@@ -119,6 +122,7 @@ public class RunnerServiceTest {
         doReturn(runners).when(server1).getRunnerDescriptors();
 
         RemoteRunnerServer server2 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server2).isAvailable();
         doThrow(new RunnerException("Connection refused")).when(server2).getRunnerDescriptors();
         servers.add(server2);
 
@@ -204,6 +208,7 @@ public class RunnerServiceTest {
     private List<RemoteRunnerServer> createRunners() throws Exception {
         List<RemoteRunnerServer> servers = new ArrayList<>(1);
         RemoteRunnerServer server1 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server1).isAvailable();
         servers.add(server1);
         List<RunnerDescriptor> runners1 = new ArrayList<>(1);
         RunnerDescriptor runner1 = dto(RunnerDescriptor.class).withName("java/web");
@@ -212,6 +217,7 @@ public class RunnerServiceTest {
         runners1.add(runner1);
 
         RemoteRunnerServer server2 = mock(RemoteRunnerServer.class);
+        doReturn(true).when(server2).isAvailable();
         servers.add(server2);
         List<RunnerDescriptor> runners2 = new ArrayList<>(1);
         RunnerDescriptor runner2 = dto(RunnerDescriptor.class).withName("java/web");

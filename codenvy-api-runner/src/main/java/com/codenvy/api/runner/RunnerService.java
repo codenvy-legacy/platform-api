@@ -49,6 +49,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -219,7 +220,15 @@ public class RunnerService extends Service {
         // Here merge environments from all know runner servers and represent them as tree.
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final RunnerEnvironmentTree root = dtoFactory.createDto(RunnerEnvironmentTree.class).withDisplayName("system");
-        for (RemoteRunnerServer runnerServer : runQueue.getRegisterRunnerServers()) {
+        final List<RemoteRunnerServer> registerRunnerServers = runQueue.getRegisterRunnerServers();
+        for (Iterator<RemoteRunnerServer> itr = registerRunnerServers.iterator(); itr.hasNext(); ) {
+            final RemoteRunnerServer runnerServer = itr.next();
+            if (!runnerServer.isAvailable()) {
+                LOG.error("Runner server {} becomes unavailable", runnerServer.getBaseUrl());
+                itr.remove();
+            }
+        }
+        for (RemoteRunnerServer runnerServer : registerRunnerServers) {
             final String assignedWorkspace;
             final String assignedProject;
             try {

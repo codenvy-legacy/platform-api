@@ -17,6 +17,9 @@ public class ShellFactory {
         if (SystemInfo.isUnix()) {
             return new StandardLinuxShell();
         }
+        if (SystemInfo.isWindows()) {
+            return new StandardWindowsShell();
+        }
         throw new IllegalStateException("Unsupported OS");
     }
 
@@ -93,6 +96,60 @@ public class ShellFactory {
             final String[] line = new String[3];
             line[0] = "/bin/bash";
             line[1] = "-cl";
+            line[2] = buff.toString();
+            return line;
+        }
+    }
+
+    public static class StandardWindowsShell implements Shell {
+
+        @Override
+        public String[] createShellCommand(CommandLine args) {
+            final String[] array = args.asArray();
+            if (array.length == 0) {
+                throw new IllegalArgumentException("Command line is empty");
+            }
+            StringBuilder buff = new StringBuilder();
+            for (String str : array) {
+                if (!str.isEmpty()) {
+                    if (buff.length() > 0) {
+                        buff.append(' ');
+                    }
+                    for (int i = 0, len = str.length(); i < len; i++) {
+                        char c = str.charAt(i);
+                        switch (c) {
+                            case '|':
+                            case '>':
+                            case '<':
+                            case '\'':
+                            case '"':
+                            case '`':
+                            case '&':
+                            case ',':
+                            case ';':
+                            case '(':
+                            case ')':
+                            case '@':
+                            case '^':
+                            case '*':
+                                buff.append('^');
+                                buff.append(c);
+                                break;
+                            case '%':
+                                buff.append('%');
+                                buff.append('%');
+                                break;
+                            default:
+                                buff.append(c);
+                                break;
+                        }
+                    }
+                }
+            }
+
+            final String[] line = new String[3];
+            line[0] = "cmd.exe";
+            line[1] = "/c";
             line[2] = buff.toString();
             return line;
         }

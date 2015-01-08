@@ -591,6 +591,31 @@ public class RunQueueTest {
     }
 
     @Test(expectedExceptions = {RunnerException.class},
+            expectedExceptionsMessageRegExp = "Run action for this workspace is locked")
+    public void testErrorWhenRunIsBlockedForWorkspace() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        // Free memory should be more than 256.
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(512))).when(runner).getRemoteRunnerState();
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"));
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        // limit memory
+        workspace.getAttributes().put(Constants.RUNNER_MAX_MEMORY_SIZE, "1024");
+        workspace.getAttributes().put(com.codenvy.api.builder.internal.Constants.WORKSPACE_LOCKED, "true");
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+
+        try {
+            runQueue.run(wsId, pPath, serviceContext, null);
+        } catch (RunnerException e) {
+            verify(runQueue, never()).checkMemory(eq(wsId), anyInt(), anyInt());
+            throw e;
+        }
+    }
+
+    @Test(expectedExceptions = {RunnerException.class},
           expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 129M required.")
     public void testErrorWhenNotEnoughMemoryToRunNewApplication() throws Exception {
         RemoteRunnerServer runnerServer = registerDefaultRunnerServer();

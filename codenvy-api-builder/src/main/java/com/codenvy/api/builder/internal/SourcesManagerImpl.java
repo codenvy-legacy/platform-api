@@ -200,7 +200,8 @@ public class SourcesManagerImpl implements SourcesManager {
                             q.push(f);
                         } else {
                             md5sums.add(Pair.of(com.google.common.io.Files.hash(f, Hashing.md5()).toString(),
-                                                downloadTo.toPath().relativize(f.toPath()).toString()));
+                                                downloadTo.toPath().relativize(f.toPath()).toString()
+                                                          .replace("\\", "/"))); //Replacing of "\" is need for windows support
                         }
                     }
                 }

@@ -74,7 +74,6 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.codenvy.api.core.util.LinksHelper.createLink;
 import static com.codenvy.api.project.server.Constants.LINK_REL_GET_PROJECTS;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.workspace.server.Constants.ID_LENGTH;
@@ -91,6 +90,7 @@ import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPA
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
+import static java.util.Collections.replaceAll;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.CREATED;
@@ -809,26 +809,8 @@ public class WorkspaceService extends Service {
                              @ApiParam(value = "User ID")
                              @PathParam("userid")
                              String userId,
-                             @Context SecurityContext context) throws NotFoundException,
-                                                                      ServerException,
-                                                                      ConflictException,
-                                                                      ForbiddenException {
-        final List<Member> members = memberDao.getWorkspaceMembers(wsId);
-        //search for member
-        Member target = null;
-        int admins = 0;
-        for (Member member : members) {
-            if (member.getRoles().contains("workspace/admin")) admins++;
-            if (member.getUserId().equals(userId)) target = member;
-        }
-        if (target == null) {
-            throw new ConflictException(String.format("User %s doesn't have membership with workspace %s", userId, wsId));
-        }
-        //workspace should have at least 1 admin
-        if (admins == 1 && target.getRoles().contains("workspace/admin")) {
-            throw new ConflictException("Workspace should have at least 1 admin");
-        }
-        memberDao.remove(target);
+                             @Context SecurityContext context) throws NotFoundException, ServerException, ConflictException {
+        memberDao.remove(new Member().withUserId(userId).withWorkspaceId(wsId));
     }
 
     /**
@@ -858,16 +840,25 @@ public class WorkspaceService extends Service {
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
-        Workspace workspaceToDelete = workspaceDao.getById(wsId);
-        if (!workspaceToDelete.isTemporary() && !workspaceToDelete.getAttributes().containsKey("codenvy:role")) {
-            //checking active Saas subscription
-            List<Subscription> saasSubscriptions = accountDao.getSubscriptions(workspaceToDelete.getAccountId(), "Saas");
-            if (!saasSubscriptions.isEmpty() && !"Community".equals(saasSubscriptions.get(0).getProperties().get("Package"))) {
-                //checking primary workspace
-                throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
-            }
+        final Workspace removal = workspaceDao.getById(wsId);
+        if (!removal.isTemporary() && !isExtra(removal) && hasPaidSass(removal.getAccountId())) {
+            throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
         }
         workspaceDao.remove(wsId);
+    }
+
+    private boolean isExtra(Workspace removal) {
+        return "extra".equals(removal.getAttributes().get("codenvy:role"));
+    }
+
+    private boolean hasPaidSass(String accountId) throws NotFoundException, ServerException {
+        final List<Subscription> saas = accountDao.getSubscriptions(accountId, "Saas");
+        //account may have only saas subscription
+        return !saas.isEmpty() && !isCommunity(saas.get(0));
+    }
+
+    private boolean isCommunity(Subscription subscription) {
+        return "Community".equals(subscription.getProperties().get("Package"));
     }
 
     private void createTemporaryWorkspace(Workspace workspace) throws ConflictException, ServerException {

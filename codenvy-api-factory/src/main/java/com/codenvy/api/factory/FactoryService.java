@@ -30,6 +30,7 @@ import com.codenvy.api.project.server.ProjectManager;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
+import com.codenvy.api.project.shared.dto.Source;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;

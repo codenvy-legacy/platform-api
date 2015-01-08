@@ -83,6 +83,7 @@ import static javax.ws.rs.core.Response.Status.NO_CONTENT;
 import static javax.ws.rs.core.Response.Status.OK;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -668,52 +669,10 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldBeAbleToRemoveWorkspaceMember() throws Exception {
         final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("test_member")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/developer")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
-
-        doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/test_member", NO_CONTENT);
-
-        verify(memberDao).remove(members.get(1));
-    }
-
-    @Test
-    public void shouldNotBeAbleToRemoveLastWorkspaceAdmin() throws Exception {
-        final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("test_member")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/developer")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
-
-        final String errorJson = doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), CONFLICT);
-
-        assertEquals(asError(errorJson).getMessage(), "Workspace should have at least 1 admin");
-    }
-
-    @Test
-    public void shouldBeAbleToRemoveWorkspaceAdminIfOtherOneExists() throws Exception {
-        final Workspace testWorkspace = createWorkspace();
-        final List<Member> members = asList(new Member().withUserId(testUser.getId())
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")),
-                                            new Member().withUserId("FAKE")
-                                                        .withWorkspaceId(testWorkspace.getId())
-                                                        .withRoles(singletonList("workspace/admin")));
-        when(memberDao.getWorkspaceMembers(testWorkspace.getId())).thenReturn(members);
-        prepareRole("workspace/admin");
 
         doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/members/" + testUser.getId(), NO_CONTENT);
 
-        verify(memberDao).remove(members.get(0));
+        verify(memberDao).remove(any(Member.class));
     }
 
     @Test

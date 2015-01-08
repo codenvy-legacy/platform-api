@@ -717,6 +717,9 @@ public class RunQueue {
     }
 
     int getTotalMemory(WorkspaceDescriptor workspace) throws RunnerException {
+        if (workspace.getAttributes().containsKey(com.codenvy.api.builder.internal.Constants.WORKSPACE_LOCKED)) {
+            throw new RunnerException("Run action for this workspace is locked");
+        }
         final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
         return availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
     }

@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.server;
+package com.codenvy.api.account.server.subscription;
 
 import com.google.inject.Singleton;
 

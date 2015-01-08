@@ -76,6 +76,7 @@ public class Constants {
 
     // attributes of workspace which are interested for builder
     public static final String BUILDER_EXECUTION_TIME = "codenvy:builder_execution_time";
+    public static final String WORKSPACE_LOCKED       = "codenvy:workspace_locked";
 
     private Constants() {
     }

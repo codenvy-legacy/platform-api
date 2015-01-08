@@ -33,7 +33,6 @@ public final class Constants {
     public static final String LINK_REL_GET_ACCOUNTS                = "get accounts";
     public static final String LINK_REL_ADD_ATTRIBUTE               = "add attribute";
     public static final String LINK_REL_REMOVE_ATTRIBUTE            = "remove attribute";
-    public static final String LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES = "get subscription attributes";
     public static final int    ID_LENGTH                            = 16;
 
     private Constants() {

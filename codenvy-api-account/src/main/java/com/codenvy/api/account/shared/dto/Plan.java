@@ -21,6 +21,9 @@ import java.util.Map;
  */
 @DTO
 public interface Plan {
+    /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
+     * that allow better validate data that was sent
+    */
     String getId();
 
     void setId(String id);
@@ -33,21 +36,51 @@ public interface Plan {
 
     Plan withServiceId(String serviceId);
 
-    boolean isPaid();
+    Boolean isPaid();
 
-    void setPaid(boolean paid);
+    void setPaid(Boolean paid);
 
-    Plan withPaid(boolean paid);
+    Plan withPaid(Boolean paid);
 
-    boolean getSalesOnly();
+    Boolean getSalesOnly();
 
-    void setSalesOnly(boolean salesOnly);
+    void setSalesOnly(Boolean salesOnly);
 
-    Plan withSalesOnly(boolean salesOnly);
+    Plan withSalesOnly(Boolean salesOnly);
 
     Map<String, String> getProperties();
 
     void setProperties(Map<String, String> properties);
 
     Plan withProperties(Map<String, String> properties);
+
+    Integer getTrialDuration();
+
+    void setTrialDuration(Integer trialDuration);
+
+    Plan withTrialDuration(Integer trialDuration);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    Plan withDescription(String description);
+
+    Integer getBillingCycle();
+
+    void setBillingCycle(Integer cycle);
+
+    Plan withBillingCycle(Integer cycle);
+
+    BillingCycleType getBillingCycleType();
+
+    void setBillingCycleType(BillingCycleType billingCycleType);
+
+    Plan withBillingCycleType(BillingCycleType billingCycleType);
+
+    Integer getBillingContractTerm();
+
+    void setBillingContractTerm(Integer contractTerm);
+
+    Plan withBillingContractTerm(Integer contractTerm);
 }

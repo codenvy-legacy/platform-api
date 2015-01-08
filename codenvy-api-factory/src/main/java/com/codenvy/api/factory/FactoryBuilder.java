@@ -91,7 +91,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
 
     @Inject
     public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator,
-                          @Named("subscription.orgaddon.enabled") boolean onPremises) {
+                          @Named("onpremises.enabled") boolean onPremises) {
         this.sourceProjectParametersValidator = sourceProjectParametersValidator;
         this.onPremises = onPremises;
     }

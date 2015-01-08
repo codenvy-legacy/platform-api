@@ -8,10 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.server;
+package com.codenvy.api.account.server.subscription;
 
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
+import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -24,26 +24,23 @@ import com.codenvy.api.core.ServerException;
  */
 public interface PaymentService {
     /**
-     * Purchases subscription.
+     * Charge subscription.
      *
      * @param subscription
      *         subscription for which the user pays
-     * @param subscriptionAttributes
-     *         attributes of the subscription
      * @throws ServerException
      *         if internal server error occurs
      */
-    NewSubscriptionAttributes addSubscription(Subscription subscription, NewSubscriptionAttributes subscriptionAttributes)
-            throws ConflictException, ServerException, ForbiddenException;
+    void charge(Subscription subscription) throws ConflictException, ServerException, ForbiddenException;
+
 
     /**
-     * Removes subscription from payment service.
+     * Retrieve credit card description from payment system
      *
-     * @param subscriptionId
-     *         id of the subscription to be removed
+     * @param token CC token
+     * @return {@link com.codenvy.api.account.shared.dto.CreditCard} with credit card description
      * @throws NotFoundException
-     *         if subscription is not found
      * @throws ServerException
      */
-    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException, ForbiddenException;
+    CreditCard getCreditCard(String token) throws NotFoundException, ServerException, ForbiddenException;
 }

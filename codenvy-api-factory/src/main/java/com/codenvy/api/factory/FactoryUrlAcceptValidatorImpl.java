@@ -29,7 +29,7 @@ public class FactoryUrlAcceptValidatorImpl extends FactoryUrlBaseValidator imple
     public FactoryUrlAcceptValidatorImpl(AccountDao accountDao,
                                          UserDao userDao,
                                          UserProfileDao profileDao,
-                                         @Named("subscription.orgaddon.enabled") boolean onPremises) {
+                                         @Named("onpremises.enabled") boolean onPremises) {
         super(accountDao,userDao,profileDao, onPremises);
     }
 

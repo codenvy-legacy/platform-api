@@ -8,16 +8,13 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.server;
-
-import com.codenvy.api.account.shared.dto.NewSubscriptionAttributes;
-import com.codenvy.api.core.ConflictException;
+package com.codenvy.api.account.shared.dto;
 
 /**
- * Validates attributes of the subscription.
+ * Types of dilling cycles
  *
  * @author Alexander Garagatyi
  */
-public interface SubscriptionAttributesValidator {
-    void validate(NewSubscriptionAttributes subscriptionAttributes) throws ConflictException;
+public enum BillingCycleType {
+    AutoRenew, OneTime, NoRenewal
 }

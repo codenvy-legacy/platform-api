@@ -12,12 +12,10 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.server.dao.Billing;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.server.dao.SubscriptionAttributes;
+import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
@@ -26,15 +24,15 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.locks.ReadWriteLock;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
+
+import static com.codenvy.api.account.shared.dto.SubscriptionState.ACTIVE;
 
 /**
  * @author Eugene Voevodin
@@ -42,11 +40,10 @@ import java.util.concurrent.locks.ReentrantReadWriteLock;
 @Singleton
 public class LocalAccountDaoImpl implements AccountDao {
 
-    private final List<Account>                       accounts;
-    private final List<Member>                        members;
-    private final List<Subscription>                  subscriptions;
-    private final Map<String, SubscriptionAttributes> subscriptionAttributesMap;
-    private final ReadWriteLock                       lock;
+    private final List<Account>      accounts;
+    private final List<Member>       members;
+    private final List<Subscription> subscriptions;
+    private final ReadWriteLock      lock;
 
     private final WorkspaceDao workspaceDao;
 
@@ -54,13 +51,11 @@ public class LocalAccountDaoImpl implements AccountDao {
     public LocalAccountDaoImpl(@Named("codenvy.local.infrastructure.accounts") Set<Account> accounts,
                                @Named("codenvy.local.infrastructure.account.members") Set<Member> members,
                                @Named("codenvy.local.infrastructure.account.subscriptions") Set<Subscription> subscriptions,
-                               @Named("codenvy.local.infrastructure.account.subscriptionAttributes") Map<String, SubscriptionAttributes> subscriptionAttributes,
                                WorkspaceDao workspaceDao) {
         this.workspaceDao = workspaceDao;
         this.accounts = new LinkedList<>();
         this.members = new LinkedList<>();
         this.subscriptions = new LinkedList<>();
-        this.subscriptionAttributesMap = new LinkedHashMap<>();
         lock = new ReentrantReadWriteLock();
         try {
             for (Account account : accounts) {
@@ -71,9 +66,6 @@ public class LocalAccountDaoImpl implements AccountDao {
             }
             for (Subscription subscription : subscriptions) {
                 addSubscription(subscription);
-            }
-            for (Map.Entry<String, SubscriptionAttributes> e : subscriptionAttributes.entrySet()) {
-                saveSubscriptionAttributes(e.getKey(), e.getValue());
             }
         } catch (Exception e) {
             // fail if can't init this instance properly
@@ -308,9 +300,7 @@ public class LocalAccountDaoImpl implements AccountDao {
             if (myAccount == null) {
                 throw new NotFoundException(String.format("Not found account %s", subscription.getAccountId()));
             }
-            subscriptions.add(new Subscription().withId(subscription.getId()).withAccountId(subscription.getAccountId())
-                                                .withPlanId(subscription.getPlanId()).withServiceId(subscription.getServiceId())
-                                                .withProperties(new LinkedHashMap<>(subscription.getProperties())));
+            subscriptions.add(new Subscription(subscription));
         } finally {
             lock.writeLock().unlock();
         }
@@ -348,24 +338,21 @@ public class LocalAccountDaoImpl implements AccountDao {
             if (subscription == null) {
                 throw new NotFoundException(String.format("Not found subscription %s", subscriptionId));
             }
-            return new Subscription().withId(subscription.getId()).withAccountId(subscription.getAccountId())
-                                     .withPlanId(subscription.getPlanId()).withServiceId(subscription.getServiceId())
-                                     .withProperties(new LinkedHashMap<>(subscription.getProperties()));
+            return new Subscription(subscription);
         } finally {
             lock.readLock().unlock();
         }
     }
 
     @Override
-    public List<Subscription> getSubscriptions(String accountId, String serviceId) {
+    public List<Subscription> getActiveSubscriptions(String accountId, String serviceId) {
         final List<Subscription> result = new LinkedList<>();
         lock.readLock().lock();
         try {
             for (Subscription subscription : subscriptions) {
-                if (accountId.equals(subscription.getAccountId()) && serviceId.equals(subscription.getServiceId())) {
-                    result.add(new Subscription().withId(subscription.getId()).withAccountId(subscription.getAccountId())
-                                                 .withPlanId(subscription.getPlanId()).withServiceId(subscription.getServiceId())
-                                                 .withProperties(new LinkedHashMap<>(subscription.getProperties())));
+                if (accountId.equals(subscription.getAccountId()) && serviceId.equals(subscription.getServiceId()) && ACTIVE.equals(
+                        subscription.getState())) {
+                    result.add(new Subscription(subscription));
                 }
             }
         } finally {
@@ -378,8 +365,9 @@ public class LocalAccountDaoImpl implements AccountDao {
     public void updateSubscription(Subscription subscription) throws NotFoundException, ServerException {
         lock.writeLock().lock();
         try {
+            int i = 0;
             Subscription mySubscription = null;
-            for (int i = 0, size = subscriptions.size(); i < size && mySubscription == null; i++) {
+            for (int size = subscriptions.size(); i < size && mySubscription == null; i++) {
                 if (subscriptions.get(i).getId().equals(subscription.getId())) {
                     mySubscription = subscriptions.get(i);
                 }
@@ -387,108 +375,15 @@ public class LocalAccountDaoImpl implements AccountDao {
             if (mySubscription == null) {
                 throw new NotFoundException(String.format("Not found subscription %s", subscription.getId()));
             }
-            mySubscription.setAccountId(subscription.getAccountId());
-            mySubscription.setPlanId(subscription.getPlanId());
-            mySubscription.setServiceId(subscription.getServiceId());
-            mySubscription.getProperties().clear();
-            mySubscription.getProperties().putAll(subscription.getProperties());
+            subscriptions.remove(i);
+            subscriptions.add(i, new Subscription(subscription));
         } finally {
             lock.writeLock().unlock();
         }
     }
 
     @Override
-    public List<Subscription> getSubscriptions() throws ServerException {
-        final List<Subscription> result = new LinkedList<>();
-        lock.readLock().lock();
-        try {
-            for (Subscription subscription : subscriptions) {
-                result.add(new Subscription().withId(subscription.getId()).withAccountId(subscription.getAccountId())
-                                             .withPlanId(subscription.getPlanId()).withServiceId(subscription.getServiceId())
-                                             .withProperties(new LinkedHashMap<>(subscription.getProperties())));
-            }
-        } finally {
-            lock.readLock().unlock();
-        }
-        return result;
-    }
-
-    @Override
-    public void saveSubscriptionAttributes(String subscriptionId, SubscriptionAttributes subscriptionAttributes)
-            throws ForbiddenException, NotFoundException {
-        lock.writeLock().lock();
-        try {
-            if (null == subscriptionAttributes) {
-                throw new ForbiddenException("Subscription attributes required");
-            }
-            Subscription subscription = null;
-            for (int i = 0, size = subscriptions.size(); i < size && subscription == null; i++) {
-                if (subscriptions.get(i).getId().equals(subscriptionId)) {
-                    subscription = subscriptions.get(i);
-                }
-            }
-            if (subscription == null) {
-                throw new NotFoundException(String.format("Not found subscription %s", subscriptionId));
-            }
-            subscriptionAttributesMap.put(subscriptionId, doClone(subscriptionAttributes));
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    @Override
-    public SubscriptionAttributes getSubscriptionAttributes(String subscriptionId) throws NotFoundException {
-        lock.readLock().lock();
-        try {
-            final SubscriptionAttributes subscriptionAttributes = subscriptionAttributesMap.get(subscriptionId);
-            if (subscriptionAttributes == null) {
-                throw new NotFoundException(String.format("Attributes of subscription %s not found", subscriptionId));
-            }
-            return doClone(subscriptionAttributes);
-        } finally {
-            lock.readLock().unlock();
-        }
-//        return DtoFactory.getInstance().createDto(SubscriptionAttributes.class)
-//                         .withTrialDuration(5)
-//                         .withStartDate("10/21/2015")
-//                         .withEndDate("10/21/2015")
-//                         .withDescription("description")
-//                         .withCustom(Collections.singletonMap("key", "value"))
-//                         .withBilling(DtoFactory.getInstance().createDto(Billing.class)
-//                                                .withStartDate("10/21/2015")
-//                                                .withEndDate("10/21/2015")
-//                                                .withUsePaymentSystem("true")
-//                                                .withPaymentToken("token")
-//                                                .withContractTerm(12)
-//                                                .withCycle(1)
-//                                                .withCycleType(2));
-    }
-
-    @Override
-    public void removeSubscriptionAttributes(String subscriptionId) throws NotFoundException {
-        lock.writeLock().lock();
-        try {
-            if (null == subscriptionAttributesMap.remove(subscriptionId)) {
-                throw new NotFoundException(String.format("Attributes of subscription %s not found", subscriptionId));
-            }
-        } finally {
-            lock.writeLock().unlock();
-        }
-    }
-
-    private SubscriptionAttributes doClone(SubscriptionAttributes attributes) {
-        final Billing newBilling = new Billing();
-        newBilling.setContractTerm(attributes.getBilling().getContractTerm());
-        newBilling.setCycle(attributes.getBilling().getCycle());
-        newBilling.setCycleType(attributes.getBilling().getCycleType());
-        newBilling.setEndDate(attributes.getBilling().getEndDate());
-        newBilling.setStartDate(attributes.getBilling().getStartDate());
-        newBilling.setUsePaymentSystem(attributes.getBilling().getUsePaymentSystem());
-        return new SubscriptionAttributes().withBilling(newBilling)
-                                           .withCustom(new HashMap<>(attributes.getCustom()))
-                                           .withDescription(attributes.getDescription())
-                                           .withTrialDuration(attributes.getTrialDuration())
-                                           .withStartDate(attributes.getStartDate())
-                                           .withEndDate(attributes.getEndDate());
+    public SubscriptionQueryBuilder getSubscriptionQueryBuilder() {
+        throw new UnsupportedOperationException();
     }
 }

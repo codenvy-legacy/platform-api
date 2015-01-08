@@ -13,7 +13,6 @@ package com.codenvy.api.workspace.server;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
-import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -55,7 +54,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -90,7 +88,6 @@ import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPA
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
-import static java.util.Collections.replaceAll;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.CREATED;
@@ -113,21 +110,18 @@ public class WorkspaceService extends Service {
     private final MemberDao      memberDao;
     private final UserProfileDao profileDao;
     private final AccountDao     accountDao;
-    private final boolean        isOrgAddonEnabledByDefault;
 
     @Inject
     public WorkspaceService(WorkspaceDao workspaceDao,
                             UserDao userDao,
                             MemberDao memberDao,
                             UserProfileDao profileDao,
-                            AccountDao accountDao,
-                            @Named("subscription.orgaddon.enabled") String isOrgAddonEnabledByDefault) {
+                            AccountDao accountDao) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
         this.profileDao = profileDao;
         this.accountDao = accountDao;
-        this.isOrgAddonEnabledByDefault = parseBoolean(isOrgAddonEnabledByDefault);
     }
 
     /**
@@ -187,18 +181,6 @@ public class WorkspaceService extends Service {
         //check user has access to add new workspace
         if (!context.isUserInRole("system/admin")) {
             ensureCurrentUserOwnerOf(account);
-        }
-
-        final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
-        if (!existedWorkspaces.isEmpty()) {
-            if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
-                final String multiWs = account.getAttributes().get("codenvy:multi-ws");
-                if (!parseBoolean(multiWs)) {
-                    throw new ForbiddenException("You don't have access to create more workspaces");
-                }
-            }
-
-            newWorkspace.getAttributes().put("codenvy:role", "extra");
         }
 
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
@@ -840,25 +822,7 @@ public class WorkspaceService extends Service {
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
-        final Workspace removal = workspaceDao.getById(wsId);
-        if (!removal.isTemporary() && !isExtra(removal) && hasPaidSass(removal.getAccountId())) {
-            throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
-        }
         workspaceDao.remove(wsId);
-    }
-
-    private boolean isExtra(Workspace removal) {
-        return "extra".equals(removal.getAttributes().get("codenvy:role"));
-    }
-
-    private boolean hasPaidSass(String accountId) throws NotFoundException, ServerException {
-        final List<Subscription> saas = accountDao.getSubscriptions(accountId, "Saas");
-        //account may have only saas subscription
-        return !saas.isEmpty() && !isCommunity(saas.get(0));
-    }
-
-    private boolean isCommunity(Subscription subscription) {
-        return "Community".equals(subscription.getProperties().get("Package"));
     }
 
     private void createTemporaryWorkspace(Workspace workspace) throws ConflictException, ServerException {

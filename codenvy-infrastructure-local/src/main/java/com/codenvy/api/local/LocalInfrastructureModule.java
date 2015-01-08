@@ -12,11 +12,8 @@ package com.codenvy.api.local;
 
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.server.dao.SubscriptionAttributes;
 import com.codenvy.api.user.server.dao.User;
-import com.codenvy.api.user.shared.dto.UserDescriptor;
 import com.codenvy.api.workspace.server.dao.Workspace;
-import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
 import com.google.inject.Provides;
@@ -24,7 +21,6 @@ import com.google.inject.Provides;
 import javax.inject.Named;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 @DynaModule
@@ -68,12 +64,6 @@ public class LocalInfrastructureModule extends AbstractModule {
     @Named("codenvy.local.infrastructure.account.subscriptions")
     Set<Subscription> subscriptions() {
         return Collections.emptySet();
-    }
-
-    @Provides
-    @Named("codenvy.local.infrastructure.account.subscriptionAttributes")
-    Map<String, SubscriptionAttributes> subscriptionAttributes() {
-        return Collections.emptyMap();
     }
 
     // AccountDao ~~~

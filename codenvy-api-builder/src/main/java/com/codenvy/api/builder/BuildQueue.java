@@ -294,6 +294,11 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String wsId, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
+        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
+        if (workspace.getAttributes().containsKey(Constants.WORKSPACE_LOCKED)) {
+            throw new BuilderException("Build action for this workspace is locked");
+        }
+
         final ProjectDescriptor projectDescription = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
@@ -336,7 +341,6 @@ public class BuildQueue {
             }
         }
         if (callable == null) {
-            final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
             request.setTimeout(getBuildTimeout(workspace));
             callable = createTaskFor(request);
         }

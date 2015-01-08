@@ -303,7 +303,8 @@ public class FactoryBuilderTest {
                                                              .withId("findReplace")
                                                              .withProperties(ImmutableMap.of("in", "src/main/resources/consts2.properties",
                                                                                              "find", "OLD_VALUE_2",
-                                                                                             "replace", "NEW_VALUE_2"))))));
+                                                                                             "replace", "NEW_VALUE_2",
+                                                                                             "replaceMode", "mode"))))));
 
         factoryBuilder.checkValid(actual, ENCODED);
 
@@ -370,7 +371,8 @@ public class FactoryBuilderTest {
                                                              .withId("findReplace")
                                                              .withProperties(ImmutableMap.of("in", "src/main/resources/consts2.properties",
                                                                                              "find", "OLD_VALUE_2",
-                                                                                             "replace", "NEW_VALUE_2"
+                                                                                             "replace", "NEW_VALUE_2",
+                                                                                             "replaceMode", "mode"
                                                                                             ))))));
 
         factoryBuilder.checkValid(actual, NONENCODED);
@@ -550,7 +552,9 @@ public class FactoryBuilderTest {
                                                                .withId("findReplace")
                                                                .withProperties(ImmutableMap.of("in", "file",
                                                                                                "find", "find",
-                                                                                               "replace", "replace"))))));
+                                                                                               "replace", "replace",
+                                                                                               "replaceMode", "mode"
+                                                                                              ))))));
 
         assertEquals(factoryBuilder.convertToLatest(given), expected);
     }

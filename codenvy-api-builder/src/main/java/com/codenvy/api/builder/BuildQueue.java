@@ -226,10 +226,6 @@ public class BuildQueue {
     // Switched to default for test.
     // private
     boolean doRegisterBuilderServer(RemoteBuilderServer builderServer) throws BuilderException {
-        final List<RemoteBuilder> toAdd = new LinkedList<>();
-        for (BuilderDescriptor builderDescriptor : builderServer.getAvailableBuilders()) {
-            toAdd.add(builderServer.createRemoteBuilder(builderDescriptor));
-        }
         builderServices.put(builderServer.getBaseUrl(), builderServer);
         final BuilderListKey key = new BuilderListKey(builderServer.getAssignedWorkspace(), builderServer.getAssignedProject());
         BuilderList builderList = builderListMapping.get(key);
@@ -240,7 +236,7 @@ public class BuildQueue {
                 builderList = newBuilderList;
             }
         }
-        return builderList.addBuilders(toAdd);
+        return builderList.addBuilders(builderServer.getRemoteBuilders());
     }
 
     /**

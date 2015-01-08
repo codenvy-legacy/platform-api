@@ -11,8 +11,6 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.runner.dto.RunnerDescriptor;
-import com.codenvy.dto.server.DtoFactory;
 
 import org.testng.Assert;
 import org.testng.annotations.Test;
@@ -24,14 +22,11 @@ import java.util.List;
 
 public class RandomRunnerSelectionStrategyTest {
 
-    RemoteRunner runner1 = new RemoteRunner("url1", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web")
-                                                              .withDescription("test description"), Collections.<Link>emptyList());
+    RemoteRunner runner1 = new RemoteRunner("url1", "java/web", Collections.<Link>emptyList());
 
-    RemoteRunner runner2 = new RemoteRunner("url2", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web2")
-                                                              .withDescription("test description"), Collections.<Link>emptyList());
+    RemoteRunner runner2 = new RemoteRunner("url2", "java/web2", Collections.<Link>emptyList());
 
-    RemoteRunner runner3 = new RemoteRunner("url3", DtoFactory.getInstance().createDto(RunnerDescriptor.class).withName("java/web3")
-                                                              .withDescription("test description"), Collections.<Link>emptyList());
+    RemoteRunner runner3 = new RemoteRunner("url3", "java/web3", Collections.<Link>emptyList());
 
     @Test
     public void shouldSelectFromOneElementInList() {

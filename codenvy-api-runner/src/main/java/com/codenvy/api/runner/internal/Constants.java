@@ -20,6 +20,7 @@ public class Constants {
     public static final String LINK_REL_AVAILABLE_RUNNERS        = "available runners";
     public static final String LINK_REL_SERVER_STATE             = "server state";
     public static final String LINK_REL_RUNNER_STATE             = "runner state";
+    public static final String LINK_REL_RUNNER_ENVIRONMENTS      = "runner environments";
     public static final String LINK_REL_RUN                      = "run";
     public static final String LINK_REL_GET_STATUS               = "get status";
     public static final String LINK_REL_VIEW_LOG                 = "view logs";

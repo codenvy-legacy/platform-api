@@ -19,6 +19,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceDescriptor;
 import com.codenvy.api.core.util.SystemInfo;
+import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.runner.ApplicationStatus;
 import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
@@ -73,24 +74,6 @@ public class SlaveRunnerService extends Service {
 
     @Inject
     private ResourceAllocators allocators;
-
-    /** Get list of available Runners which can be accessible over this SlaveRunnerService. */
-    @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
-    @GET
-    @Path("available")
-    @Produces(MediaType.APPLICATION_JSON)
-    public List<RunnerDescriptor> getAvailableRunners() {
-        final Set<Runner> all = runners.getAll();
-        final List<RunnerDescriptor> list = new LinkedList<>();
-        final DtoFactory dtoFactory = DtoFactory.getInstance();
-        for (Runner runner : all) {
-            list.add(dtoFactory.createDto(RunnerDescriptor.class)
-                               .withName(runner.getName())
-                               .withDescription(runner.getDescription())
-                               .withEnvironments(runner.getEnvironments()));
-        }
-        return list;
-    }
 
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("run")
@@ -166,6 +149,35 @@ public class SlaveRunnerService extends Service {
         output.flush();
     }
 
+
+    @GenerateLink(rel = Constants.LINK_REL_SERVER_STATE)
+    @GET
+    @Path("server-state")
+    @Produces(MediaType.APPLICATION_JSON)
+    public ServerState getServerState() {
+        return DtoFactory.getInstance().createDto(ServerState.class)
+                         .withCpuPercentUsage(SystemInfo.cpu())
+                         .withTotalMemory(allocators.totalMemory())
+                         .withFreeMemory(allocators.freeMemory());
+    }
+
+    @GenerateLink(rel = Constants.LINK_REL_AVAILABLE_RUNNERS)
+    @GET
+    @Path("available")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<RunnerDescriptor> getAvailableRunners() {
+        final Set<Runner> all = runners.getAll();
+        final List<RunnerDescriptor> list = new LinkedList<>();
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        for (Runner runner : all) {
+            list.add(dtoFactory.createDto(RunnerDescriptor.class)
+                               .withName(runner.getName())
+                               .withDescription(runner.getDescription())
+                               .withEnvironments(runner.getEnvironments()));
+        }
+        return list;
+    }
+
     @GenerateLink(rel = Constants.LINK_REL_RUNNER_STATE)
     @GET
     @Path("state")
@@ -180,15 +192,14 @@ public class SlaveRunnerService extends Service {
                          .withServerState(getServerState());
     }
 
-    @GenerateLink(rel = Constants.LINK_REL_SERVER_STATE)
+    @GenerateLink(rel = Constants.LINK_REL_RUNNER_ENVIRONMENTS)
     @GET
-    @Path("server-state")
+    @Path("environments")
     @Produces(MediaType.APPLICATION_JSON)
-    public ServerState getServerState() {
-        return DtoFactory.getInstance().createDto(ServerState.class)
-                         .withCpuPercentUsage(SystemInfo.cpu())
-                         .withTotalMemory(allocators.totalMemory())
-                         .withFreeMemory(allocators.freeMemory());
+    public List<RunnerEnvironment> getRunnerEnvironments(@Required
+                                                         @Description("Name of the runner")
+                                                         @QueryParam("runner") String runner) throws Exception {
+        return getRunner(runner).getEnvironments();
     }
 
     private Runner getRunner(String name) throws NotFoundException {

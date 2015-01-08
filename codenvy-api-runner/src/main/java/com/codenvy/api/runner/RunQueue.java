@@ -853,10 +853,6 @@ public class RunQueue {
     // Switched to default for test.
     // private
     boolean doRegisterRunnerServer(RemoteRunnerServer runnerServer) throws RunnerException {
-        final List<RemoteRunner> toAdd = new LinkedList<>();
-        for (RunnerDescriptor runnerDescriptor : runnerServer.getRunnerDescriptors()) {
-            toAdd.add(runnerServer.createRemoteRunner(runnerDescriptor));
-        }
         runnerServers.put(runnerServer.getBaseUrl(), runnerServer);
         final RunnerListKey key = new RunnerListKey(runnerServer.getInfra(),
                                                     runnerServer.getAssignedWorkspace(),
@@ -869,7 +865,7 @@ public class RunQueue {
                 runnerList = newRunnerList;
             }
         }
-        return runnerList.addAll(toAdd);
+        return runnerList.addAll(runnerServer.getRemoteRunners());
     }
 
     /**

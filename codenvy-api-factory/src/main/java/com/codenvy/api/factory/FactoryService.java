@@ -12,6 +12,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -33,6 +34,7 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.URLEncodedUtils;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
 import com.wordnik.swagger.annotations.Api;
@@ -49,6 +51,7 @@ import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -81,6 +84,13 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
+
+    /**
+     * Validator for editing factories.
+     */
+    private FactoryEditValidator factoryEditValidator;
+
+
     private String                    baseApiUrl;
     private FactoryStore              factoryStore;
     private FactoryUrlCreateValidator createValidator;
@@ -94,6 +104,7 @@ public class FactoryService extends Service {
                           FactoryStore factoryStore,
                           FactoryUrlCreateValidator createValidator,
                           FactoryUrlAcceptValidator acceptValidator,
+                          FactoryEditValidator factoryEditValidator,
                           LinksHelper linksHelper,
                           FactoryBuilder factoryBuilder,
                           ProjectManager projectManager) {
@@ -101,6 +112,7 @@ public class FactoryService extends Service {
         this.factoryStore = factoryStore;
         this.createValidator = createValidator;
         this.acceptValidator = acceptValidator;
+        this.factoryEditValidator = factoryEditValidator;
         this.linksHelper = linksHelper;
         this.factoryBuilder = factoryBuilder;
         this.projectManager = projectManager;
@@ -126,9 +138,9 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
     @ApiOperation(value = "Create a Factory and return data",
-                  notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
-                  response = Factory.class,
-                  position = 1)
+            notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
+            response = Factory.class,
+            position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
@@ -289,6 +301,53 @@ public class FactoryService extends Service {
             acceptValidator.validateOnAccept(factoryUrl, true);
         }
         return factoryUrl;
+    }
+
+    /**
+     * Removes factory information from storage by its id.
+     *
+     * @param id
+     *         id of factory
+     * @param uriInfo
+     *         url context
+     * @throws NotFoundException
+     *         when factory with given id doesn't exist
+     */
+    @ApiOperation(value = "Removes Factory information by its ID",
+            notes = "Removes factory based on the Factory ID which is passed in a path parameter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Factory not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed("user")
+    public void removeFactory(@ApiParam(value = "Factory ID", required = true)
+                              @PathParam("id") String id,
+                              @Context UriInfo uriInfo) throws ForbiddenException, NotFoundException, ApiException {
+
+        // Check we've a user
+        final User user = EnvironmentContext.getCurrent().getUser();
+        if (user == null) {
+            // well this shouldn't happen if only user is authorized to call the method
+            throw new ForbiddenException("No authenticated user");
+        }
+
+        // Do we have a factory for this id ?
+        Factory factory = factoryStore.getFactory(id);
+        if (factory == null) {
+            throw new NotFoundException("Factory with id " + id + " is not found.");
+        }
+
+        // Gets the User id
+        String userId = user.getId();
+
+        // Validate the factory against the current user
+        factoryEditValidator.validate(factory, userId);
+
+        // if validator didn't fail it means that the access is granted
+        factoryStore.removeFactory(id);
     }
 
     /**

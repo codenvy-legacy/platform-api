@@ -21,5 +21,6 @@ public class FactoryModule extends AbstractModule {
         bind(FactoryService.class);
         bind(FactoryUrlCreateValidator.class).to(FactoryUrlCreateValidatorImpl.class);
         bind(FactoryUrlAcceptValidator.class).to(FactoryUrlAcceptValidatorImpl.class);
+        bind(FactoryEditValidator.class).to(FactoryEditValidatorImpl.class);
     }
 }

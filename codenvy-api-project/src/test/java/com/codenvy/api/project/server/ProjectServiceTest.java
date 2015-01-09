@@ -151,7 +151,7 @@ public class ProjectServiceTest {
                 ptRegistry, phRegistry);
 
         pm.createProject(workspace, "my_project", new ProjectConfig("my test project", "my_project_type",
-                new HashMap<String, AttributeValue>(), null, null, null), null);
+                new HashMap<String, AttributeValue>(), null, null, null), null, null);
 
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
@@ -655,7 +655,7 @@ public class ProjectServiceTest {
 
         };
         pm.getProjectTypeRegistry().registerProjectType(pt);
-        pm.createProject(workspace, "testUpdateProject", new ProjectConfig("created project", "testUpdateProject"), null);
+        pm.createProject(workspace, "testUpdateProject", new ProjectConfig("created project", "testUpdateProject"), null, null);
 
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("my_attribute", Arrays.asList("to be or not to be"));

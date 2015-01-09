@@ -300,7 +300,7 @@ public class ProjectTypeTest {
     public static class MyVPFactory implements ValueProviderFactory {
 
         @Override
-        public ValueProvider newInstance(Project project) {
+        public ValueProvider newInstance(FolderEntry projectFolder) {
             return new MyValueProvider();
 
         }

@@ -12,14 +12,16 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
-import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.server.type.*;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
+
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
@@ -34,10 +36,7 @@ import javax.inject.Singleton;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -59,7 +58,6 @@ public final class DefaultProjectManager implements ProjectManager {
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
     private final ProjectTypeRegistry projectTypeRegistry;
-    //private final ProjectGeneratorRegistry    generators;
     private final ProjectHandlerRegistry handlers;
 
 
@@ -74,7 +72,7 @@ public final class DefaultProjectManager implements ProjectManager {
         this.fileSystemRegistry = fileSystemRegistry;
         this.eventService = eventService;
         this.projectTypeRegistry = projectTypeRegistry;
-        //this.generators = generators;
+        //this.handler = handler;
         this.handlers = handlers;
 
 
@@ -135,7 +133,15 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-    @Override
+    /**
+     * Gets the list of projects in {@code workspace}.
+     *
+     * @param workspace
+     *         id of workspace
+     * @return the list of projects in specified workspace.
+     * @throws ServerException
+     *         if an error occurs
+     */
     public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final List<Project> projects = new ArrayList<>();
@@ -147,7 +153,19 @@ public final class DefaultProjectManager implements ProjectManager {
         return projects;
     }
 
-    @Override
+    /**
+     * Gets single project by id of workspace and project's path in this workspace.
+     *
+     * @param workspace
+     *         id of workspace
+     * @param projectPath
+     *         project's path
+     * @return requested project or {@code null} if project was not found
+     * @throws ForbiddenException
+     *         if user which perform operation doesn't have access to the requested project
+     * @throws ServerException
+     *         if other error occurs
+     */
     public Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final VirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
@@ -158,8 +176,26 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-    @Override
-    public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options)
+    /**
+     *
+     * Creates new project.
+     *
+     * @param workspace
+     *         id of workspace
+     * @param name
+     *         project's name
+     * @param projectDescription
+     *         project description
+     * @return newly created project
+     * @throws ConflictException
+     *         if operation causes conflict, e.g. name conflict if project with specified name already exists
+     * @throws ForbiddenException
+     *         if user which perform operation doesn't have required permissions
+     * @throws ServerException
+     *         if other error occurs
+     */
+    public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options,
+                                 String visibility)
             throws ConflictException, ForbiddenException, ServerException {
 
 
@@ -175,16 +211,44 @@ public final class DefaultProjectManager implements ProjectManager {
         }
 
         project.updateConfig(projectConfig);
-        getProjectMisc(project).setCreationDate(System.currentTimeMillis());
+
+        final ProjectMisc misc = project.getMisc();
+        misc.setCreationDate(System.currentTimeMillis());
+        misc.save(); // Important to save misc!!
+
+        if (visibility != null) {
+            project.setVisibility(visibility);
+        }
+
+        //project.getMisc().setCreationDate(System.currentTimeMillis());
+        //project.saveMisc(project.getMisc());
+        //getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }
 
-    @Override
+    /**
+     * Gets root folder od project tree.
+     *
+     * @param workspace
+     *         id of workspace
+     * @return root folder
+     * @throws ServerException
+     *         if an error occurs
+     */
     public FolderEntry getProjectsRoot(String workspace) throws ServerException {
         return new FolderEntry(workspace, fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot());
     }
 
-    @Override
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @return ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     public ProjectMisc getProjectMisc(Project project) throws ServerException {
         final String workspace = project.getWorkspace();
         final String path = project.getPath();
@@ -224,7 +288,17 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-    @Override
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @param misc
+     *         ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     public void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException {
         if (misc.isUpdated()) {
             final String workspace = project.getWorkspace();
@@ -278,10 +352,6 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-    @Override
-    public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
-        return fileSystemRegistry;
-    }
 
     @PostConstruct
     void start() {
@@ -301,14 +371,53 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-    @Override
+
+    public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
+        return fileSystemRegistry;
+    }
+
     public ProjectTypeRegistry getProjectTypeRegistry() {
         return this.projectTypeRegistry;
     }
 
-
-    @Override
     public ProjectHandlerRegistry getHandlers() {
         return handlers;
+    }
+
+    public Map<String, AttributeValue> estimateProject(String workspace, String path, String projectTypeId)
+            throws ServerException, ForbiddenException, NotFoundException {
+
+
+        ProjectType2 projectType = projectTypeRegistry.getProjectType(projectTypeId);
+        if(projectType == null)
+            throw new NotFoundException("Project Type "+projectType+" not found.");
+
+        final VirtualFileEntry folder = getProjectsRoot(workspace)
+                .getChild(path.startsWith("/") ? path.substring(1) : path);
+        if(!folder.isFolder())
+            throw new ServerException("Item : "+path+" is not a folder");
+
+
+        Map<String, AttributeValue> attributes = new HashMap<>();
+        //Project project = new Project((FolderEntry)folder, this);
+        for (Attribute2 attr : projectType.getAttributes()) {
+
+            if(attr.isVariable()) {
+                Variable var = (Variable)attr;
+                ValueProviderFactory vpf = var.getValueProviderFactory();
+                if(vpf != null) {
+                    List <String> strValues = null;
+                    try {
+                        strValues = vpf.newInstance((FolderEntry)folder).getValues(var.getName());
+                    } catch (ValueStorageException e) {
+                        // just do not add it
+                        continue;
+                    }
+                    attributes.put(var.getName(), new AttributeValue(strValues));
+                }
+            }
+        }
+
+        return attributes;
     }
 }

@@ -24,6 +24,7 @@ public class ProjectHandlerRegistry {
 
     private Map<String, CreateProjectHandler> createProjectHandlers = new HashMap<>();
     private Map<String, GetItemHandler> getItemHandlers = new HashMap<>();
+    private Map<String, CreateModuleHandler> createModuleHandlers = new HashMap<>();
 
     @Inject
     public ProjectHandlerRegistry(Set<ProjectHandler> projectHandlers) {
@@ -39,6 +40,8 @@ public class ProjectHandlerRegistry {
             this.createProjectHandlers.put(handler.getProjectType(), (CreateProjectHandler)handler);
         else if(handler instanceof GetItemHandler)
             this.getItemHandlers.put(handler.getProjectType(), (GetItemHandler)handler);
+        else if(handler instanceof CreateModuleHandler)
+            this.createModuleHandlers.put(handler.getProjectType(), (CreateModuleHandler)handler);
     }
 
 
@@ -50,5 +53,9 @@ public class ProjectHandlerRegistry {
         return getItemHandlers.get(projectType);
     }
 
+
+    public CreateModuleHandler getCreateModuleHandler(String projectType) {
+        return createModuleHandlers.get(projectType);
+    }
 
 }

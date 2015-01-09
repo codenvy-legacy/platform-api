@@ -108,7 +108,7 @@ public class ProjectService extends Service {
     @Inject
     private ProjectImporterRegistry     importers;
     //@Inject
-    //private ProjectGeneratorRegistry    generators;
+    //private ProjectGeneratorRegistry    handler;
     @Inject
     private SearcherProvider            searcherProvider;
     @Inject
@@ -247,27 +247,29 @@ public class ProjectService extends Service {
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
 
         final Project project = projectManager.createProject(workspace, name,
-                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getOptions());
+                DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getOptions(),
+                newProject.getVisibility());
 
 
-        final ProjectMisc misc = project.getMisc();
-        misc.setCreationDate(System.currentTimeMillis());
-        misc.save(); // Important to save misc!!
+//        final ProjectMisc misc = project.getMisc();
+//        misc.setCreationDate(System.currentTimeMillis());
+//        misc.save(); // Important to save misc!!
 
 //        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
 
 
 //        if (generatorDescription != null) {
-//            final ProjectGenerator generator = generators.getGenerator(generatorDescription.getName(), newProject.getType());
+//            final ProjectGenerator generator = handler.getGenerator(generatorDescription.getName(), newProject.getType());
 //            if (generator != null) {
 //                generator.generateProject(project.getBaseFolder(), newProject);
 //            }
 //        }
 
-        final String visibility = newProject.getVisibility();
-        if (visibility != null) {
-            project.setVisibility(visibility);
-        }
+//        final String visibility = newProject.getVisibility();
+//        if (visibility != null) {
+//            project.setVisibility(visibility);
+//        }
+
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
                 projectManager.getProjectTypeRegistry());
 
@@ -340,21 +342,12 @@ public class ProjectService extends Service {
     ProjectTypeConstraintException, InvalidValueException {
 
 
-        final FolderEntry folder = asFolder(workspace, parentPath);
-        final FolderEntry moduleFolder = folder.createFolder(name);
-        final Project module = new Project(moduleFolder, projectManager);
+        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
 
-        module.updateConfig(DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()));
+        Project parent = projectManager.getProject(workspace, parentPath);
 
-
-        // TODO move it to Project
-
-
-        final CreateProjectHandler generator = projectHandlerRegistry.getCreateProjectHandler(newProject.getType());
-        if (generator != null) {
-            generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(),
-                    newProject.getGeneratorDescription().getOptions());
-        }
+        Project module = parent.createModule(name, DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()),
+                generatorDescription.getOptions());
 
 
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto2(module, getServiceContext().getServiceUriBuilder(),
@@ -1032,11 +1025,6 @@ public class ProjectService extends Service {
 
         Project project = projectManager.getProject(workspace, projectPath(path));
         final VirtualFileEntry entry = project.getItem(path);
-
-//        final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
-
-//        final String projectType = projectManager.getProject(workspace, projectPath(path)).getConfig().getTypeId();
-//        this.projectHandlerRegistry.getGetItemHandler(projectType).onGetItem(entry);
 
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
 

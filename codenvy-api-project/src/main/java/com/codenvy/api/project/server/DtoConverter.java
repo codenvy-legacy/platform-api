@@ -250,7 +250,8 @@ public class DtoConverter {
         if (config != null) {
             dto.withDescription(config.getDescription());
             String typeId = config.getTypeId();
-            dto.withType(typeId).withTypeName(ptRegistry.getProjectType(typeId).getDisplayName());
+            dto.withType(typeId)
+               .withTypeName(ptRegistry.getProjectType(typeId).getDisplayName());
 
             final Map<String, AttributeValue> attributes = config.getAttributes();
 

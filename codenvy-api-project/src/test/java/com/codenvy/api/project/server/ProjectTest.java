@@ -11,8 +11,6 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.server.handlers.CreateProjectHandler;
-import com.codenvy.api.project.server.handlers.GetItemHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
@@ -49,7 +47,7 @@ public class ProjectTest {
         final ValueProviderFactory vpf1 = new ValueProviderFactory() {
 
             @Override
-            public ValueProvider newInstance(Project project) {
+            public ValueProvider newInstance(FolderEntry projectFolder) {
                 return new ValueProvider() {
                     @Override
                     public List<String> getValues(String attributeName) {

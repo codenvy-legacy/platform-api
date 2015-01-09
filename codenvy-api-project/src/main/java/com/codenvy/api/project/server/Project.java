@@ -10,9 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.server.handlers.CreateModuleHandler;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.GetItemHandler;
 import com.codenvy.api.project.server.type.Attribute2;
 import com.codenvy.api.project.server.type.AttributeValue;
@@ -108,7 +111,7 @@ public class Project {
                 List <String> val;
                 if (factory != null) {
 
-                    val = factory.newInstance(this).getValues(var.getName());
+                    val = factory.newInstance(baseFolder).getValues(var.getName());
 
                     if(val == null)
                         throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable "+var.getId());
@@ -169,7 +172,7 @@ public class Project {
                      throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
 
                 if(valueProviderFactory != null) {
-                    valueProviderFactory.newInstance(this).setValues(var.getName(), attributeValue.getList());
+                    valueProviderFactory.newInstance(baseFolder).setValues(var.getName(), attributeValue.getList());
                 }
                 projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
 
@@ -304,6 +307,27 @@ public class Project {
             handler.onGetItem(entry);
         //getConfig().getMixinTypes()
         return entry;
+    }
+
+    public Project createModule(String name, ProjectConfig moduleConfig, Map<String, String> options)
+            throws ConflictException, ForbiddenException, ServerException {
+
+        final FolderEntry moduleFolder = baseFolder.createFolder(name);
+        final Project module = new Project(moduleFolder, manager);
+
+        module.updateConfig(moduleConfig);
+
+        final CreateProjectHandler generator = manager.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+        if (generator != null) {
+            generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
+        }
+
+        CreateModuleHandler moduleHandler = manager.getHandlers().getCreateModuleHandler(getConfig().getTypeId());
+        if (moduleHandler != null) {
+            moduleHandler.onCreateModule(module.getBaseFolder(), module.getConfig(), options);
+        }
+        return module;
+
     }
 
     private VirtualFileEntry getVirtualFileEntry(String path)

@@ -492,22 +492,26 @@ public final class SlaveBuilderService extends Service {
 
         if ((status == BuildStatus.SUCCESSFUL || status == BuildStatus.FAILED) && result.hasBuildReport()) {
             final java.io.File br = result.getBuildReport();
+            String relativePath = workDirPath.relativize(br.toPath()).toString();
+
+            if (SystemInfo.isWindows()) {
+                relativePath = relativePath.replace("\\", "/");
+            }
+
             if (br.isDirectory()) {
                 links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
                                     .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "browseDirectory")
-                                            //Replacing of "\" is need for windows support
-                                                      .queryParam("path", workDirPath.relativize(br.toPath()).toString().replace("\\", "/"))
-                                                      .build(builder, taskId).toString())
+                                                        .queryParam("path", relativePath)
+                                                        .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(MediaType.TEXT_HTML));
             } else {
                 links.add(dtoFactory.createDto(Link.class)
                                     .withRel(Constants.LINK_REL_VIEW_REPORT)
                                     .withHref(uriBuilder.clone().path(SlaveBuilderService.class, "viewFile")
-                                            //Replacing of "\" is need for windows support
-                                                      .queryParam("path", workDirPath.relativize(br.toPath()).toString().replace("\\", "/"))
-                                                      .build(builder, taskId).toString())
+                                                        .queryParam("path", relativePath)
+                                                        .build(builder, taskId).toString())
                                     .withMethod("GET")
                                     .withProduces(ContentTypeGuesser.guessContentType(br)));
             }

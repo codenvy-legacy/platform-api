@@ -295,7 +295,7 @@ public class FactoryService extends Service {
         try {
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {
-            throw new ConflictException(e.getLocalizedMessage());
+            throw new ServerException(e.getLocalizedMessage());
         }
         if (validate) {
             acceptValidator.validateOnAccept(factoryUrl, true);

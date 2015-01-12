@@ -55,6 +55,7 @@ import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -349,6 +350,81 @@ public class FactoryService extends Service {
         // if validator didn't fail it means that the access is granted
         factoryStore.removeFactory(id);
     }
+
+
+    /**
+     * Updates factory with a new factory content
+     *
+     * @param id
+     *         id of factory
+     * @param newFactory
+     *         the new data for the factory
+     * @throws NotFoundException
+     *         when factory with given id doesn't exist
+     * @throws com.codenvy.api.core.ServerException if given factory is null
+     */
+    @ApiOperation(value = "Updates factory information by its ID",
+            notes = "Updates factory based on the Factory ID which is passed in a path parameter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Factory not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @PUT
+    @Path("/{id}")
+    @RolesAllowed("user")
+    @Consumes({MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_JSON})
+    public Factory updateFactory(@ApiParam(value = "Factory ID", required = true)
+                                 @PathParam("id") String id,
+                                 Factory newFactory) throws ForbiddenException, NotFoundException, ApiException {
+
+        // forbid null update
+        if (newFactory == null) {
+            throw new ServerException("The updating factory shouldn't be null");
+        }
+
+        // Do we have a factory for this id ?
+        Factory existingFactory = factoryStore.getFactory(id);
+        if (existingFactory == null) {
+            throw new NotFoundException("Factory with id " + id + " does not exist.");
+        }
+
+        // Gets the User id
+        final User user = EnvironmentContext.getCurrent().getUser();
+        String userId = user.getId();
+
+        // Validate the factory against the current user
+        factoryEditValidator.validate(existingFactory, userId);
+
+        // Check author is set and copy created date from old factory
+        Author newAuthor = newFactory.getCreator();
+        if (newAuthor == null || newAuthor.getUserId() == null) {
+            newAuthor = DtoFactory.getInstance().createDto(Author.class);
+            newFactory.setCreator(newAuthor);
+        }
+        if (newAuthor.getUserId() == null) {
+            newAuthor.setUserId(user.getId());
+        }
+        newFactory.getCreator().withCreated(existingFactory.getCreator().getCreated());
+        newFactory.setId(existingFactory.getId());
+
+        // validate the new content
+        createValidator.validateOnCreate(newFactory);
+
+        // access granted, user can update the factory
+        factoryStore.updateFactory(id, newFactory);
+
+        // create links
+        try {
+            newFactory.setLinks(linksHelper.createLinks(newFactory, factoryStore.getFactoryImages(id, null), uriInfo));
+        } catch (UnsupportedEncodingException e) {
+            throw new ServerException(e.getLocalizedMessage());
+        }
+
+        return newFactory;
+    }
+
 
     /**
      * Get list of factory links which conform specified attributes.

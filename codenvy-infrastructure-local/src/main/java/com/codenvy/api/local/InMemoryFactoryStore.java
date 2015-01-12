@@ -129,4 +129,26 @@ public class InMemoryFactoryStore implements FactoryStore {
             lock.readLock().unlock();
         }
     }
+
+    /**
+     * Update factory at storage.
+     *
+     * @param factoryId
+     *         - factory information
+     * @param factory
+     *         - factory information
+     * @return - if of stored factory
+     * @throws com.codenvy.api.core.ApiException
+     */
+    @Override
+    public String updateFactory(String factoryId, Factory factory) throws ApiException {
+        lock.writeLock().lock();
+        try {
+            final Factory clonedFactory = DtoFactory.getInstance().clone(factory);
+            factories.put(factoryId, clonedFactory);
+            return clonedFactory.getId();
+        } finally {
+            lock.writeLock().unlock();
+        }
+    }
 }

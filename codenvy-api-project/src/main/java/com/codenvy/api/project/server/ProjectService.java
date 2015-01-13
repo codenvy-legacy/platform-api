@@ -727,6 +727,10 @@ public class ProjectService extends Service {
                 if (project == null) {
                     project = new Project(baseProjectFolder, projectManager);
                     project.updateDescription(providedDescription);
+                    if (newProject.getType() == null) {
+                        problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
+                                            .withMessage("Project type not detect so we set it as blank");
+                    }
                 } else {
                     ProjectDescription projectDescription = project.getDescription();
                     typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();

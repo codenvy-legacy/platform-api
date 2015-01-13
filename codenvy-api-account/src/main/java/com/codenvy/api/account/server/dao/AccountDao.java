@@ -11,9 +11,11 @@
 package com.codenvy.api.account.server.dao;
 
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -119,8 +121,7 @@ public interface AccountDao {
      *         when subscription doesn't exist
      */
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
-
-
+    
     /**
      * Gets list of active existing in persistent layer subscriptions related to given account.
      * Returns subscriptions with given serviceId only if serviceId is not null.
@@ -168,4 +169,12 @@ public interface AccountDao {
     List<Member> getByMember(String userId) throws NotFoundException, ServerException;
 
     SubscriptionQueryBuilder getSubscriptionQueryBuilder();
+
+    /**
+     * Get all paid Saas accounts
+     *
+     * @return all paid Saas accounts
+     * @throws ServerException
+     */
+    List<Account> getPaidSaasAccountsWithOldBillingDate(Date newDate) throws ServerException, ForbiddenException;
 }

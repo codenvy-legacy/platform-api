@@ -16,6 +16,7 @@ import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.workspace.server.dao.WorkspaceDao;
@@ -24,6 +25,7 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -385,5 +387,31 @@ public class LocalAccountDaoImpl implements AccountDao {
     @Override
     public SubscriptionQueryBuilder getSubscriptionQueryBuilder() {
         throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public List<Account> getPaidSaasAccountsWithOldBillingDate(Date newDate) throws ServerException, ForbiddenException {
+        if (newDate == null) {
+            throw new ForbiddenException("Date can't be null");
+        }
+
+        List<Account> paidAccounts = new LinkedList<>();
+        for (Account account : accounts) {
+            if ("true".equals(account.getAttributes().get("codenvy:paid"))) {
+                final String lastBillingDate = account.getAttributes().get("codenvy:billing_date");
+                if (lastBillingDate != null) {
+                    try {
+                        if (Long.valueOf(lastBillingDate).compareTo(newDate.getTime()) >= 0) {
+                            continue;
+                        }
+                    } catch (NumberFormatException e) {
+                        throw new ServerException(e.getLocalizedMessage(), e);
+                    }
+                }
+
+                paidAccounts.add(account);
+            }
+        }
+        return paidAccounts;
     }
 }

@@ -1548,8 +1548,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
                                                  DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
-                                                           .withWorkspaceId("some_workspace")
-                                                           .withResources(Collections.<String, String>emptyMap()));
+                                                           .withWorkspaceId("some_workspace"));
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
@@ -1562,8 +1561,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
                                                  DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
-                                                           .withWorkspaceId("some_workspace")
-                                                           .withResources(Collections.<String, String>emptyMap()));
+                                                           .withWorkspaceId("some_workspace"));
 
         assertEquals(response.getStatus(), Response.Status.NO_CONTENT.getStatusCode());
         verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
@@ -1587,8 +1585,7 @@ public class AccountServiceTest {
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
                                                  DtoFactory.getInstance().createDto(UpdateResourcesDescriptor.class)
-                                                           .withWorkspaceId("some_workspace")
-                                                           .withResources(Collections.<String, String>emptyMap()));
+                                                           .withWorkspaceId("some_workspace"));
 
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "Error");

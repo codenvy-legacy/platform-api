@@ -25,9 +25,21 @@ public interface UpdateResourcesDescriptor {
 
     UpdateResourcesDescriptor withWorkspaceId(String workspaceId);
 
-    Map<String, String> getResources();
+    void setRunnerRam(Integer runnerRam);
 
-    void setResources(Map<String, String> resources);
+    Integer getRunnerRam();
 
-    UpdateResourcesDescriptor withResources(Map<String, String> resources);
+    UpdateResourcesDescriptor withRunnerRam(Integer runnerRam);
+
+    void setRunnerTimeout(Integer runnerTimeout);
+
+    Integer getRunnerTimeout();
+
+    UpdateResourcesDescriptor withRunnerTimeout(Integer runnerTimeout);
+
+    void setBuilderTimeout(Integer builderTimeout);
+
+    Integer getBuilderTimeout();
+
+    UpdateResourcesDescriptor withBuilderTimeout(Integer builderTimeout);
 }

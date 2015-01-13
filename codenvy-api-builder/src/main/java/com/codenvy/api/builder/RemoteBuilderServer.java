@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.RemoteServiceDescriptor;
 import com.codenvy.api.core.rest.shared.dto.Link;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -63,7 +64,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
     }
 
     public RemoteBuilder getRemoteBuilder(String name) throws BuilderException {
-        for (BuilderDescriptor builderDescriptor : getAvailableBuilders()) {
+        for (BuilderDescriptor builderDescriptor : getBuilderDescriptors()) {
             if (name.equals(builderDescriptor.getName())) {
                 return createRemoteBuilder(builderDescriptor);
             }
@@ -71,7 +72,15 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
         throw new BuilderException(String.format("Invalid builder name %s", name));
     }
 
-    RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
+    public List<RemoteBuilder> getRemoteBuilders() throws BuilderException {
+        List<RemoteBuilder> remoteBuilders = new LinkedList<>();
+        for (BuilderDescriptor builderDescriptor : getBuilderDescriptors()) {
+            remoteBuilders.add(createRemoteBuilder(builderDescriptor));
+        }
+        return remoteBuilders;
+    }
+
+    private RemoteBuilder createRemoteBuilder(BuilderDescriptor descriptor) throws BuilderException {
         try {
             return new RemoteBuilder(baseUrl, descriptor, getLinks());
         } catch (IOException e) {
@@ -81,7 +90,7 @@ public class RemoteBuilderServer extends RemoteServiceDescriptor {
         }
     }
 
-    public List<BuilderDescriptor> getAvailableBuilders() throws BuilderException {
+    public List<BuilderDescriptor> getBuilderDescriptors() throws BuilderException {
         try {
             final Link link = getLink(Constants.LINK_REL_AVAILABLE_BUILDERS);
             if (link == null) {

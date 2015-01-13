@@ -663,6 +663,7 @@ public class ProjectService extends Service {
                                            @QueryParam("force") boolean force,
                                            ImportProject importProject)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
+        final NewProject newProject = importProject.getProject();
         final ImportSourceDescriptor projectSource = importProject.getSource().getProject();
         final ProjectImporter importer = importers.getImporter(projectSource.getType());
         if (importer == null) {
@@ -702,15 +703,17 @@ public class ProjectService extends Service {
         // Use resolver only if project type not set
         ProjectProblem problem = null;
         String visibility = null;
+        String typeId = null;
         Project project = projectManager.getProject(workspace, path);
 
-        if (importProject.getProject() != null || project == null) {
-            if (importProject.getProject() != null) {
-                visibility = importProject.getProject().getVisibility();
+        if (newProject != null || project == null) {
+            if (newProject != null) {
+                typeId = newProject.getType();
+                visibility = newProject.getVisibility();
             }
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve((FolderEntry)virtualFile)) {
+                if (resolver.resolve((FolderEntry)virtualFile) && (typeId == null || typeId.isEmpty())) {
                     problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
                                         .withMessage("Project type detected via ProjectResolver");
                     break;
@@ -718,15 +721,15 @@ public class ProjectService extends Service {
             }
             // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
-            if (importProject.getProject() != null) {
+            if (newProject != null) {
                 final ProjectDescription providedDescription =
-                        DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry());
+                        DtoConverter.fromDto(newProject, projectManager.getTypeDescriptionRegistry());
                 if (project == null) {
                     project = new Project(baseProjectFolder, projectManager);
                     project.updateDescription(providedDescription);
                 } else {
                     ProjectDescription projectDescription = project.getDescription();
-                    final String typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
+                    typeId = DtoConverter.toDescriptorDto(project, getServiceContext().getServiceUriBuilder()).getType();
                     ProjectType projectType = projectManager.getTypeDescriptionRegistry().getProjectType(typeId);
                     if (projectType == null) {
                         projectType = ProjectType.BLANK;

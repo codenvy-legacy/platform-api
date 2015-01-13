@@ -96,7 +96,8 @@ public class ActionsConverter implements LegacyConverter {
                                                   .withProperties(ImmutableMap.of(
                                                           "in", file,
                                                           "find", variable.getFind(),
-                                                          "replace", variable.getReplace())));
+                                                          "replace", variable.getReplace(),
+                                                          "replaceMode", variable.getReplacemode())));
                     }
                 }
             }

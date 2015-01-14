@@ -119,25 +119,17 @@ public class ShellFactory {
                         char c = str.charAt(i);
                         switch (c) {
                             case '|':
-                            case '>':
-                            case '<':
                             case '\'':
-                            case '"':
                             case '`':
                             case '&':
                             case ',':
                             case ';':
                             case '(':
                             case ')':
-                            case '@':
                             case '^':
                             case '*':
                                 buff.append('^');
                                 buff.append(c);
-                                break;
-                            case '%':
-                                buff.append('%');
-                                buff.append('%');
                                 break;
                             default:
                                 buff.append(c);

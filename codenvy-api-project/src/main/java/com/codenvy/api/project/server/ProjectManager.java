@@ -137,6 +137,7 @@ public interface ProjectManager {
 
 
     Map<String, AttributeValue> estimateProject(String workspace, String path, String projectTypeId) throws
-            ValueStorageException, ServerException, ForbiddenException, NotFoundException;
+            ValueStorageException, ServerException, ForbiddenException, NotFoundException,
+            ProjectTypeConstraintException;
 
 }

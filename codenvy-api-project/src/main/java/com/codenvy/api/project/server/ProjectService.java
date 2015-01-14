@@ -24,6 +24,8 @@ import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
+import com.codenvy.api.project.server.type.Attribute2;
+import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.project.shared.dto.ImportProject;
@@ -81,13 +83,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -209,8 +205,6 @@ public class ProjectService extends Service {
             VirtualFileEntry child = projectsRoot.getChild(path);
             if (child != null && child.isFolder() && child.getParent().isRoot()) {
                 NotValidProject notValidProject = new NotValidProject((FolderEntry)child, projectManager);
-
-                //return DtoConverter.toDescriptorDto(notValidProject, getServiceContext().getServiceUriBuilder());
                 return DtoConverter.toDescriptorDto2(notValidProject, getServiceContext().getServiceUriBuilder(),
                         projectManager.getProjectTypeRegistry());
             } else {
@@ -250,25 +244,6 @@ public class ProjectService extends Service {
                 DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()), generatorDescription.getOptions(),
                 newProject.getVisibility());
 
-
-//        final ProjectMisc misc = project.getMisc();
-//        misc.setCreationDate(System.currentTimeMillis());
-//        misc.save(); // Important to save misc!!
-
-//        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-
-
-//        if (generatorDescription != null) {
-//            final ProjectGenerator generator = handler.getGenerator(generatorDescription.getName(), newProject.getType());
-//            if (generator != null) {
-//                generator.generateProject(project.getBaseFolder(), newProject);
-//            }
-//        }
-
-//        final String visibility = newProject.getVisibility();
-//        if (visibility != null) {
-//            project.setVisibility(visibility);
-//        }
 
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
                 projectManager.getProjectTypeRegistry());
@@ -400,6 +375,42 @@ public class ProjectService extends Service {
 
         return DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
                 projectManager.getProjectTypeRegistry());
+
+    }
+
+
+    @ApiOperation(value = "Estimates if the folder supposed to be project of certain type",
+            response = Map.class,
+            position = 20)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Project with specified path doesn't exist in workspace"),
+            @ApiResponse(code = 403, message = "Access to requested project is forbidden"),
+            @ApiResponse(code = 500, message = "Server error")})
+    @GET
+    @Path("/estimate/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Map<String, List<String>> estimateProject(@ApiParam(value = "ID of workspace to estimate projects", required = true)
+                                        @PathParam("ws-id") String workspace,
+                                        @ApiParam(value = "Path to requested project", required = true)
+                                        @PathParam("path") String path,
+                                        @ApiParam(value = "Project Type ID to estimate against", required = true)
+                                        @QueryParam("type") String projectType)
+            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
+
+        final HashMap<String, List<String>> attributes = new HashMap<>();
+
+        for(Map.Entry<String, AttributeValue> attr : projectManager.estimateProject(workspace, path, projectType).entrySet()) {
+            attributes.put(attr.getKey(), attr.getValue().getList());
+        }
+
+        return attributes;
+
+//        return DtoConverter.toDescriptorDto2(projectManager.estimateProject(workspace, path, projectType, failOnBadValue),
+//                getServiceContext().getServiceUriBuilder(),
+//                projectManager.getProjectTypeRegistry());
+
+//        return null;
 
     }
 
@@ -761,23 +772,9 @@ public class ProjectService extends Service {
                 }
             }
 
-
-            //        if (importProject.getProject() != null) {  //project configuration set in Source we will use it
-//            visibility = importProject.getProject().getVisibility();
-//            if (project == null)
-//                project = new Project(baseProjectFolder, projectManager);
-//
-
-//            project.updateConfig(DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry()));
-//        } else { //project not configure so we try resolve it
-//
-
             // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
             if (importProject.getProject() != null) {
-
-//                final ProjectDescription providedDescription =
-//                        DtoConverter.fromDto(importProject.getProject(), projectManager.getTypeDescriptionRegistry());
 
                 final ProjectConfig providedConfig = DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry());
 

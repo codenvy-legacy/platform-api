@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
@@ -105,6 +108,7 @@ public class ProjectTest {
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_DIR).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
+//        myVfRoot.createFolder("testEstimateProject");
     }
 
     @AfterMethod
@@ -174,12 +178,6 @@ public class ProjectTest {
         attrs.put("new_my_property_2", new AttributeValue("new value 2"));
 
         ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null, null);
-        //myConfig.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
-        //Assert.assertTrue(myConfig.getAttribute("calculated_attribute").isVariable());
-        //((Variable)myConfig.getAttribute("calculated_attribute")).setValue(new AttributeValue("updated calculated_attribute"));
-        //((Variable)myConfig.getAttribute("my_property_1")).setValue(new AttributeValue("updated value 1"));
-
-        //myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
 
         myProject.updateConfig(myConfig);
 
@@ -190,7 +188,7 @@ public class ProjectTest {
         Map<String, List<String>> pm = projectJson.getAttributes();
         Assert.assertEquals(pm.size(), 2);
         Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
-        //Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
+
     }
 
     @Test
@@ -216,5 +214,76 @@ public class ProjectTest {
 
         Assert.assertNotNull(myProject.getConfig().getBuilders());
         Assert.assertEquals(myProject.getConfig().getBuilders().getDefault(), "builder1");
+    }
+
+    @Test
+    public void testEstimateProject() throws Exception {
+
+        VirtualFile root = pm.getVirtualFileSystemRegistry().getProvider("my_ws").getMountPoint(false).getRoot();
+        root.createFolder("testEstimateProjectGood").createFolder("check");
+        root.createFolder("testEstimateProjectBad");
+
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("check");
+                       } catch (ForbiddenException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        } catch (ServerException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+
+                        if(file == null)
+                            throw new ValueStorageException("Check not found");
+                       return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) {
+
+                        //calculateAttributeValueHolder = value;
+                    }
+                };
+            }
+        };
+
+
+        ProjectType2 pt = new ProjectType2("testEstimateProjectPT", "my testEstimateProject type") {
+
+            {
+                addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
+            }
+
+        };
+
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+        Map<String, AttributeValue> attrs = pm.estimateProject("my_ws", "testEstimateProjectGood", "testEstimateProjectPT");
+        Assert.assertEquals(attrs.size(), 1);
+        Assert.assertNotNull(attrs.get("calculated_attribute"));
+        Assert.assertEquals(attrs.get("calculated_attribute").getString(), "checked");
+
+
+        try {
+            pm.estimateProject("my_ws", "testEstimateProjectBad", "testEstimateProjectPT");
+            Assert.fail("ValueStorageException should be thrown");
+        } catch (ValueStorageException e) {
+
+        }
     }
 }

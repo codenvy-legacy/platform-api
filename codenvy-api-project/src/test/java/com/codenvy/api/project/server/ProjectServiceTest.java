@@ -143,8 +143,6 @@ public class ProjectServiceTest {
         projTypes.add(chuck);
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
 
-        //generatorRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
-
         phRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
 
         pm = new DefaultProjectManager(vfsRegistry, eventService,
@@ -156,7 +154,6 @@ public class ProjectServiceTest {
 
         DependencySupplierImpl dependencies = new DependencySupplierImpl();
         importerRegistry = new ProjectImporterRegistry(Collections.<ProjectImporter>emptySet());
-        //generatorRegistry = new ProjectGeneratorRegistry(Collections.<ProjectGenerator>emptySet());
 
         HashSet<ProjectTypeResolver> resolvers = new HashSet<>();
         resolvers.add(new ProjectTypeResolver() {
@@ -165,11 +162,9 @@ public class ProjectServiceTest {
             public boolean resolve(FolderEntry projectFolder) throws ServerException, ValueStorageException,
                     InvalidValueException, ProjectTypeConstraintException {
                 ProjectConfig conf = new ProjectConfig("my proj", "my_project_type");
-                //ProjectDescription description = new ProjectDescription();
-                //description.setProjectType(projectType);
+
                 Project project = new Project(projectFolder, pm);
                 project.updateConfig(conf);
-                //project.updateDescription(description);
                 return true;
             }
         });
@@ -358,11 +353,6 @@ public class ProjectServiceTest {
         Project myProject = pm.getProject(workspace, "my_project");
 
         ProjectConfig config = new ProjectConfig("my test module", pt.getId());
-
-
-        //ProjectDescription pd = new ProjectDescription(new ProjectType("my_module_type", "my module type", "my_category"));
-        //pd.setDescription("my test module");
-        //pd.setAttributes(Arrays.asList(new Attribute("my_module_attribute", "attribute value 1")));
         FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
         Project module = new Project(moduleFolder, pm);
 
@@ -431,10 +421,6 @@ public class ProjectServiceTest {
         pm.getProjectTypeRegistry().registerProjectType(pt);
 
 
-
-//        Map<String, List<String>> attributeValues = new LinkedHashMap<>();
-//        attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
-
         Map<String, List<String>> attributeValues = new LinkedHashMap<>();
         attributeValues.put("new project attribute", Arrays.asList("to be or not to be"));
         GeneratorDescription generatorDescription = DtoFactory.getInstance().createDto(GeneratorDescription.class);
@@ -476,22 +462,13 @@ public class ProjectServiceTest {
         Assert.assertNotNull(project);
 
 
-        //ProjectDescription description = project.getDescription();
-
         ProjectConfig config = project.getConfig(); //new ProjectConfig("new project", "testCreateProject");
 
         Assert.assertEquals(config.getDescription(), "new project");
         Assert.assertEquals(config.getTypeId(), "testCreateProject");
-//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
         AttributeValue attributeVal = config.getAttributes().get("new_project_attribute");
         Assert.assertNotNull(attributeVal);
         Assert.assertEquals(attributeVal.getString(), "to be or not to be");
-//
-//        Assert.assertEquals(description.getDescription(), "new project");
-//        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-//        Attribute attribute = description.getAttribute("new project attribute");
-//        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
 
         Assert.assertNotNull(project.getBaseFolder().getChild("a"));
         Assert.assertNotNull(project.getBaseFolder().getChild("b"));
@@ -504,10 +481,6 @@ public class ProjectServiceTest {
     @Test
     public void testCreateModule() throws Exception {
         phRegistry.register(new CreateProjectHandler() {
-//            @Override
-//            public String getId() {
-//                return "my_generator";
-//            }
 
             @Override
             public String getProjectType() {
@@ -525,15 +498,6 @@ public class ProjectServiceTest {
 
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
-
-
-       // Map<String, List<String>> attributeValues = new LinkedHashMap<>();
-        //attributeValues.put("new module attribute", Arrays.asList("to be or not to be"));
-//        NewProject descriptor = DtoFactory.getInstance().createDto(NewProject.class)
-//                                          .withType("my_project_type")
-//                                          .withDescription("new module");
-//                                        //  .withAttributes(attributeValues);
-
 
 
 
@@ -594,12 +558,6 @@ public class ProjectServiceTest {
 
         Assert.assertEquals(attributeVal.getString(), "attribute value 1");
 
-//        Assert.assertEquals(description.getDescription(), "new module");
-//        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-//        Attribute attribute = description.getAttribute("new module attribute");
-//        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
-
         Assert.assertNotNull(project.getBaseFolder().getChild("a"));
         Assert.assertNotNull(project.getBaseFolder().getChild("b"));
         Assert.assertNotNull(project.getBaseFolder().getChild("test.txt"));
@@ -629,16 +587,6 @@ public class ProjectServiceTest {
         // PT is not registered, Unknown PT error thrown
         Assert.assertEquals(response.getStatus(), 409);
 
-//        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-//        Project project = pm.getProject(workspace, "new_project");
-//        Assert.assertNotNull(project);
-//        ProjectDescription description = project.getDescription();
-//
-//        Assert.assertEquals(description.getDescription(), "new project");
-//        Assert.assertEquals(description.getProjectType().getId(), "new_project_type");
-//        Assert.assertEquals(description.getProjectType().getName(), "new_project_type");
-//        Attribute attribute = description.getAttribute("new project attribute");
-//        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
     }
 
 
@@ -686,13 +634,7 @@ public class ProjectServiceTest {
         Assert.assertNotNull(attributeVal);
         Assert.assertEquals(attributeVal.getList(), Arrays.asList("to be or not to be"));
 
-//        Assert.assertEquals(project.getVisibility(), "private");
-//        Assert.assertEquals(description.getDescription(), "updated project");
-//        Assert.assertEquals(description.getProjectType().getId(), "my_project_type");
-//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-//        Assert.assertEquals(description.getProjectType().getName(), "my project type");
-//        Attribute attribute = description.getAttribute("my_attribute");
-//        Assert.assertEquals(attribute.getValues(), Arrays.asList("to be or not to be"));
+
     }
 
     @Test
@@ -2310,6 +2252,85 @@ public class ProjectServiceTest {
         Assert.assertTrue(names.contains("my_env_1"));
         Assert.assertTrue(names.contains("my_env_2"));
     }
+
+
+    @Test
+    public void testEstimateProject() throws Exception {
+
+        VirtualFile root = pm.getVirtualFileSystemRegistry().getProvider("my_ws").getMountPoint(false).getRoot();
+        root.createFolder("testEstimateProjectGood").createFolder("check");
+        root.createFolder("testEstimateProjectBad");
+
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("check");
+                        } catch (ForbiddenException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        } catch (ServerException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+
+                        if(file == null)
+                            throw new ValueStorageException("Check not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) {
+
+                        //calculateAttributeValueHolder = value;
+                    }
+                };
+            }
+        };
+
+
+        ProjectType2 pt = new ProjectType2("testEstimateProjectPT", "my testEstimateProject type") {
+
+            {
+                addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
+            }
+
+        };
+
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+
+        ContainerResponse response =
+                launcher.service("GET", String.format("http://localhost:8080/api/project/%s/estimate/%s?type=%s",
+                                workspace, "testEstimateProjectGood","testEstimateProjectPT"),
+                        "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        Map<String, List<String>> result = (Map<String, List<String>>)response.getEntity();
+
+        Assert.assertEquals(result.size(), 1);
+        Assert.assertEquals(result.get("calculated_attribute").get(0), "checked");
+
+        response =
+                launcher.service("GET", String.format("http://localhost:8080/api/project/%s/estimate/%s?type=%s",
+                                workspace, "testEstimateProjectBad","testEstimateProjectPT"),
+                        "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 409, "Error: " + response.getEntity());
+
+
+    }
+
 
     private void validateFileLinks(ItemReference item) {
         Link link = item.getLink("delete");

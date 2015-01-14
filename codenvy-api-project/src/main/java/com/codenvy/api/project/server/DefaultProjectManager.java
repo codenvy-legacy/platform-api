@@ -184,7 +184,7 @@ public final class DefaultProjectManager implements ProjectManager {
      *         id of workspace
      * @param name
      *         project's name
-     * @param projectDescription
+     * @param projectConfig
      *         project description
      * @return newly created project
      * @throws ConflictException
@@ -385,39 +385,40 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     public Map<String, AttributeValue> estimateProject(String workspace, String path, String projectTypeId)
-            throws ServerException, ForbiddenException, NotFoundException {
+            throws ServerException, ForbiddenException, NotFoundException, ValueStorageException,
+            ProjectTypeConstraintException {
 
 
         ProjectType2 projectType = projectTypeRegistry.getProjectType(projectTypeId);
         if(projectType == null)
-            throw new NotFoundException("Project Type "+projectType+" not found.");
+            throw new NotFoundException("Project Type "+projectTypeId+" not found.");
 
-        final VirtualFileEntry folder = getProjectsRoot(workspace)
-                .getChild(path.startsWith("/") ? path.substring(1) : path);
-        if(!folder.isFolder())
-            throw new ServerException("Item : "+path+" is not a folder");
-
+        final VirtualFileEntry baseFolder = getProjectsRoot(workspace).getChild(path.startsWith("/") ? path.substring(1) : path);
+        if (!baseFolder.isFolder()) {
+            throw new NotFoundException("Not a folder: "+path);
+        }
 
         Map<String, AttributeValue> attributes = new HashMap<>();
-        //Project project = new Project((FolderEntry)folder, this);
+
         for (Attribute2 attr : projectType.getAttributes()) {
 
-            if(attr.isVariable()) {
-                Variable var = (Variable)attr;
-                ValueProviderFactory vpf = var.getValueProviderFactory();
-                if(vpf != null) {
-                    List <String> strValues = null;
-                    try {
-                        strValues = vpf.newInstance((FolderEntry)folder).getValues(var.getName());
-                    } catch (ValueStorageException e) {
-                        // just do not add it
-                        continue;
-                    }
-                    attributes.put(var.getName(), new AttributeValue(strValues));
+            if (attr.isVariable() && ((Variable) attr).getValueProviderFactory() != null) {
+
+                Variable var = (Variable) attr;
+
+                try {
+                    attributes.put(attr.getName(), var.getValue((FolderEntry) baseFolder));
+                } catch (ValueStorageException e) {
+                    if(var.isRequired())
+                        throw e;
+                    else
+                        attributes.put(attr.getName(), null);
                 }
             }
+
         }
 
         return attributes;
+
     }
 }

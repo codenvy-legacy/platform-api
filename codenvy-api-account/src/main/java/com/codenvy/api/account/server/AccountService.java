@@ -1013,10 +1013,18 @@ public class AccountService extends Service {
     @Path("/{id}/credit-card/")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void removeCreditCardFromAccount(@ApiParam(value = "Account ID", required = true)
-                                            @PathParam("id") String accountId) throws NotFoundException, ServerException {
+                                            @PathParam("id") String accountId) throws NotFoundException, ServerException,
+                                                                                      ForbiddenException {
         final Account account = accountDao.getById(accountId);
 
-        account.getAttributes().remove("codenvy:creditCardToken");
+        String ccToken = account.getAttributes().remove("codenvy:creditCardToken");
+        if (ccToken == null) {
+            throw new NotFoundException("Credit card is not found for account " + accountId);
+        }
+
+        paymentService.removeCreditCard(ccToken);
+        // TODO charge if user has consumed paid resources
+        // TODO send email
         account.getAttributes().remove("codenvy:paid");
         accountDao.update(account);
     }

@@ -45,4 +45,6 @@ public interface PaymentService {
      * @throws ServerException
      */
     CreditCard getCreditCard(String token) throws NotFoundException, ServerException, ForbiddenException;
+
+    void removeCreditCard(String token) throws NotFoundException, ServerException, ForbiddenException;
 }

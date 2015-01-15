@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
@@ -286,4 +287,82 @@ public class ProjectTest {
 
         }
     }
+
+
+    @Test
+    public void testPTConstraints() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixinAndPrimary", "my type", true, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testAbstract", "my type", false, false) {});
+
+        pm.createProject("my_ws", "all", new ProjectConfig("proj", "testMixinAndPrimary"), null, null);
+        pm.createProject("my_ws", "prim", new ProjectConfig("proj", "testPrimary"), null, null);
+
+
+        // not possible to create Project with wrong PT
+        try {
+            pm.createProject("my_ws", "mix", new ProjectConfig("proj", "testMixin"), null, null);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) { }
+        try {
+            pm.createProject("my_ws", "abstr", new ProjectConfig("proj", "testAbstract"), null, null);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) {  }
+
+        ProjectConfig config = pm.getProject("my_ws", "all").getConfig();
+        config.getMixinTypes().add("testMixin");
+        pm.getProject("my_ws", "all").updateConfig(config);
+
+        // not possible to add wrong mixin PT
+        config.getMixinTypes().add("testAbstract");
+        try {
+            pm.getProject("my_ws", "all").updateConfig(config);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) {}
+
+
+    }
+
+    @Test
+    public void testAddMixin() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {
+
+            {
+                addConstantDefinition("c1", "","c1");
+            }
+
+        });
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {
+            {
+                addConstantDefinition("m1", "","m1");
+            }
+        });
+
+        pm.createProject("my_ws", "p1", new ProjectConfig("proj", "testPrimary"), null, null);
+//        pm.createProject("my_ws", "p2", new ProjectConfig("proj", "testPrimary"), null, null);
+
+
+        ProjectConfig config = pm.getProject("my_ws", "p1").getConfig();
+        Assert.assertEquals(config.getMixinTypes().size(), 0);
+        Assert.assertEquals(config.getAttributes().size(), 1);
+        config.getMixinTypes().add("testMixin");
+        pm.getProject("my_ws", "p1").updateConfig(config);
+        config = pm.getProject("my_ws", "p1").getConfig();
+        Assert.assertEquals(config.getMixinTypes().size(), 1);
+        Assert.assertEquals("testMixin", config.getMixinTypes().get(0));
+        Assert.assertEquals(config.getAttributes().size(), 2);
+
+
+        // add same mixin as existed, should be ignored
+        config.getMixinTypes().add("testMixin");
+        pm.getProject("my_ws", "p1").updateConfig(config);
+        config = pm.getProject("my_ws", "p1").getConfig();
+        Assert.assertEquals(config.getMixinTypes().size(), 1);
+
+    }
+
 }
+

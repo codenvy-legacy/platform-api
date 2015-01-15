@@ -93,51 +93,58 @@ public class Project {
 
         final ProjectJson2 projectJson = ProjectJson2.load(this);
 
-        ProjectType2 type = manager.getProjectTypeRegistry().getProjectType(projectJson.getType());
+//        ProjectType2 primaryType = manager.getProjectTypeRegistry().getProjectType(projectJson.getType());
+//
+//        if(type == null) {
+//            throw new ProjectTypeConstraintException("No Project Type configured for project : " + this.getPath());
+//        }
 
-        if(type == null) {
-            throw new ProjectTypeConstraintException("No Project Type configured for project : " + this.getPath());
-        }
 
+//        Set<ProjectType2> types = mergeTypes(projectJson.getType(), projectJson.getMixinTypes());
+
+        ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
 
         final Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for(Attribute2 attr : type.getAttributes()) {
+        for(ProjectType2 t : types.all) {
 
-            if(attr.isVariable()) {
-                Variable var = (Variable) attr;
-                final ValueProviderFactory factory = var.getValueProviderFactory();
+            for (Attribute2 attr : t.getAttributes()) {
 
-                List <String> val;
-                if (factory != null) {
+                if (attr.isVariable()) {
+                    Variable var = (Variable) attr;
+                    final ValueProviderFactory factory = var.getValueProviderFactory();
 
-                    val = factory.newInstance(baseFolder).getValues(var.getName());
+                    List<String> val;
+                    if (factory != null) {
 
-                    if(val == null)
-                        throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable "+var.getId());
-                 } else {
-                    val = projectJson.getAttributes().get(attr.getName());
+                        val = factory.newInstance(baseFolder).getValues(var.getName());
+
+                        if (val == null)
+                            throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable " + var.getId());
+                    } else {
+                        val = projectJson.getAttributes().get(attr.getName());
+                    }
+
+                    if (val == null || val.isEmpty()) {
+                        if (var.isRequired())
+                            throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable " + var.getId());
+                        // else just not add it
+                    } else {
+                        attributes.put(var.getName(), new AttributeValue(val));
+
+                    }
+
+                } else {  // Constant
+
+                    attributes.put(attr.getName(), attr.getValue());
+                    //attributes.add(attr);
                 }
-
-                if(val == null || val.isEmpty()) {
-                    if(var.isRequired())
-                        throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable "+var.getId());
-                    // else just not add it
-                } else {
-                    attributes.put(var.getName(), new AttributeValue(val));
-
-                }
-
-            } else {  // Constant
-
-                attributes.put(attr.getName(), attr.getValue());
-                //attributes.add(attr);
             }
         }
 
 
-        Builders builders = (projectJson.getBuilders() == null)?new Builders(type.getDefaultBuilder()):projectJson.getBuilders();
-        Runners runners = (projectJson.getRunners() == null)?new Runners(type.getDefaultRunner()):projectJson.getRunners();
+        Builders builders = (projectJson.getBuilders() == null)?new Builders(types.primary.getDefaultBuilder()):projectJson.getBuilders();
+        Runners runners = (projectJson.getRunners() == null)?new Runners(types.primary.getDefaultRunner()):projectJson.getRunners();
 
         return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
                 attributes, runners, builders, projectJson.getMixinTypes());
@@ -145,24 +152,50 @@ public class Project {
     }
 
 
+    /**
+     * Updates Project Config making all necessary validations
+     * @param update
+     * @throws ServerException
+     * @throws ValueStorageException
+     * @throws ProjectTypeConstraintException
+     * @throws InvalidValueException
+     */
     public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
             ProjectTypeConstraintException, InvalidValueException {
 
 
         final ProjectJson2 projectJson = new ProjectJson2();
 
-        projectJson.setType(update.getTypeId());
+        ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
+
+        projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
         projectJson.setRunners(update.getRunners());
         projectJson.setDescription(update.getDescription());
 
-        ProjectType2 type = manager.getProjectTypeRegistry().getProjectType(update.getTypeId());
+        ArrayList <String> ms = new ArrayList<>();
+        ms.addAll(types.mixinIDs);
+        projectJson.setMixinTypes(ms);
 
+//        ProjectType2 primaryType = manager.getProjectTypeRegistry().getProjectType(update.getTypeId());
+//        Set<ProjectType2> types = mergeTypes(update.getTypeId(), ms);
+
+        // update attributes
         for (String attributeName : update.getAttributes().keySet()) {
 
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
-            Attribute2 definition = type.getAttribute(attributeName);
 
+            // Try to Find definition in all the types (primary first)
+            Attribute2 definition = null;
+            for(ProjectType2 t : types.all) {
+                definition = t.getAttribute(attributeName);
+                if(definition != null)
+                    break;
+            }
+
+//            Attribute2 definition = type.getAttribute(attributeName);
+
+            // initialize provided attributes
             if(definition != null && definition.isVariable()) {
                 Variable var = (Variable)definition;
 
@@ -179,25 +212,31 @@ public class Project {
             }
         }
 
-        for(Attribute2 attr : type.getAttributes()) {
-            if(attr.isVariable()) {
-                // check if required variables initialized
-                if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
-                    throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
-                }
-            } else { // add constants
-                projectJson.getAttributes().put(attr.getName(), attr.getValue().getList());
-            }
 
+        for(ProjectType2 t : types.all) {
+            for(Attribute2 attr : t.getAttributes()) {
+                if(attr.isVariable()) {
+                    // check if required variables initialized
+                    if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
+                        throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
+                    }
+                } else {
+                    // add constants
+                    projectJson.getAttributes().put(attr.getName(), attr.getValue().getList());
+                }
+
+            }
         }
 
 
         // Default builders and runners
+        // NOTE we take it from Primary type only (for the time)
+        // TODO? let's see for Machine API
         if(projectJson.getBuilders().getDefault() == null)
-            projectJson.getBuilders().setDefault(type.getDefaultBuilder());
+            projectJson.getBuilders().setDefault(types.primary.getDefaultBuilder());
 
         if(projectJson.getRunners().getDefault() == null)
-            projectJson.getRunners().setDefault(type.getDefaultRunner());
+            projectJson.getRunners().setDefault(types.primary.getDefaultRunner());
 
 
         projectJson.save(this);
@@ -338,6 +377,50 @@ public class Project {
             throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
         }
         return entry;
+    }
+
+
+    private class ProjectTypes {
+
+        ProjectType2 primary;
+        Set<ProjectType2> mixins = new HashSet<>();
+        Set<ProjectType2> all = new HashSet<>();
+        Set<String> mixinIDs = new HashSet<>();
+
+        ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
+            if(pt == null)
+                throw new ProjectTypeConstraintException("No primary type defined for "+getWorkspace()+" : "+getPath());
+
+            primary = manager.getProjectTypeRegistry().getProjectType(pt);
+            if(primary == null)
+                throw new ProjectTypeConstraintException("No project type registered for "+pt);
+            if(!primary.canBePrimary())
+                throw new ProjectTypeConstraintException("Project type "+primary.getId()+" is not allowable to be primary type");
+            all.add(primary);
+
+            if(mss == null)
+                mss = new ArrayList<>();
+
+            for(String m : mss) {
+                if(!m.equals(primary.getId())) {
+
+                    ProjectType2 mixin = manager.getProjectTypeRegistry().getProjectType(m);
+                    if(mixin == null)
+                        throw new ProjectTypeConstraintException("No project type registered for "+m);
+                    if(!mixin.canBeMixin())
+                        throw new ProjectTypeConstraintException("Project type "+mixin+" is not allowable to be mixin");
+
+                    // Silently remove repeated items from mixins if any
+                    mixins.add(mixin);
+                    all.add(mixin);
+                    mixinIDs.add(m);
+                }
+
+            }
+
+        }
+
+
     }
 
 }

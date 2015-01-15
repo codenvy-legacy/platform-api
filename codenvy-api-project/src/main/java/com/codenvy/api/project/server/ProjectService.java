@@ -406,12 +406,6 @@ public class ProjectService extends Service {
 
         return attributes;
 
-//        return DtoConverter.toDescriptorDto2(projectManager.estimateProject(workspace, path, projectType, failOnBadValue),
-//                getServiceContext().getServiceUriBuilder(),
-//                projectManager.getProjectTypeRegistry());
-
-//        return null;
-
     }
 
     @ApiOperation(value = "Create file",
@@ -713,9 +707,6 @@ public class ProjectService extends Service {
                                            @QueryParam("force") boolean force,
                                            ImportProject importProject)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
-
-
-
 
 
         final ImportSourceDescriptor projectSource = importProject.getSource().getProject();

@@ -23,10 +23,7 @@ import org.junit.Test;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 
 
 /**
@@ -289,6 +286,81 @@ public class ProjectTypeTest {
 
         Assert.assertEquals("builder1", reg.getProjectType("testWithDefaultBuilderAndRunner").getDefaultBuilder());
         Assert.assertEquals("system:/runner1/myRunner", reg.getProjectType("testWithDefaultBuilderAndRunner").getDefaultRunner());
+
+    }
+
+
+    @Test
+    public void testTypeOf() throws Exception {
+
+        Set<ProjectType2> pts = new HashSet<>();
+        final ProjectType2 parent = new ProjectType2("parent", "parent") { };
+
+        final ProjectType2 parent1 = new ProjectType2("parent1", "parent") {};
+
+        final ProjectType2 parent2 = new ProjectType2("parent2", "parent") {};
+
+        final ProjectType2 child = new ProjectType2("child", "child") {
+            {
+                addParent(parent);
+                addParent(parent2);
+            }
+        };
+
+        final ProjectType2 child2 = new ProjectType2("child2", "child2") {
+            {
+                addParent(child);
+            }
+        };
+
+        pts.add(child);
+        pts.add(parent);
+        pts.add(child2);
+        pts.add(parent1);
+        pts.add(parent2);
+
+        ProjectTypeRegistry reg = new ProjectTypeRegistry(pts);
+
+        ProjectType2 t1 = reg.getProjectType("child2");
+
+        Assert.assertTrue(t1.isTypeOf("parent"));
+        Assert.assertTrue(t1.isTypeOf("parent2"));
+        Assert.assertTrue(t1.isTypeOf("blank"));
+        Assert.assertFalse(t1.isTypeOf("parent1"));
+
+
+    }
+
+
+    @Test
+    public void testSortPTs() throws Exception {
+
+        Set<ProjectType2> pts = new HashSet<>();
+        final ProjectType2 parent = new ProjectType2("parent", "parent") { };
+
+        final ProjectType2 child = new ProjectType2("child", "child") {
+            {
+                addParent(parent);
+            }
+        };
+
+        final ProjectType2 child2 = new ProjectType2("child2", "child2") {
+            {
+                addParent(child);
+            }
+        };
+
+        pts.add(child);
+        pts.add(parent);
+        pts.add(child2);
+
+        ProjectTypeRegistry reg = new ProjectTypeRegistry(pts);
+        List<ProjectType2> list = reg.getProjectTypes(new ProjectTypeRegistry.ChildToParentComparator());
+
+        Assert.assertEquals(list.get(0).getId(), "child2");
+        Assert.assertEquals(list.get(1).getId(), "child");
+        Assert.assertEquals(list.get(2).getId(), "parent");
+        Assert.assertEquals(list.get(3).getId(), "blank");
 
     }
 

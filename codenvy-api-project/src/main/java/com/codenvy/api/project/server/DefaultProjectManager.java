@@ -196,7 +196,7 @@ public final class DefaultProjectManager implements ProjectManager {
      */
     public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options,
                                  String visibility)
-            throws ConflictException, ForbiddenException, ServerException {
+            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException {
 
 
         final FolderEntry myRoot = getProjectsRoot(workspace);
@@ -220,9 +220,6 @@ public final class DefaultProjectManager implements ProjectManager {
             project.setVisibility(visibility);
         }
 
-        //project.getMisc().setCreationDate(System.currentTimeMillis());
-        //project.saveMisc(project.getMisc());
-        //getProjectMisc(project).setCreationDate(System.currentTimeMillis());
         return project;
     }
 

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.type;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.project.server.ProjectTypeConstraintException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +29,8 @@ public class ProjectTypeRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(ProjectTypeRegistry.class);
 
     public static final ProjectType2 BASE_TYPE = new BaseProjectType();
+
+    public static final ChildToParentComparator CHILD_TO_PARENT_COMPARATOR = new ChildToParentComparator();
 
     private final static Pattern NAME_PATTERN = Pattern.compile("[^a-zA-Z0-9-_.]");
 
@@ -68,12 +71,32 @@ public class ProjectTypeRegistry {
 
     }
 
-    public ProjectType2 getProjectType(String id) {
-        return projectTypes.get(id);
+    public ProjectType2 getProjectType(String id) /*throws NotFoundException*/ {
+        ProjectType2 pt = projectTypes.get(id);
+        // TODO add this exception
+//        if(pt == null)
+//            throw new NotFoundException("Project Type "+id+" not found in the registry");
+        return pt;
     }
 
     public Collection <ProjectType2> getProjectTypes() {
         return projectTypes.values();
+    }
+
+    public List <ProjectType2> getProjectTypes(Comparator<ProjectType2> comparator) {
+
+        //List<ProjectType2> list = new ArrayList<>(projectTypes.values());
+
+        List<ProjectType2> list = new ArrayList<>();
+
+        for(ProjectType2 pt : projectTypes.values()) {
+            list.add(pt);
+        }
+
+
+        Collections.sort(list, comparator);
+
+        return list;
     }
 
     // maybe for test only?
@@ -143,6 +166,20 @@ public class ProjectTypeRegistry {
             initAttributesRecursively(myType, supertype);
         }
 
+    }
+
+
+    public static class ChildToParentComparator implements Comparator<ProjectType2> {
+        @Override
+        public int compare(ProjectType2 o1, ProjectType2 o2) {
+            if(o1.isTypeOf(o2.getId())) {
+                return -1;
+            }
+            if(o2.isTypeOf(o1.getId())) {
+                return 1;
+            }
+            return 0;
+        }
     }
 
 

@@ -78,7 +78,7 @@ public interface ProjectManager {
      */
     Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options,
                           String visibility)
-            throws ConflictException, ForbiddenException, ServerException;
+            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException;
 
     /**
      * Gets root folder od project tree.

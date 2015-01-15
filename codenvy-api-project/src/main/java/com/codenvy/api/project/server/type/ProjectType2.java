@@ -32,22 +32,28 @@ public abstract class ProjectType2 {
     protected final List<String>            builderCategories;
     private String defaultBuilder = null;
     private String defaultRunner  = null;
+    private final boolean mixable;
+    private final boolean primaryable;
 
-    protected ProjectType2(String id, String displayName) {
+    protected ProjectType2(String id, String displayName, boolean primaryable, boolean mixable) {
         this.id = id;
         this.displayName = displayName;
         this.attributes = new HashMap<>();
         this.parents = new ArrayList<ProjectType2>();
         this.runnerCategories = new ArrayList<String>();
         this.builderCategories = new ArrayList<String>();
+        this.mixable = mixable;
+        this.primaryable = primaryable;
+    }
 
+    protected ProjectType2(String id, String displayName) {
+        this(id, displayName, true, true);
     }
 
 
     public String getId() {
         return id;
     }
-
 
     public String getDisplayName() {
         return displayName;
@@ -64,11 +70,9 @@ public abstract class ProjectType2 {
     public boolean isTypeOf(String typeId) {
         if (this.id.equals(typeId))
             return true;
-        for(ProjectType2 type : getParents()) {
-            if (type.getId().equals(typeId))
-                return true;
-        }
-        return false;
+
+        return recurseParents(this, typeId);
+
     }
 
     public String getDefaultBuilder() {
@@ -90,6 +94,13 @@ public abstract class ProjectType2 {
         return runnerCategories;
     }
 
+    public boolean canBeMixin() {
+        return mixable;
+    }
+
+    public boolean canBePrimary() {
+        return primaryable;
+    }
 
     protected void addConstantDefinition(String name, String description, AttributeValue value) {
         attributes.put(name, new Constant(id, name, description, value));
@@ -127,7 +138,19 @@ public abstract class ProjectType2 {
         this.defaultRunner = runner;
     }
 
-    //protected void addBuilders(B)
+    private boolean recurseParents(ProjectType2 child, String parent) {
+
+        for (ProjectType2 p : child.getParents()) {
+            if(p.getId().equals(parent)) {
+                return true;
+            }
+            if(recurseParents(p, parent))
+                return true;
+        }
+
+        return false;
+
+    }
 
 }
 

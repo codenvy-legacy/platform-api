@@ -1171,16 +1171,14 @@ public class AccountService extends Service {
                                              Constants.LINK_REL_REMOVE_ACCOUNT));
         }
 
-        if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager") &&
-            !securityContext.isUserInRole("account/owner")) {
-            account.getAttributes().remove("codenvy:creditCardToken");
-        }
         if (!securityContext.isUserInRole("account/owner") &&
             !securityContext.isUserInRole("account/member") &&
             !securityContext.isUserInRole("system/admin") &&
             !securityContext.isUserInRole("system/manager")) {
             account.getAttributes().clear();
         }
+        account.getAttributes().remove("codenvy:creditCardToken");
+        account.getAttributes().remove("codenvy:billing.date");
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
                          .withName(account.getName())

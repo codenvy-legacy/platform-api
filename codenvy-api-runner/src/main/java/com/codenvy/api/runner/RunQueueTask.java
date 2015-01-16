@@ -45,8 +45,8 @@ public final class RunQueueTask implements Cancellable {
     private final ValueHolder<BuildTaskDescriptor> buildTaskHolder;
     private final long                             created;
     private final long                             waitingTimeout;
-    private final AtomicBoolean                    stopped = new AtomicBoolean(false);
-    private Long                                   stopTime;
+    private final AtomicBoolean stopped = new AtomicBoolean(false);
+    private Long stopTime;
 
     /* NOTE: don't use directly! Always use getter that makes copy of this UriBuilder. */
     private final UriBuilder uriBuilder;
@@ -137,7 +137,8 @@ public final class RunQueueTask implements Cancellable {
                                        .withLinks(links)
                                        .withWorkspace(request.getWorkspace())
                                        .withProject(request.getProject())
-                                       .withUserName(request.getUserName());
+                                       .withUserName(request.getUserName())
+                                       .withMemorySize(request.getMemorySize());
             } else {
                 final ApplicationProcessDescriptor remoteDescriptor = remoteProcess.getApplicationProcessDescriptor();
                 // re-write some parameters, we are working as revers-proxy

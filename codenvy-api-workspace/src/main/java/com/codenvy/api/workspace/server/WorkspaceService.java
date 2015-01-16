@@ -183,6 +183,10 @@ public class WorkspaceService extends Service {
             ensureCurrentUserOwnerOf(account);
         }
 
+        if (account.getAttributes().containsKey(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY)) {
+            newWorkspace.getAttributes().put(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY, "true");
+        }
+
         final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(false)

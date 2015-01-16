@@ -991,7 +991,7 @@ public class AccountService extends Service {
         // check that CC is present in payment system
         CreditCard creditCard = paymentService.getCreditCard(ccToken);
 
-        // TODO commented for tests and demo
+        // TODO commented for tests and demo. Uncomment when UD will be able to add CC for each user
 //        if (!accountId.equals(creditCard.getAccountId())) {
 //            throw new ForbiddenException("This token is not assigned to provided account");
 //        }

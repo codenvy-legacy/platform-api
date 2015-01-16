@@ -93,15 +93,6 @@ public class Project {
 
         final ProjectJson2 projectJson = ProjectJson2.load(this);
 
-//        ProjectType2 primaryType = manager.getProjectTypeRegistry().getProjectType(projectJson.getType());
-//
-//        if(type == null) {
-//            throw new ProjectTypeConstraintException("No Project Type configured for project : " + this.getPath());
-//        }
-
-
-//        Set<ProjectType2> types = mergeTypes(projectJson.getType(), projectJson.getMixinTypes());
-
         ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
 
         final Map<String, AttributeValue> attributes = new HashMap<>();
@@ -177,9 +168,6 @@ public class Project {
         ms.addAll(types.mixinIDs);
         projectJson.setMixinTypes(ms);
 
-//        ProjectType2 primaryType = manager.getProjectTypeRegistry().getProjectType(update.getTypeId());
-//        Set<ProjectType2> types = mergeTypes(update.getTypeId(), ms);
-
         // update attributes
         for (String attributeName : update.getAttributes().keySet()) {
 
@@ -192,8 +180,6 @@ public class Project {
                 if(definition != null)
                     break;
             }
-
-//            Attribute2 definition = type.getAttribute(attributeName);
 
             // initialize provided attributes
             if(definition != null && definition.isVariable()) {
@@ -211,7 +197,6 @@ public class Project {
 
             }
         }
-
 
         for(ProjectType2 t : types.all) {
             for(Attribute2 attr : t.getAttributes()) {
@@ -401,6 +386,13 @@ public class Project {
             if(mss == null)
                 mss = new ArrayList<>();
 
+            // temporary storage to detect duplicated attributes
+            HashMap<String, Attribute2> tmpAttrs = new HashMap<>();
+            for(Attribute2 attr : primary.getAttributes()) {
+                tmpAttrs.put(attr.getName(), attr);
+            }
+
+
             for(String m : mss) {
                 if(!m.equals(primary.getId())) {
 
@@ -409,6 +401,17 @@ public class Project {
                         throw new ProjectTypeConstraintException("No project type registered for "+m);
                     if(!mixin.canBeMixin())
                         throw new ProjectTypeConstraintException("Project type "+mixin+" is not allowable to be mixin");
+
+                    // detect duplicated attributes
+                    for(Attribute2 attr : mixin.getAttributes()) {
+                        if(tmpAttrs.containsKey(attr.getName()))
+                            throw new ProjectTypeConstraintException("Attribute name conflict. Duplicated attributes detected "+getPath() +
+                                    " Attribute "+ attr.getName() + " declared in " + mixin.getId() + " already declared in " +
+                                    tmpAttrs.get(attr.getName()).getProjectType());
+
+                        tmpAttrs.put(attr.getName(), attr);
+                    }
+
 
                     // Silently remove repeated items from mixins if any
                     mixins.add(mixin);

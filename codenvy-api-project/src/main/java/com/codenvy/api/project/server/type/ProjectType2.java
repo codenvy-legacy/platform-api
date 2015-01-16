@@ -35,6 +35,13 @@ public abstract class ProjectType2 {
     private final boolean mixable;
     private final boolean primaryable;
 
+    /**
+     *
+     * @param id
+     * @param displayName
+     * @param primaryable
+     * @param mixable
+     */
     protected ProjectType2(String id, String displayName, boolean primaryable, boolean mixable) {
         this.id = id;
         this.displayName = displayName;
@@ -46,6 +53,11 @@ public abstract class ProjectType2 {
         this.primaryable = primaryable;
     }
 
+    /**
+     * @deprecated
+     * @param id
+     * @param displayName
+     */
     protected ProjectType2(String id, String displayName) {
         this(id, displayName, true, true);
     }

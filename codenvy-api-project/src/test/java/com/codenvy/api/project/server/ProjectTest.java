@@ -356,11 +356,14 @@ public class ProjectTest {
         Assert.assertEquals(config.getAttributes().size(), 2);
 
 
-        // add same mixin as existed, should be ignored
+        // add same mixin as existed
         config.getMixinTypes().add("testMixin");
-        pm.getProject("my_ws", "p1").updateConfig(config);
-        config = pm.getProject("my_ws", "p1").getConfig();
-        Assert.assertEquals(config.getMixinTypes().size(), 1);
+        try {
+            pm.getProject("my_ws", "p1").updateConfig(config);
+            Assert.fail("ProjectTypeConstraintException (duplicated attributes) expected");
+        } catch (ProjectTypeConstraintException e) { }
+        //config = pm.getProject("my_ws", "p1").getConfig();
+        //Assert.assertEquals(config.getMixinTypes().size(), 1);
 
     }
 

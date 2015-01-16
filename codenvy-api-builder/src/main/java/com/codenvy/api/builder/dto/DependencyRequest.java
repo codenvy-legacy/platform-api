@@ -15,14 +15,9 @@ import com.codenvy.dto.shared.DTO;
 /**
  * Request to analyze project dependencies.
  *
- * @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a>
+ * @author Andrey Parfonov
  */
 @DTO
 public interface DependencyRequest extends BaseBuilderRequest {
 
-    String getType();
-
-    void setType(String type);
-
-    DependencyRequest withType(String type);
 }

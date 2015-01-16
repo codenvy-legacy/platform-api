@@ -10,10 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.builder.internal;
 
-/** @author <a href="mailto:andrew00x@gmail.com">Andrey Parfonov</a> */
+/** @author Andrey Parfonov */
 public enum BuilderTaskType {
     DEFAULT("default", "Default build task"),
-    LIST_DEPS("list dependencies", "List all project's dependencies"),
     COPY_DEPS("copy dependencies", "Copy all project's dependencies");
 
     private final String name;

@@ -21,7 +21,6 @@ import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
-import com.codenvy.api.core.rest.annotations.Valid;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
@@ -105,15 +104,12 @@ public class BuilderService extends Service {
                                             @PathParam("ws-id") String workspace,
                                             @ApiParam(value = "Project name", required = true)
                                             @Required @Description("project name") @QueryParam("project") String project,
-                                            @ApiParam(value = "Analysis type. If dropped, list is used by default", defaultValue = "list",
-                                                    allowableValues = "copy,list, copy-sources")
-                                            @Valid({"copy", "list"}) @DefaultValue("list") @QueryParam("type") String analyzeType,
                                             @ApiParam(
                                                     value = "Build options. Here you specify optional build options like skip tests, " +
                                                             "build targets etc.")
                                             @Description("build options") BuildOptions options)
             throws Exception {
-        return buildQueue.scheduleDependenciesAnalyze(workspace, project, analyzeType, getServiceContext(), options).getDescriptor();
+        return buildQueue.scheduleDependenciesAnalyze(workspace, project, getServiceContext(), options).getDescriptor();
     }
 
     @ApiOperation(value = "Get project build tasks",

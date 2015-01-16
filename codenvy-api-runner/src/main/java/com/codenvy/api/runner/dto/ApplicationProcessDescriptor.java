@@ -133,4 +133,11 @@ public interface ApplicationProcessDescriptor extends Hyperlinks {
     void setPortMapping(PortMapping portMapping);
 
     ApplicationProcessDescriptor withPortMapping(PortMapping portMapping);
+
+    @ApiModelProperty(value = "Amount of available RAM")
+    int getMemorySize();
+
+    void setMemorySize(int memory);
+
+    ApplicationProcessDescriptor withMemorySize(int memory);
 }

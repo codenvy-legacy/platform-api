@@ -57,4 +57,11 @@
             <url>https://maven.codenvycorp.com/content/groups/public/</url>
         </repository>
     </repositories>
+    <pluginRepositories>
+        <pluginRepository>
+            <id>codenvy</id>
+            <name>Maven Plugin Repository</name>
+            <url>http://maven.codenvycorp.com/content/repositories/codenvy-public-releases/</url>
+        </pluginRepository>
+    </pluginRepositories>
 </project>

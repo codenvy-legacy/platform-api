@@ -37,12 +37,7 @@ import org.testng.annotations.Test;
 import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URLEncoder;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 import static java.util.Collections.singletonList;
 import static java.util.Collections.singletonMap;
@@ -220,7 +215,10 @@ public class NonEncodedFactoryBuilderTest {
     public void shouldBeAbleToConvertEncodedToNonEncoded() throws Exception {
         String nonEncFactory = factoryBuilder.buildNonEncoded(factory);
 
-        assertEquals(nonEncFactory, expected);
+        Set<String> expectedSet = new HashSet<>(Arrays.asList(expected.split("&")));
+        Set<String> nonEncFactorySet = new HashSet<>(Arrays.asList(nonEncFactory.split("&")));
+
+        assertEquals(expectedSet, nonEncFactorySet);
     }
 
     @Test
@@ -239,7 +237,10 @@ public class NonEncodedFactoryBuilderTest {
                                                                      .withContenturl("http:google.com/auth/content")));
         String nonEncFactory = factoryBuilder.buildNonEncoded(factory);
 
-        assertEquals(nonEncFactory, expected);
+        Set<String> expectedSet = new HashSet<>(Arrays.asList(expected.split("&")));
+        Set<String> nonEncFactorySet = new HashSet<>(Arrays.asList(nonEncFactory.split("&")));
+
+        assertEquals(expectedSet, nonEncFactorySet);
     }
 
     @Test
@@ -253,7 +254,10 @@ public class NonEncodedFactoryBuilderTest {
                                                               .withColor("logo")));
         String nonEncFactory = factoryBuilder.buildNonEncoded(factory);
 
-        assertEquals(nonEncFactory, expected);
+        Set<String> expectedSet = new HashSet<>(Arrays.asList(expected.split("&")));
+        Set<String> nonEncFactorySet = new HashSet<>(Arrays.asList(nonEncFactory.split("&")));
+
+        assertEquals(expectedSet, nonEncFactorySet);
     }
 
     @Test

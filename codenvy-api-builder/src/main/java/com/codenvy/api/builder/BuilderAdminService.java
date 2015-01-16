@@ -125,7 +125,7 @@ public class BuilderAdminService extends Service {
                     final Link link = builderServer.getLink(linkRel);
                     if (link != null) {
                         if (Constants.LINK_REL_BUILDER_STATE.equals(linkRel)) {
-                            for (BuilderDescriptor builderImpl : builderServer.getAvailableBuilders()) {
+                            for (BuilderDescriptor builderImpl : builderServer.getBuilderDescriptors()) {
                                 final String href = link.getHref();
                                 final String hrefWithBuilder =
                                         href + ((href.indexOf('?') > 0 ? '&' : '?') + "builder=" + builderImpl.getName());

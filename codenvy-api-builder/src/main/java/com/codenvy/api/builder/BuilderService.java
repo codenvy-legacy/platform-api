@@ -369,7 +369,7 @@ public class BuilderService extends Service {
             final String assignedWorkspace = builderServer.getAssignedWorkspace();
             if (assignedWorkspace == null || assignedWorkspace.equals(workspace)) {
                 try {
-                    result.addAll(builderServer.getAvailableBuilders());
+                    result.addAll(builderServer.getBuilderDescriptors());
                 } catch (BuilderException e) {
                     LOG.error(e.getMessage(), e);
                 }

@@ -25,6 +25,7 @@ import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.api.runner.internal.Constants;
 
 import java.io.IOException;
+import java.util.LinkedList;
 import java.util.List;
 
 /**
@@ -99,9 +100,17 @@ public class RemoteRunnerServer extends RemoteServiceDescriptor {
         throw new RunnerException(String.format("Invalid runner name %s", name));
     }
 
-    RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws RunnerException {
+    public List<RemoteRunner> getRemoteRunners() throws RunnerException {
+        List<RemoteRunner> remoteRunners = new LinkedList<>();
+        for (RunnerDescriptor runnerDescriptor : getRunnerDescriptors()) {
+            remoteRunners.add(createRemoteRunner(runnerDescriptor));
+        }
+        return remoteRunners;
+    }
+
+    private RemoteRunner createRemoteRunner(RunnerDescriptor descriptor) throws RunnerException {
         try {
-            return new RemoteRunner(baseUrl, descriptor, getLinks());
+            return new RemoteRunner(baseUrl, descriptor.getName(), getLinks());
         } catch (IOException e) {
             throw new RunnerException(e);
         } catch (ServerException e) {

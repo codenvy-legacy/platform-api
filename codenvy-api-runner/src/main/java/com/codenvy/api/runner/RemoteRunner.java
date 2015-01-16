@@ -20,7 +20,6 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.RunRequest;
-import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerState;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
@@ -48,19 +47,17 @@ import java.util.List;
  * @see RemoteRunnerServer
  */
 public class RemoteRunner {
-    private final String           baseUrl;
-    private final String           name;
-    private final RunnerDescriptor descriptor;
-    private final int              hashCode;
-    private final List<Link>       links;
+    private final String     baseUrl;
+    private final String     name;
+    private final int        hashCode;
+    private final List<Link> links;
 
     private volatile long lastUsage = -1;
 
     /* Package visibility, not expected to be created by api users. They should use RemoteRunnerServer to get an instance of RemoteRunner. */
-    RemoteRunner(String baseUrl, RunnerDescriptor descriptor, List<Link> links) {
+    RemoteRunner(String baseUrl, String name, List<Link> links) {
         this.baseUrl = baseUrl;
-        this.name = descriptor.getName();
-        this.descriptor = DtoFactory.getInstance().clone(descriptor);
+        this.name = name;
         this.links = new ArrayList<>(links);
         int hashCode = 7;
         hashCode = hashCode * 31 + baseUrl.hashCode();
@@ -91,17 +88,27 @@ public class RemoteRunner {
         return lastUsage;
     }
 
-    public RunnerDescriptor getDescriptor() {
-        return DtoFactory.getInstance().clone(descriptor);
-    }
-
-    boolean hasEnvironment(String name) {
-        for (RunnerEnvironment environment : descriptor.getEnvironments()) {
+    boolean hasEnvironment(String name) throws RunnerException {
+        for (RunnerEnvironment environment : getEnvironments()) {
             if (environment.getId().equals(name)) {
                 return true;
             }
         }
         return false;
+    }
+
+    List<RunnerEnvironment> getEnvironments() throws RunnerException {
+        final Link link = getLink(com.codenvy.api.runner.internal.Constants.LINK_REL_RUNNER_ENVIRONMENTS);
+        if (link == null) {
+            throw new RunnerException("Unable get URL for retrieving runner's environments");
+        }
+        try {
+            return HttpJsonHelper.requestArray(RunnerEnvironment.class, link, Pair.of("runner", name));
+        } catch (IOException e) {
+            throw new RunnerException(e);
+        } catch (ServerException | UnauthorizedException | ForbiddenException | NotFoundException | ConflictException e) {
+            throw new RunnerException(e.getServiceError());
+        }
     }
 
     /**

@@ -10,19 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.factory;
 
-import static com.jayway.restassured.RestAssured.given;
-import static java.net.URLEncoder.encode;
-import static javax.ws.rs.core.Response.Status;
-import static org.hamcrest.Matchers.equalTo;
-import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
-import static org.mockito.Matchers.eq;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.testng.Assert.assertEquals;
-import static org.testng.Assert.assertTrue;
-
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
@@ -73,6 +60,20 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
+import static com.jayway.restassured.RestAssured.given;
+import static java.lang.String.format;
+import static java.net.URLEncoder.encode;
+import static javax.ws.rs.core.Response.Status;
+import static org.hamcrest.Matchers.equalTo;
+import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.eq;
+import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
+
 @Listeners(value = {EverrestJetty.class, MockitoTestNGListener.class})
 public class FactoryServiceTest {
     private final String             CORRECT_FACTORY_ID = "correctFactoryId";
@@ -92,6 +93,9 @@ public class FactoryServiceTest {
     private FactoryUrlAcceptValidator acceptValidator;
 
     @Mock
+    private FactoryEditValidator editValidator;
+
+    @Mock
     private ProjectManager projectManager;
 
     private FactoryBuilder factoryBuilder;
@@ -107,19 +111,19 @@ public class FactoryServiceTest {
                                             factoryStore,
                                             createValidator,
                                             acceptValidator,
+                                            editValidator,
                                             new LinksHelper(),
                                             factoryBuilder,
                                             projectManager);
     }
 
-    @javax.ws.rs.Path("factory")
     @Filter
     public static class EnvironmentFilter implements RequestFilter {
 
         public void doFilter(GenericContainerRequest request) {
             EnvironmentContext context = EnvironmentContext.getCurrent();
             context.setUser(new UserImpl(JettyHttpServer.ADMIN_USER_NAME, "id-2314", "token-2323",
-                                         Collections.<String>emptyList()));
+                                         Collections.<String>emptyList(), false));
         }
 
     }
@@ -567,7 +571,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
 
         assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
-                     String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
+                     format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
     @Test
@@ -621,7 +625,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/image?imgId=illegalImageId");
 
         assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
-                     String.format("Image with id %s is not found.", "illegalImageId"));
+                     format("Image with id %s is not found.", "illegalImageId"));
     }
 
     @Test
@@ -637,7 +641,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID + "/image?imgId=ImageId");
 
         assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
-                     String.format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
+                     format("Factory URL with id %s is not found.", ILLEGAL_FACTORY_ID));
     }
 
     @Test
@@ -857,6 +861,163 @@ public class FactoryServiceTest {
                      "Factory URL with id " + ILLEGAL_FACTORY_ID + " is not found.");
     }
 
+
+    /**
+     * Checks that the user can remove an existing factory
+     * @throws Exception
+     */
+    @Test
+    public void shouldBeAbleToRemoveAFactory() throws Exception {
+
+        // given
+        Factory factory = dto.createDto(Factory.class)
+                             .withV("2.0")
+                             .withSource(dto.createDto(Source.class)
+                                            .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                            .withType("git")
+                                                            .withLocation(
+                                                                    "http://github.com/codenvy/platform-api.git")));
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factory);
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        param("id", CORRECT_FACTORY_ID).//
+                        when().//
+                        delete("/private" + SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
+
+
+        assertEquals(response.getStatusCode(), 204);
+
+        // check there was a call on the remove operation with expected ID
+        verify(factoryStore).removeFactory(CORRECT_FACTORY_ID);
+
+    }
+
+    /**
+     * Checks that the user can not remove an unknown factory
+     * @throws Exception
+     */
+    @Test
+    public void shouldNotBeAbleToRemoveNotExistingFactory() throws Exception {
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        param("id", ILLEGAL_FACTORY_ID).//
+                        when().//
+                        delete("/private" + SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
+
+
+        assertEquals(response.getStatusCode(), 404);
+
+    }
+
+
+
+    /**
+     * Checks that the user can update an existing factory
+     * @throws Exception
+     */
+    @Test
+    public void shouldBeAbleToUpdateAFactory() throws Exception {
+
+        // given
+        Factory beforeFactory = dto.createDto(Factory.class)
+                             .withV("2.0")
+                             .withSource(dto.createDto(Source.class)
+                                            .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                            .withType("git")
+                                                            .withLocation(
+                                                                    "http://github.com/codenvy/platform-api.git")))
+                            .withCreator(dto.createDto(Author.class).withCreated(System.currentTimeMillis()));
+        beforeFactory.setId(CORRECT_FACTORY_ID);
+        Factory afterFactory = dto.createDto(Factory.class)
+                                   .withV("2.0")
+                                   .withSource(dto.createDto(Source.class)
+                                                  .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                  .withType("git")
+                                                                  .withLocation(
+                                                                          "http://github.com/codenvy/platform-api2.git")));
+
+
+        when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(beforeFactory);
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        contentType("application/json").
+                        body(JsonHelper.toJson(afterFactory)).
+                        when().//
+                        put("/private" + SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
+
+
+        assertEquals(response.getStatusCode(), 200);
+
+        Factory responseFactory = dto.createDtoFromJson(response.getBody().asInputStream(), Factory.class);
+        assertEquals(responseFactory.getSource(), afterFactory.getSource());
+
+
+        // check there was a call on the update operation with expected ID
+        verify(factoryStore).updateFactory(eq(CORRECT_FACTORY_ID), any(Factory.class));
+
+    }
+
+
+    /**
+     * Checks that the user can not update an unknown existing factory
+     * @throws Exception
+     */
+    @Test
+    public void shouldNotBeAbleToUpdateAnUnknownFactory() throws Exception {
+
+        // given
+        Factory testFactory = dto.createDto(Factory.class)
+                                  .withV("2.0")
+                                  .withSource(dto.createDto(Source.class)
+                                                 .withProject(dto.createDto(ImportSourceDescriptor.class)
+                                                                 .withType("git")
+                                                                 .withLocation(
+                                                                         "http://github.com/codenvy/platform-api.git")));
+
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        contentType("application/json").
+                               body(JsonHelper.toJson(testFactory)).
+                               when().//
+                        put("/private" + SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
+
+
+        assertEquals(response.getStatusCode(), 404);
+        assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
+                     format("Factory with id %s does not exist.", ILLEGAL_FACTORY_ID));
+
+    }
+
+
+
+    /**
+     * Checks that the user can not update a factory with a null one
+     * @throws Exception
+     */
+    @Test
+    public void shouldNotBeAbleToUpdateANullFactory() throws Exception {
+
+
+        // when, then
+        Response response =
+                given().auth().basic(JettyHttpServer.ADMIN_USER_NAME, JettyHttpServer.ADMIN_USER_PASSWORD).//
+                        contentType("application/json").
+                               when().//
+                        put("/private" + SERVICE_PATH + "/" + ILLEGAL_FACTORY_ID);
+        assertEquals(response.getStatusCode(), 500);
+        assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
+                     format("The updating factory shouldn't be null"));
+
+    }
+
     @Test(dataProvider = "badSnippetTypeProvider")
     public void shouldResponse409OnGetSnippetIfTypeIsIllegal(String type) throws Exception {
         // given
@@ -870,7 +1031,7 @@ public class FactoryServiceTest {
                 get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID + "/snippet?type=" + type);
 
         assertEquals(dto.createDtoFromJson(response.getBody().asString(), ServiceError.class).getMessage(),
-                     String.format("Snippet type \"%s\" is unsupported.", type));
+                     format("Snippet type \"%s\" is unsupported.", type));
     }
 
     @DataProvider(name = "badSnippetTypeProvider")

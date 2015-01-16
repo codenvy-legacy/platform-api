@@ -22,9 +22,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
-import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
-import com.codenvy.api.project.server.type.Attribute2;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
@@ -83,7 +81,14 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -91,6 +96,7 @@ import java.util.concurrent.Executors;
  * @author andrew00x
  * @author Eugene Voevodin
  * @author Artem Zatsarynnyy
+ * @author Valeriy Svydenko
  */
 @Api(value = "/project",
      description = "Project manager")
@@ -138,7 +144,6 @@ public class ProjectService extends Service {
             throw new ServerException("Looks like this is not valid project. We will mark it as broken");
         }
     }
-
 
     @ApiOperation(value = "Gets list of projects in root folder",
                   response = ProjectReference.class,

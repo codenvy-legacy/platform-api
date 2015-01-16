@@ -12,6 +12,7 @@ package com.codenvy.api.factory;
 
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.HttpJsonHelper;
@@ -35,6 +36,7 @@ import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.URLEncodedUtils;
+import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.gson.JsonSyntaxException;
 import com.wordnik.swagger.annotations.Api;
@@ -51,9 +53,11 @@ import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.ws.rs.Consumes;
+import javax.ws.rs.DELETE;
 import javax.ws.rs.DefaultValue;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -83,6 +87,13 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
+
+    /**
+     * Validator for editing factories.
+     */
+    private FactoryEditValidator factoryEditValidator;
+
+
     private String                    baseApiUrl;
     private FactoryStore              factoryStore;
     private FactoryUrlCreateValidator createValidator;
@@ -96,6 +107,7 @@ public class FactoryService extends Service {
                           FactoryStore factoryStore,
                           FactoryUrlCreateValidator createValidator,
                           FactoryUrlAcceptValidator acceptValidator,
+                          FactoryEditValidator factoryEditValidator,
                           LinksHelper linksHelper,
                           FactoryBuilder factoryBuilder,
                           ProjectManager projectManager) {
@@ -103,6 +115,7 @@ public class FactoryService extends Service {
         this.factoryStore = factoryStore;
         this.createValidator = createValidator;
         this.acceptValidator = acceptValidator;
+        this.factoryEditValidator = factoryEditValidator;
         this.linksHelper = linksHelper;
         this.factoryBuilder = factoryBuilder;
         this.projectManager = projectManager;
@@ -128,9 +141,9 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
     @ApiOperation(value = "Create a Factory and return data",
-                  notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
-                  response = Factory.class,
-                  position = 1)
+            notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
+            response = Factory.class,
+            position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
@@ -285,13 +298,135 @@ public class FactoryService extends Service {
         try {
             factoryUrl = factoryUrl.withLinks(linksHelper.createLinks(factoryUrl, factoryStore.getFactoryImages(id, null), uriInfo));
         } catch (UnsupportedEncodingException e) {
-            throw new ConflictException(e.getLocalizedMessage());
+            throw new ServerException(e.getLocalizedMessage());
         }
         if (validate) {
             acceptValidator.validateOnAccept(factoryUrl, true);
         }
         return factoryUrl;
     }
+
+    /**
+     * Removes factory information from storage by its id.
+     *
+     * @param id
+     *         id of factory
+     * @param uriInfo
+     *         url context
+     * @throws NotFoundException
+     *         when factory with given id doesn't exist
+     */
+    @ApiOperation(value = "Removes Factory information by its ID",
+            notes = "Removes factory based on the Factory ID which is passed in a path parameter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Factory not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed("user")
+    public void removeFactory(@ApiParam(value = "Factory ID", required = true)
+                              @PathParam("id") String id,
+                              @Context UriInfo uriInfo) throws ForbiddenException, NotFoundException, ApiException {
+
+        // Check we've a user
+        final User user = EnvironmentContext.getCurrent().getUser();
+        if (user == null) {
+            // well this shouldn't happen if only user is authorized to call the method
+            throw new ForbiddenException("No authenticated user");
+        }
+
+        // Do we have a factory for this id ?
+        Factory factory = factoryStore.getFactory(id);
+        if (factory == null) {
+            throw new NotFoundException("Factory with id " + id + " is not found.");
+        }
+
+        // Gets the User id
+        String userId = user.getId();
+
+        // Validate the factory against the current user
+        factoryEditValidator.validate(factory, userId);
+
+        // if validator didn't fail it means that the access is granted
+        factoryStore.removeFactory(id);
+    }
+
+
+    /**
+     * Updates factory with a new factory content
+     *
+     * @param id
+     *         id of factory
+     * @param newFactory
+     *         the new data for the factory
+     * @throws NotFoundException
+     *         when factory with given id doesn't exist
+     * @throws com.codenvy.api.core.ServerException if given factory is null
+     */
+    @ApiOperation(value = "Updates factory information by its ID",
+            notes = "Updates factory based on the Factory ID which is passed in a path parameter")
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 403, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 404, message = "Factory not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @PUT
+    @Path("/{id}")
+    @RolesAllowed("user")
+    @Consumes({MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_JSON})
+    public Factory updateFactory(@ApiParam(value = "Factory ID", required = true)
+                                 @PathParam("id") String id,
+                                 Factory newFactory) throws ForbiddenException, NotFoundException, ApiException {
+
+        // forbid null update
+        if (newFactory == null) {
+            throw new ServerException("The updating factory shouldn't be null");
+        }
+
+        // Do we have a factory for this id ?
+        Factory existingFactory = factoryStore.getFactory(id);
+        if (existingFactory == null) {
+            throw new NotFoundException("Factory with id " + id + " does not exist.");
+        }
+
+        // Gets the User id
+        final User user = EnvironmentContext.getCurrent().getUser();
+        String userId = user.getId();
+
+        // Validate the factory against the current user
+        factoryEditValidator.validate(existingFactory, userId);
+
+        // Check author is set and copy created date from old factory
+        Author newAuthor = newFactory.getCreator();
+        if (newAuthor == null || newAuthor.getUserId() == null) {
+            newAuthor = DtoFactory.getInstance().createDto(Author.class);
+            newFactory.setCreator(newAuthor);
+        }
+        if (newAuthor.getUserId() == null) {
+            newAuthor.setUserId(user.getId());
+        }
+        newFactory.getCreator().withCreated(existingFactory.getCreator().getCreated());
+        newFactory.setId(existingFactory.getId());
+
+        // validate the new content
+        createValidator.validateOnCreate(newFactory);
+
+        // access granted, user can update the factory
+        factoryStore.updateFactory(id, newFactory);
+
+        // create links
+        try {
+            newFactory.setLinks(linksHelper.createLinks(newFactory, factoryStore.getFactoryImages(id, null), uriInfo));
+        } catch (UnsupportedEncodingException e) {
+            throw new ServerException(e.getLocalizedMessage());
+        }
+
+        return newFactory;
+    }
+
 
     /**
      * Get list of factory links which conform specified attributes.

@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012-2014 Codenvy, S.A.
+ * Copyright (c) 2012-2015 Codenvy, S.A.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -199,6 +199,8 @@ public abstract class NonEncodedFactoryBuilder {
     }
 
     private void buildNonEncoded(FactoryV2_1 factory, StringBuilder builder) {
+        buildNonEncoded((FactoryV2_0)factory, builder);
+
         final Ide ide = factory.getIde();
         if (ide != null) {
             final OnProjectOpened onProjectOpened = ide.getOnProjectOpened();
@@ -206,9 +208,9 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Action> ideActions = onProjectOpened.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
-                    builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
+                    builder.append("&ide.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".properties.")
+                        builder.append("&ide.onProjectOpened.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -219,9 +221,9 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Action> ideActions = onAppClosed.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
-                    builder.append("&client.onAppClosed.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
+                    builder.append("&ide.onAppClosed.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onAppClosed.actions.").append(encode("[" + i + "]")).append(".properties.")
+                        builder.append("&ide.onAppClosed.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
@@ -232,16 +234,15 @@ public abstract class NonEncodedFactoryBuilder {
                 List<Action> ideActions = onAppLoaded.getActions();
                 for (int i = 0; i < ideActions.size(); i++) {
                     Action action = ideActions.get(i);
-                    builder.append("&client.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
+                    builder.append("&ide.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".id=").append(action.getId());
                     for (Map.Entry<String, String> property : action.getProperties().entrySet()) {
-                        builder.append("&client.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".properties.")
+                        builder.append("&ide.onAppLoaded.actions.").append(encode("[" + i + "]")).append(".properties.")
                                .append(property.getKey()).append("=").append(encode(property.getValue()));
                     }
                 }
             }
 
         }
-
     }
 
     private void appendIfNotNull(StringBuilder sb, String key, Object value, boolean encodeValue) {

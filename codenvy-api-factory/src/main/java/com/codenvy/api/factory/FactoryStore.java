@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012-2014 Codenvy, S.A.
+ * Copyright (c) 2012-2015 Codenvy, S.A.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -72,4 +72,17 @@ public interface FactoryStore {
      * @throws com.codenvy.api.core.ApiException
      */
     public Set<FactoryImage> getFactoryImages(String factoryId, String imageId) throws ApiException;
+
+    /**
+     * Update factory at storage.
+     *
+     * @param factoryId
+     *         - factory information
+     * @param factory
+     *         - factory information
+     * @return - if of stored factory
+     * @throws com.codenvy.api.core.ApiException
+     */
+    public String updateFactory(String factoryId, Factory factory) throws ApiException;
+
 }

@@ -68,7 +68,6 @@ public class MachineService {
                                                                 @FormParam("command") String command) throws NotFoundException {
         final Machine machine = machineRegistry.getMachine(id);
         final CommandProcess commandProcess = machine.newCommandProcess(command);
-        machineRegistry.putProcess(machine.getId(), commandProcess);
 
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class).withId(commandProcess.getId());
     }
@@ -77,11 +76,12 @@ public class MachineService {
     @DELETE
     public void killProcess(@PathParam("machineId") String machineId,
                             @PathParam("processId") long processId) throws NotFoundException, ForbiddenException {
-        final CommandProcess process = machineRegistry.getProcess(machineId, processId);
-        if (!process.isAlive()) {
-            throw new ForbiddenException("Process finished already");
-        }
-        process.kill();
+        final Machine machine = machineRegistry.getMachine(machineId);
+//        final CommandProcess process = machine.getRunningProcesses().get(processId);
+//        if (!process.isAlive()) {
+//            throw new ForbiddenException("Process finished already");
+//        }
+//        process.kill();
     }
 
     @Path("/{machineId}/suspend")

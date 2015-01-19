@@ -32,30 +32,14 @@ public class DefaultBuilderConfigurationFactory implements BuilderConfigurationF
 
     @Override
     public BuilderConfiguration createBuilderConfiguration(BaseBuilderRequest request) throws BuilderException {
+        final java.io.File buildDir = createBuildDir();
+
         if (request instanceof BuildRequest) {
-            final java.io.File buildDir = createBuildDir();
             return new BuilderConfiguration(buildDir, createWorkDir(buildDir, request), BuilderTaskType.DEFAULT, request);
         } else if (request instanceof DependencyRequest) {
-            final DependencyRequest myRequest = (DependencyRequest)request;
-            String type = myRequest.getType();
-            if (type == null) {
-                type = "list";
-            }
-            final BuilderTaskType taskType;
-            switch (type) {
-                case "copy":
-                    taskType = BuilderTaskType.COPY_DEPS;
-                    break;
-                case "list":
-                    taskType = BuilderTaskType.LIST_DEPS;
-                    break;
-                default:
-                    throw new BuilderException(
-                            String.format("Unsupported type of an analysis task: %s. Should be either 'list' or 'copy'", type));
-            }
-            final java.io.File buildDir = createBuildDir();
-            return new BuilderConfiguration(buildDir, createWorkDir(buildDir, request), taskType, myRequest);
+            return new BuilderConfiguration(buildDir, createWorkDir(buildDir, request), BuilderTaskType.COPY_DEPS, request);
         }
+
         throw new BuilderException("Unsupported type of request");
     }
 

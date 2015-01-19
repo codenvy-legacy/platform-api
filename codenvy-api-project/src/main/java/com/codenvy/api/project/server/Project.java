@@ -90,7 +90,6 @@ public class Project {
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
-
         final ProjectJson2 projectJson = ProjectJson2.load(this);
 
         ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
@@ -120,6 +119,7 @@ public class Project {
                         if (var.isRequired())
                             throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable " + var.getId());
                         // else just not add it
+
                     } else {
                         attributes.put(var.getName(), new AttributeValue(val));
 
@@ -128,7 +128,6 @@ public class Project {
                 } else {  // Constant
 
                     attributes.put(attr.getName(), attr.getValue());
-                    //attributes.add(attr);
                 }
             }
         }
@@ -154,10 +153,30 @@ public class Project {
     public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
             ProjectTypeConstraintException, InvalidValueException {
 
-
         final ProjectJson2 projectJson = new ProjectJson2();
 
         ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
+
+        // init Provided attributes if any
+//        if(ProjectJson2.isReadable(this)) {
+//            ProjectJson2 oldJson = ProjectJson2.load(this);
+//            ProjectTypes oldTypes = new ProjectTypes(oldJson.getType(), oldJson.getMixinTypes());
+//
+//            for(ProjectType2 t : types.all) {
+//                if(!oldTypes.all.contains(t)) {
+//                    for(ValueProviderFactory f : t.getProvidedFactories()) {
+//                        f.newInstance(this.baseFolder).setValues();
+//                    }
+//                }
+//            }
+//        } else {
+//            for (ProjectType2 t : types.all) {
+//                for (ValueProviderFactory f : t.getProvidedFactories()) {
+//                    f.newInstance(this.baseFolder).init();
+//                }
+//
+//            }
+//        }
 
         projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
@@ -165,7 +184,7 @@ public class Project {
         projectJson.setDescription(update.getDescription());
 
         ArrayList <String> ms = new ArrayList<>();
-        ms.addAll(types.mixinIDs);
+        ms.addAll(types.mixins.keySet());
         projectJson.setMixinTypes(ms);
 
         // update attributes
@@ -173,7 +192,7 @@ public class Project {
 
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
 
-            // Try to Find definition in all the types (primary first)
+            // Try to Find definition in all the types
             Attribute2 definition = null;
             for(ProjectType2 t : types.all) {
                 definition = t.getAttribute(attributeName);
@@ -202,8 +221,10 @@ public class Project {
             for(Attribute2 attr : t.getAttributes()) {
                 if(attr.isVariable()) {
                     // check if required variables initialized
+//                    if(attr.isRequired() && attr.getValue() == null) {
                     if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
                         throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
+
                     }
                 } else {
                     // add constants
@@ -368,9 +389,8 @@ public class Project {
     private class ProjectTypes {
 
         ProjectType2 primary;
-        Set<ProjectType2> mixins = new HashSet<>();
+        Map<String, ProjectType2> mixins = new HashMap<>();
         Set<ProjectType2> all = new HashSet<>();
-        Set<String> mixinIDs = new HashSet<>();
 
         ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
             if(pt == null)
@@ -414,9 +434,9 @@ public class Project {
 
 
                     // Silently remove repeated items from mixins if any
-                    mixins.add(mixin);
+                    mixins.put(m, mixin);
                     all.add(mixin);
-                    mixinIDs.add(m);
+
                 }
 
             }

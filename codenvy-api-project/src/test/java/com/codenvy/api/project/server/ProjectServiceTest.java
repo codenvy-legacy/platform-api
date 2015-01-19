@@ -2267,8 +2267,6 @@ public class ProjectServiceTest {
             public ValueProvider newInstance(final FolderEntry projectFolder) {
                 return new ValueProvider() {
 
-
-
                     @Override
                     public List<String> getValues(String attributeName) throws ValueStorageException {
 

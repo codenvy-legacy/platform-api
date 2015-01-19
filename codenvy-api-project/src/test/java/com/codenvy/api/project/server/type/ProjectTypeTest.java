@@ -379,7 +379,6 @@ public class ProjectTypeTest {
 
         public static class MyValueProvider implements ValueProvider {
 
-
             @Override
             public List<String> getValues(String attributeName) throws ValueStorageException {
                 return Arrays.asList("gena");

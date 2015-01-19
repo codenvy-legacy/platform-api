@@ -53,6 +53,7 @@ public class ProjectTest {
             @Override
             public ValueProvider newInstance(FolderEntry projectFolder) {
                 return new ValueProvider() {
+
                     @Override
                     public List<String> getValues(String attributeName) {
 
@@ -230,8 +231,6 @@ public class ProjectTest {
             public ValueProvider newInstance(final FolderEntry projectFolder) {
                 return new ValueProvider() {
 
-
-
                     @Override
                     public List<String> getValues(String attributeName) throws ValueStorageException {
 
@@ -364,6 +363,136 @@ public class ProjectTest {
         } catch (ProjectTypeConstraintException e) { }
         //config = pm.getProject("my_ws", "p1").getConfig();
         //Assert.assertEquals(config.getMixinTypes().size(), 1);
+
+    }
+
+
+    @Test
+    public void testAddMixinWithProvidedAttrs() throws Exception {
+
+        final ValueProviderFactory vpfPrimary = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = checkFolder();
+
+                        if(file == null)
+                            throw new ValueStorageException("Primary folder not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) throws ValueStorageException {
+                        if(checkFolder() == null) {
+                            try {
+                                projectFolder.createFolder("primary");
+                            } catch (Exception e) {
+                                throw new ValueStorageException(e.getMessage());
+                            }
+                        }
+
+                    }
+
+                    private VirtualFileEntry checkFolder() throws ValueStorageException {
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("primary");
+                        } catch (Exception e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+                        return file;
+                    }
+
+
+                };
+            }
+        };
+
+
+        final ValueProviderFactory vpfMixin = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = checkFolder();
+
+                        if(file == null)
+                            throw new ValueStorageException("Mixin folder not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) throws ValueStorageException {
+                        if(checkFolder() == null) {
+                            try {
+                                projectFolder.createFolder("mixin");
+                            } catch (Exception e) {
+                                throw new ValueStorageException(e.getMessage());
+                            }
+                        }
+                    }
+
+                    private VirtualFileEntry checkFolder() throws ValueStorageException {
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("mixin");
+                        } catch (Exception e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+                        return file;
+                    }
+
+
+                };
+            }
+        };
+
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {
+
+            {
+                addVariableDefinition("p.calculate", "", true, vpfPrimary);
+            }
+
+        });
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {
+            {
+                addVariableDefinition("m.calculate", "", true, vpfMixin);
+            }
+        });
+
+        Map <String, AttributeValue> attrs = new HashMap<>();
+        attrs.put("p.calculate", new AttributeValue(""));
+        ProjectConfig config = new ProjectConfig("proj", "testPrimary", attrs, null, null, null);
+        Project proj = pm.createProject("my_ws", "provided", config , null, null);
+
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 0);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("p.calculate").getString(), "checked");
+
+        config.getMixinTypes().add("testMixin");
+        config.getAttributes().put("m.calculate", new AttributeValue(""));
+        proj.updateConfig(config);
+
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 1);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("m.calculate").getString(), "checked");
+
+        // reread it in case
+        proj = pm.getProject("my_ws", "provided");
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 1);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("p.calculate").getString(), "checked");
+        Assert.assertEquals(proj.getConfig().getAttributes().get("m.calculate").getString(), "checked");
+
 
     }
 

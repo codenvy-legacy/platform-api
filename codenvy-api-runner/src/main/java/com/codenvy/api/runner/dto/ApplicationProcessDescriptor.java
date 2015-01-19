@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2012-2014 Codenvy, S.A.
+ * Copyright (c) 2012-2015 Codenvy, S.A.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -133,4 +133,11 @@ public interface ApplicationProcessDescriptor extends Hyperlinks {
     void setPortMapping(PortMapping portMapping);
 
     ApplicationProcessDescriptor withPortMapping(PortMapping portMapping);
+
+    @ApiModelProperty(value = "Amount of available RAM")
+    int getMemorySize();
+
+    void setMemorySize(int memory);
+
+    ApplicationProcessDescriptor withMemorySize(int memory);
 }

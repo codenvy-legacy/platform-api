@@ -12,20 +12,23 @@ package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.FormParam;
+import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import java.io.InputStream;
+import java.util.List;
 
 /**
  * Machine API
@@ -41,11 +44,15 @@ public class MachineService {
     private MachineRegistry machineRegistry;
 
     @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
+    @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
-    public MachineDescriptor createMachine(@FormParam("recipe") String recipe) throws BuildMachineException {
-        final Machine machine = machineBuilder.setRecipe(new StringMachineRecipeImpl(recipe))
-                                              .buildMachine();
+    public MachineDescriptor createMachine(final InputStream recipeStream) throws BuildMachineException {
+        final Machine machine = machineBuilder.setRecipe(new BaseMachineRecipe() {
+            @Override
+            public InputStream asStream() {
+                return recipeStream;
+            }
+        }).buildMachine();
 
         machineRegistry.putMachine(machine);
 
@@ -77,11 +84,16 @@ public class MachineService {
     public void killProcess(@PathParam("machineId") String machineId,
                             @PathParam("processId") long processId) throws NotFoundException, ForbiddenException {
         final Machine machine = machineRegistry.getMachine(machineId);
-//        final CommandProcess process = machine.getRunningProcesses().get(processId);
-//        if (!process.isAlive()) {
-//            throw new ForbiddenException("Process finished already");
-//        }
-//        process.kill();
+        for (CommandProcess commandProcess : machine.getRunningProcesses()) {
+            if (commandProcess.getId() == processId) {
+                if (!process.isAlive()) {
+                    throw new ForbiddenException("Process finished already");
+                }
+                process.kill();
+                return;
+            }
+        }
+        throw new NotFoundException(String.format("Process with id %s not found in machine %s.", processId, machineId));
     }
 
     @Path("/{machineId}/suspend")
@@ -101,5 +113,13 @@ public class MachineService {
         machine.resume();
 
         return DtoFactory.getInstance().createDto(MachineDescriptor.class).withId(machineId);
+    }
+
+    @Path("/{machineId}/processes")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<CommandProcess> getProcesses(@PathParam("machineId") String machineId) throws NotFoundException {
+        final Machine machine = machineRegistry.getMachine(machineId);
+        return machine.getRunningProcesses();
     }
 }

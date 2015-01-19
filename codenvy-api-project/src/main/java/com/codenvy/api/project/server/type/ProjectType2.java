@@ -136,7 +136,7 @@ public abstract class ProjectType2 {
 
     protected void addVariableDefinition(String name, String description, boolean required, ValueProviderFactory factory) {
         attributes.put(name, new Variable(id, name, description, required, factory));
-        this.providedFactories.add(factory);
+//        this.providedFactories.add(factory);
     }
 
     protected void addAttributeDefinition(Attribute2 attr) {

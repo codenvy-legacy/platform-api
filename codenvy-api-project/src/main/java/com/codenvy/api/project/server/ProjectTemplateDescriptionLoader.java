@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Reads project template descriptions that may be described in separate .json files for every project type. This file should be named as
+ * Reads project template descriptions that may be described in separate json-files for every project type. This file should be named as
  * &lt;project_type_id&gt;.json.
  *
  * @author Artem Zatsarynnyy
@@ -48,7 +48,7 @@ public class ProjectTemplateDescriptionLoader {
     }
 
     @PostConstruct
-    protected void load() {
+    private void start() {
         for (ProjectType projectType : projectTypes) {
             load(projectType.getId());
         }
@@ -59,8 +59,6 @@ public class ProjectTemplateDescriptionLoader {
      *
      * @param projectTypeId
      *         id of the project type for which templates should be loaded
-     * @throws IOException
-     *         if i/o error occurs while reading file with templates
      */
     private void load(String projectTypeId) {
         try {
@@ -69,6 +67,9 @@ public class ProjectTemplateDescriptionLoader {
                 final List<ProjectTemplateDescriptor> templates;
                 try (InputStream inputStream = url.openStream()) {
                     templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
+                    for (ProjectTemplateDescriptor template : templates) {
+                        template.setProjectType(projectTypeId);
+                    }
                 }
                 templateRegistry.register(projectTypeId, templates);
             }

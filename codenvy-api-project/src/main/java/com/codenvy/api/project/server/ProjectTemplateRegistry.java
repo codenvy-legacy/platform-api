@@ -13,6 +13,7 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 
 import javax.inject.Singleton;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -34,7 +35,6 @@ public class ProjectTemplateRegistry {
         templateList.add(template);
     }
 
-
     public void register(String projectTypeId, List<ProjectTemplateDescriptor> templates) {
         List<ProjectTemplateDescriptor> templateList = this.templates.get(projectTypeId);
         if (templateList == null) {
@@ -44,9 +44,15 @@ public class ProjectTemplateRegistry {
         }
     }
 
-
-
     public List<ProjectTemplateDescriptor> getTemplates(String projectType) {
         return templates.get(projectType);
+    }
+
+    public List<ProjectTemplateDescriptor> getAllTemplates() {
+        List<ProjectTemplateDescriptor> allTemplates = new ArrayList<>();
+        for (Map.Entry<String, List<ProjectTemplateDescriptor>> entry : templates.entrySet()) {
+            allTemplates.addAll(entry.getValue());
+        }
+        return allTemplates;
     }
 }

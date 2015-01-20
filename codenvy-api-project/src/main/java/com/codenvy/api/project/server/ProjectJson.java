@@ -30,7 +30,7 @@ import java.util.Map;
  *
  * @author andrew00x
  */
-public class ProjectJson2 {
+public class ProjectJson {
 
     /**
      * Checks whether the Project's meta information is readable
@@ -54,7 +54,7 @@ public class ProjectJson2 {
         return true;
     }
 
-    public static ProjectJson2 load(Project project) throws ServerException {
+    public static ProjectJson load(Project project) throws ServerException {
         final VirtualFileEntry projectFile;
         try {
             projectFile = project.getBaseFolder().getChild(Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH);
@@ -65,15 +65,15 @@ public class ProjectJson2 {
 
 
         if (projectFile == null || !projectFile.isFile()) {
-            return new ProjectJson2();
+            return new ProjectJson();
         }
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
 
-            ProjectJson2 json = load(inputStream);
+            ProjectJson json = load(inputStream);
 
             // possible if no content
             if(json == null)
-                json = new ProjectJson2();
+                json = new ProjectJson();
 
             return json;
         } catch (IOException e) {
@@ -81,10 +81,10 @@ public class ProjectJson2 {
         }
     }
 
-    public static ProjectJson2 load(InputStream inputStream) throws IOException {
+    public static ProjectJson load(InputStream inputStream) throws IOException {
         try {
 
-            return JsonHelper.fromJson(inputStream, ProjectJson2.class, null);
+            return JsonHelper.fromJson(inputStream, ProjectJson.class, null);
         } catch (JsonParseException e) {
             throw new IOException("Unable to parse the project's property file. " +
                                   "Check the project.json file for corruption or modification. Consider reloading the project. " +
@@ -137,10 +137,10 @@ public class ProjectJson2 {
     private Map<String, List<String>> attributes;
     private List <String> mixinTypes;
 
-    public ProjectJson2() {
+    public ProjectJson() {
     }
 
-    public ProjectJson2(String type, Map<String, List<String>> attributes, Builders builders, Runners runners, String description) {
+    public ProjectJson(String type, Map<String, List<String>> attributes, Builders builders, Runners runners, String description) {
         this.type = type;
         this.builders = builders;
         this.runners = runners;
@@ -156,7 +156,7 @@ public class ProjectJson2 {
         this.type = type;
     }
 
-    public ProjectJson2 withType(String type) {
+    public ProjectJson withType(String type) {
         this.type = type;
         return this;
     }
@@ -165,7 +165,7 @@ public class ProjectJson2 {
         return builders;
     }
 
-    public ProjectJson2 withBuilders(Builders builders) {
+    public ProjectJson withBuilders(Builders builders) {
         this.builders = builders;
         return this;
     }
@@ -178,7 +178,7 @@ public class ProjectJson2 {
         return runners;
     }
 
-    public ProjectJson2 withRunners(Runners runners) {
+    public ProjectJson withRunners(Runners runners) {
         this.runners = runners;
         return this;
     }
@@ -198,7 +198,7 @@ public class ProjectJson2 {
         this.attributes = attributes;
     }
 
-    public ProjectJson2 withAttributes(Map<String, List<String>> attributes) {
+    public ProjectJson withAttributes(Map<String, List<String>> attributes) {
         this.attributes = attributes;
         return this;
     }
@@ -237,7 +237,7 @@ public class ProjectJson2 {
         this.description = description;
     }
 
-    public ProjectJson2 withDescription(String description) {
+    public ProjectJson withDescription(String description) {
         this.description = description;
         return this;
     }
@@ -250,7 +250,7 @@ public class ProjectJson2 {
         this.mixinTypes = mixinTypes;
     }
 
-    public ProjectJson2 withMixinTypes(List <String> mixinTypes) {
+    public ProjectJson withMixinTypes(List <String> mixinTypes) {
         this.mixinTypes = mixinTypes;
         return this;
     }

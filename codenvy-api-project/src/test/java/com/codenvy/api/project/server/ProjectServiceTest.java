@@ -26,7 +26,7 @@ import com.codenvy.api.project.server.handlers.GetItemHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
@@ -127,7 +127,7 @@ public class ProjectServiceTest {
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
         // PTs for test
-        ProjectType2 chuck = new ProjectType2("chuck_project_type", "chuck_project_type") {
+        ProjectType chuck = new ProjectType("chuck_project_type", "chuck_project_type") {
 
             {
                 addConstantDefinition("x", "attr description",
@@ -138,7 +138,7 @@ public class ProjectServiceTest {
 
         };
 
-        Set<ProjectType2> projTypes = new HashSet<>();
+        Set<ProjectType> projTypes = new HashSet<>();
         projTypes.add(new MyProjType());
         projTypes.add(chuck);
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(projTypes);
@@ -251,7 +251,7 @@ public class ProjectServiceTest {
     @SuppressWarnings("unchecked")
     public void testGetModules() throws Exception {
 
-        ProjectType2 pt = new ProjectType2("testGetModules", "my module type") {
+        ProjectType pt = new ProjectType("testGetModules", "my module type") {
 
             {
                 addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
@@ -341,7 +341,7 @@ public class ProjectServiceTest {
     public void testGetModule() throws Exception {
 
 
-        ProjectType2 pt = new ProjectType2("my_module_type", "my module type") {
+        ProjectType pt = new ProjectType("my_module_type", "my module type") {
 
             {
                 addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
@@ -410,7 +410,7 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
 
-        ProjectType2 pt = new ProjectType2("testCreateProject", "my project type") {
+        ProjectType pt = new ProjectType("testCreateProject", "my project type") {
 
             {
                 addConstantDefinition("new_project_attribute", "attr description", "to be or not to be");
@@ -595,7 +595,7 @@ public class ProjectServiceTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        ProjectType2 pt = new ProjectType2("testUpdateProject", "my project type") {
+        ProjectType pt = new ProjectType("testUpdateProject", "my project type") {
 
             {
                 addVariableDefinition("my_attribute", "attr description", false);
@@ -2295,7 +2295,7 @@ public class ProjectServiceTest {
         };
 
 
-        ProjectType2 pt = new ProjectType2("testEstimateProjectPT", "my testEstimateProject type") {
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type") {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
@@ -2428,7 +2428,7 @@ public class ProjectServiceTest {
     }
 
 
-    private class MyProjType extends ProjectType2 {
+    private class MyProjType extends ProjectType {
         private MyProjType() {
 
             super("my_project_type", "my project type");

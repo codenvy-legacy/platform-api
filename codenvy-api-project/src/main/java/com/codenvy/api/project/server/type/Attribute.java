@@ -10,10 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.type;
 
+import com.codenvy.api.project.server.ValueStorageException;
+
 /**
  * @author gazarenkov
  */
-public abstract class AbstractAttribute implements Attribute2 {
+public abstract class Attribute {
 
     protected String projectType;
     protected String name;
@@ -21,7 +23,7 @@ public abstract class AbstractAttribute implements Attribute2 {
     protected boolean required;
     protected boolean variable;
 
-    protected AbstractAttribute(String projectType, String name, String description, boolean required, boolean variable) {
+    protected Attribute(String projectType, String name, String description, boolean required, boolean variable) {
         this.projectType = projectType;
         this.name = name;
         this.description = description;
@@ -29,33 +31,35 @@ public abstract class AbstractAttribute implements Attribute2 {
         this.variable = variable;
     }
 
-    @Override
+
     public String getId() {
         return projectType+":"+name;
     }
 
-    @Override
+
     public String getProjectType() {
         return projectType;
     }
 
-    @Override
+
     public String getDescription() {
         return description;
     }
 
-    @Override
+
     public boolean isRequired() {
         return required;
     }
 
-    @Override
+
     public boolean isVariable() {
         return variable;
     }
 
-    @Override
+
     public String getName() {
         return name;
     }
+
+    public abstract AttributeValue getValue() throws ValueStorageException;
 }

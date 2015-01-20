@@ -14,7 +14,7 @@ package com.codenvy.api.project.server.type;
  * @author gazarenkov
  */
 
-public final class Constant extends AbstractAttribute {
+public final class Constant extends Attribute {
 
 
     private final AttributeValue value;

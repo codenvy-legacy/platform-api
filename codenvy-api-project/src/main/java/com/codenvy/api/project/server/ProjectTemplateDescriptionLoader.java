@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -35,13 +35,13 @@ import java.util.Set;
 @Singleton
 public class ProjectTemplateDescriptionLoader {
 
-    private final Set<ProjectType2>       projectTypes;
+    private final Set<ProjectType>       projectTypes;
     private final ProjectTemplateRegistry templateRegistry;
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
 
     @Inject
-    public ProjectTemplateDescriptionLoader(Set<ProjectType2> projectTypes,
+    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes,
                                             ProjectTemplateRegistry templateRegistry) {
         this.projectTypes = projectTypes;
         this.templateRegistry = templateRegistry;
@@ -49,7 +49,7 @@ public class ProjectTemplateDescriptionLoader {
 
     @PostConstruct
     protected void load() {
-        for (ProjectType2 projectType : projectTypes) {
+        for (ProjectType projectType : projectTypes) {
             load(projectType.getId());
         }
     }

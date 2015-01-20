@@ -17,10 +17,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.server.handlers.CreateModuleHandler;
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.GetItemHandler;
-import com.codenvy.api.project.server.type.Attribute2;
-import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.server.type.ProjectType2;
-import com.codenvy.api.project.server.type.Variable;
+import com.codenvy.api.project.server.type.*;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -90,15 +87,15 @@ public class Project {
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
-        final ProjectJson2 projectJson = ProjectJson2.load(this);
+        final ProjectJson projectJson = ProjectJson.load(this);
 
         ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
 
         final Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for(ProjectType2 t : types.all) {
+        for(ProjectType t : types.all) {
 
-            for (Attribute2 attr : t.getAttributes()) {
+            for (Attribute attr : t.getAttributes()) {
 
                 if (attr.isVariable()) {
                     Variable var = (Variable) attr;
@@ -153,16 +150,16 @@ public class Project {
     public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
             ProjectTypeConstraintException, InvalidValueException {
 
-        final ProjectJson2 projectJson = new ProjectJson2();
+        final ProjectJson projectJson = new ProjectJson();
 
         ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
 
         // init Provided attributes if any
-//        if(ProjectJson2.isReadable(this)) {
-//            ProjectJson2 oldJson = ProjectJson2.load(this);
+//        if(ProjectJson.isReadable(this)) {
+//            ProjectJson oldJson = ProjectJson.load(this);
 //            ProjectTypes oldTypes = new ProjectTypes(oldJson.getType(), oldJson.getMixinTypes());
 //
-//            for(ProjectType2 t : types.all) {
+//            for(ProjectType t : types.all) {
 //                if(!oldTypes.all.contains(t)) {
 //                    for(ValueProviderFactory f : t.getProvidedFactories()) {
 //                        f.newInstance(this.baseFolder).setValues();
@@ -170,7 +167,7 @@ public class Project {
 //                }
 //            }
 //        } else {
-//            for (ProjectType2 t : types.all) {
+//            for (ProjectType t : types.all) {
 //                for (ValueProviderFactory f : t.getProvidedFactories()) {
 //                    f.newInstance(this.baseFolder).init();
 //                }
@@ -193,8 +190,8 @@ public class Project {
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
 
             // Try to Find definition in all the types
-            Attribute2 definition = null;
-            for(ProjectType2 t : types.all) {
+            Attribute definition = null;
+            for(ProjectType t : types.all) {
                 definition = t.getAttribute(attributeName);
                 if(definition != null)
                     break;
@@ -217,8 +214,8 @@ public class Project {
             }
         }
 
-        for(ProjectType2 t : types.all) {
-            for(Attribute2 attr : t.getAttributes()) {
+        for(ProjectType t : types.all) {
+            for(Attribute attr : t.getAttributes()) {
                 if(attr.isVariable()) {
                     // check if required variables initialized
 //                    if(attr.isRequired() && attr.getValue() == null) {
@@ -388,9 +385,9 @@ public class Project {
 
     private class ProjectTypes {
 
-        ProjectType2 primary;
-        Map<String, ProjectType2> mixins = new HashMap<>();
-        Set<ProjectType2> all = new HashSet<>();
+        ProjectType primary;
+        Map<String, ProjectType> mixins = new HashMap<>();
+        Set<ProjectType> all = new HashSet<>();
 
         ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
             if(pt == null)
@@ -407,8 +404,8 @@ public class Project {
                 mss = new ArrayList<>();
 
             // temporary storage to detect duplicated attributes
-            HashMap<String, Attribute2> tmpAttrs = new HashMap<>();
-            for(Attribute2 attr : primary.getAttributes()) {
+            HashMap<String, Attribute> tmpAttrs = new HashMap<>();
+            for(Attribute attr : primary.getAttributes()) {
                 tmpAttrs.put(attr.getName(), attr);
             }
 
@@ -416,14 +413,14 @@ public class Project {
             for(String m : mss) {
                 if(!m.equals(primary.getId())) {
 
-                    ProjectType2 mixin = manager.getProjectTypeRegistry().getProjectType(m);
+                    ProjectType mixin = manager.getProjectTypeRegistry().getProjectType(m);
                     if(mixin == null)
                         throw new ProjectTypeConstraintException("No project type registered for "+m);
                     if(!mixin.canBeMixin())
                         throw new ProjectTypeConstraintException("Project type "+mixin+" is not allowable to be mixin");
 
                     // detect duplicated attributes
-                    for(Attribute2 attr : mixin.getAttributes()) {
+                    for(Attribute attr : mixin.getAttributes()) {
                         if(tmpAttrs.containsKey(attr.getName()))
                             throw new ProjectTypeConstraintException("Attribute name conflict. Duplicated attributes detected "+getPath() +
                                     " Attribute "+ attr.getName() + " declared in " + mixin.getId() + " already declared in " +

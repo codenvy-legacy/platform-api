@@ -10,15 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.server.type.ProjectType2;
-
 import javax.inject.Singleton;
 
 /**
  * @author gazarenkov
  */
 @Singleton
-public class BaseProjectType extends ProjectType2 {
+public class BaseProjectType extends ProjectType {
 
     public static final String ID = "blank";
 

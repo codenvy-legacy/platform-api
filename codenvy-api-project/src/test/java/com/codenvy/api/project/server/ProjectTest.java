@@ -10,15 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
-import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
@@ -71,7 +69,7 @@ public class ProjectTest {
         };
 
 
-        ProjectType2 pt = new ProjectType2("my_project_type", "my project type") {
+        ProjectType pt = new ProjectType("my_project_type", "my project type") {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
@@ -83,7 +81,7 @@ public class ProjectTest {
 
         };
 
-        Set <ProjectType2> types = new HashSet<ProjectType2>();
+        Set <ProjectType> types = new HashSet<ProjectType>();
         types.add(pt);
         ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(types);
 
@@ -132,7 +130,7 @@ public class ProjectTest {
         //attributes.put("calculated_attribute", Arrays.asList("hello"));
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
-        ProjectJson2 json = new ProjectJson2();
+        ProjectJson json = new ProjectJson();
         json.withType("my_project_type").withAttributes(attributes).save(myProject);
         //ProjectDescription myProjectDescription = myProject.getDescription();
 
@@ -171,7 +169,7 @@ public class ProjectTest {
         Project myProject = pm.getProject("my_ws", "my_project");
         Map<String, List<String>> attributes = new HashMap<>(2);
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
-        ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null, null, "test project");
+        ProjectJson projectJson = new ProjectJson("my_project_type", attributes, null, null, "test project");
         projectJson.save(myProject);
 
         Map <String, AttributeValue> attrs = new HashMap<>();
@@ -183,7 +181,7 @@ public class ProjectTest {
 
         myProject.updateConfig(myConfig);
 
-        projectJson = ProjectJson2.load(myProject);
+        projectJson = ProjectJson.load(myProject);
 
         Assert.assertEquals(projectJson.getType(), "my_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
@@ -208,7 +206,7 @@ public class ProjectTest {
         Project myProject = pm.getProject("my_ws", "my_project");
         Map<String, List<String>> attributes = new HashMap<>(2);
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
-        ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null , null, "test project");
+        ProjectJson projectJson = new ProjectJson("my_project_type", attributes, null , null, "test project");
         projectJson.save(myProject);
 
         Assert.assertNotNull(myProject.getConfig().getRunners());
@@ -259,7 +257,7 @@ public class ProjectTest {
         };
 
 
-        ProjectType2 pt = new ProjectType2("testEstimateProjectPT", "my testEstimateProject type") {
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type") {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
@@ -291,10 +289,10 @@ public class ProjectTest {
     @Test
     public void testPTConstraints() throws Exception {
 
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixinAndPrimary", "my type", true, true) {});
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {});
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {});
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testAbstract", "my type", false, false) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixinAndPrimary", "my type", true, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testAbstract", "my type", false, false) {});
 
         pm.createProject("my_ws", "all", new ProjectConfig("proj", "testMixinAndPrimary"), null, null);
         pm.createProject("my_ws", "prim", new ProjectConfig("proj", "testPrimary"), null, null);
@@ -327,14 +325,14 @@ public class ProjectTest {
     @Test
     public void testAddMixin() throws Exception {
 
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {
 
             {
                 addConstantDefinition("c1", "","c1");
             }
 
         });
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {
             {
                 addConstantDefinition("m1", "","m1");
             }
@@ -459,14 +457,14 @@ public class ProjectTest {
         };
 
 
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testPrimary", "my type", true, false) {
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {
 
             {
                 addVariableDefinition("p.calculate", "", true, vpfPrimary);
             }
 
         });
-        pm.getProjectTypeRegistry().registerProjectType(new ProjectType2("testMixin", "my type", false, true) {
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {
             {
                 addVariableDefinition("m.calculate", "", true, vpfMixin);
             }

@@ -12,7 +12,7 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.dto.ProjectTypeDefinition;
 
@@ -44,7 +44,7 @@ public class ProjectTypeService extends Service {
     @Produces(MediaType.APPLICATION_JSON)
     public List<ProjectTypeDefinition> getProjectTypes() {
         final List<ProjectTypeDefinition> types = new LinkedList<>();
-        for (ProjectType2 type : registry.getProjectTypes()) {
+        for (ProjectType type : registry.getProjectTypes()) {
             types.add(DtoConverter.toTypeDescriptor2(type));
         }
         return types;

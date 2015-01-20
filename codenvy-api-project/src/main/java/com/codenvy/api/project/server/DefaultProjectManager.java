@@ -386,7 +386,7 @@ public final class DefaultProjectManager implements ProjectManager {
             ProjectTypeConstraintException {
 
 
-        ProjectType2 projectType = projectTypeRegistry.getProjectType(projectTypeId);
+        ProjectType projectType = projectTypeRegistry.getProjectType(projectTypeId);
         if(projectType == null)
             throw new NotFoundException("Project Type "+projectTypeId+" not found.");
 
@@ -397,7 +397,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
         Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for (Attribute2 attr : projectType.getAttributes()) {
+        for (Attribute attr : projectType.getAttributes()) {
 
             if (attr.isVariable() && ((Variable) attr).getValueProviderFactory() != null) {
 

@@ -16,10 +16,10 @@ package com.codenvy.api.machine.shared.dto;
  * @author Alexander Garagatyi
  */
 public interface ApplicationProcessDescriptor {
-    long getId();
+    int getId();
 
     void setId(String id);
 
-    ApplicationProcessDescriptor withId(long id);
+    ApplicationProcessDescriptor withId(int id);
 
 }

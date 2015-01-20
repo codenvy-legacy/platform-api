@@ -82,7 +82,7 @@ public class MachineService {
     @Path("/{machineId}/kill/{processId}")
     @DELETE
     public void killProcess(@PathParam("machineId") String machineId,
-                            @PathParam("processId") long processId) throws NotFoundException, ForbiddenException {
+                            @PathParam("processId") int processId) throws NotFoundException, ForbiddenException {
         final Machine machine = machineRegistry.getMachine(machineId);
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
             if (commandProcess.getId() == processId) {

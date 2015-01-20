@@ -16,8 +16,8 @@ import com.codenvy.api.core.util.LineConsumer;
  * @author andrew00x
  */
 public interface CommandProcess {
-    /** Return id of the process. Should be unique against all machine runner slaves. */
-    long getId();
+    /** Return id of the process. Should be unique against machine. */
+    int getId();
 
     /**
      * Starts process in the background.

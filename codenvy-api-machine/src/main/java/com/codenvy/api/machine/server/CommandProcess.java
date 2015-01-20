@@ -19,9 +19,6 @@ public interface CommandProcess {
     /** Return id of the process. Should be unique against all machine runner slaves. */
     long getId();
 
-    /** Set id of the process. */
-    void setId(long id);
-
     /**
      * Starts process in the background.
      *

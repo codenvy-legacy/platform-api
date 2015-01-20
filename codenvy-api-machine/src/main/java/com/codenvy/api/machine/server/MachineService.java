@@ -86,10 +86,10 @@ public class MachineService {
         final Machine machine = machineRegistry.getMachine(machineId);
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
             if (commandProcess.getId() == processId) {
-                if (!process.isAlive()) {
+                if (!commandProcess.isAlive()) {
                     throw new ForbiddenException("Process finished already");
                 }
-                process.kill();
+                commandProcess.kill();
                 return;
             }
         }

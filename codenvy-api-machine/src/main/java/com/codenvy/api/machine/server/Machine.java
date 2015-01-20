@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import java.util.List;
+
 /**
  * @author andrew00x
  */
@@ -25,4 +27,6 @@ public interface Machine {
     void destroy();
 
     CommandProcess newCommandProcess(String command);
+
+    List<CommandProcess> getRunningProcesses();
 }

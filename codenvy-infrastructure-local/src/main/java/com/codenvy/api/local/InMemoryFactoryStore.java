@@ -74,7 +74,7 @@ public class InMemoryFactoryStore implements FactoryStore {
     }
 
     @Override
-    public Factory getFactory(String id) throws ApiException {
+    public Factory getFactory(String id) {
         lock.readLock().lock();
         try {
             return factories.get(id);
@@ -88,13 +88,11 @@ public class InMemoryFactoryStore implements FactoryStore {
         final List<Factory> result = new LinkedList<>();
         lock.readLock().lock();
         try {
-            for (Factory factory : factories.values()) {
-                for (Pair<String, String> attribute : attributes) {
-                    final String name = attribute.first;
-                    final String value = attribute.second;
-                    if (name == null || value == null) {
-                        continue;
-                    }
+            for (Pair<String, String> attribute : attributes) {
+                final String name = attribute.first;
+                final String value = attribute.second;
+                if (name == null || value == null) {
+                    continue;
                 }
             }
         } finally {

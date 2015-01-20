@@ -76,9 +76,7 @@ public class NonEncodedFactoryBuilderTest {
                                                "creator.name=Alex+Garagatyi&" +
                                                "creator.email=garagatyi%40gmail.com&" +
                                                "creator.accountId=account51xd02utpfvtp8zo&" +
-                                               "workspace.temp=true&" +
-                                               "workspace.attributes.key2=value2&" +
-                                               "workspace.attributes.key1=value1&" +
+                                               "workspace.named=true&" +
                                                "project.name=spring-sad&" +
                                                "project.description=A+basic+example+using+Spring+servlets.+The+app+returns+values+entered+into+a+submit+form.&" +
                                                "project.type=maven&" +
@@ -280,13 +278,7 @@ public class NonEncodedFactoryBuilderTest {
                                   .withEmail("garagatyi@gmail.com")
                                   .withName("Alex Garagatyi"))
                   .withWorkspace(dto.createDto(Workspace.class)
-                                    .withTemp(true)
-                                    .withAttributes(new HashMap<String, String>() {
-                                        {
-                                            put("key1", "value1");
-                                            put("key2", "value2");
-                                        }
-                                    }))
+                                    .withNamed(true))
                   .withProject(dto.createDto(NewProject.class)
                                   .withName("spring-sad")
                                   .withDescription(

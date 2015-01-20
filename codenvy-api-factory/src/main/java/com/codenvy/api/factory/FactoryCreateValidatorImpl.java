@@ -24,12 +24,12 @@ import javax.inject.Singleton;
  * Factory URL creation stage builder.
  */
 @Singleton
-public class FactoryUrlCreateValidatorImpl extends FactoryUrlBaseValidator implements FactoryUrlCreateValidator {
+public class FactoryCreateValidatorImpl extends FactoryBaseValidator implements FactoryCreateValidator {
     @Inject
-    public FactoryUrlCreateValidatorImpl(AccountDao accountDao,
-                                         UserDao userDao,
-                                         UserProfileDao profileDao,
-                                         @Named("subscription.orgaddon.enabled") boolean onPremises) {
+    public FactoryCreateValidatorImpl(AccountDao accountDao,
+                                      UserDao userDao,
+                                      UserProfileDao profileDao,
+                                      @Named("subscription.orgaddon.enabled") boolean onPremises) {
         super(accountDao,userDao,profileDao, onPremises);
     }
 

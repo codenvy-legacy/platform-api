@@ -23,6 +23,7 @@ import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
+import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -51,7 +52,7 @@ import static java.lang.String.format;
  * @author Alexander Garagatyi
  * @author Valeriy Svydenko
  */
-public abstract class FactoryUrlBaseValidator {
+public abstract class FactoryBaseValidator {
     private static final Pattern PROJECT_NAME_VALIDATOR = Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$");
 
     private final boolean onPremises;
@@ -60,10 +61,10 @@ public abstract class FactoryUrlBaseValidator {
     private final UserDao        userDao;
     private final UserProfileDao profileDao;
 
-    public FactoryUrlBaseValidator(AccountDao accountDao,
-                                   UserDao userDao,
-                                   UserProfileDao profileDao,
-                                   boolean onPremises) {
+    public FactoryBaseValidator(AccountDao accountDao,
+                                UserDao userDao,
+                                UserProfileDao profileDao,
+                                boolean onPremises) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.profileDao = profileDao;
@@ -125,33 +126,33 @@ public abstract class FactoryUrlBaseValidator {
         String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
         String userId = factory.getCreator() != null ? factory.getCreator().getUserId() : null;
 
-        if (null != accountId) {
-            if (null != userId) {
-                try {
-                    User user = userDao.getById(userId);
-                    Profile profile = profileDao.getById(userId);
-                    if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary"))) {
-                        throw new ConflictException("Current user is not allowed for using this method.");
-                    }
+        if (accountId == null || userId == null) {
+            return;
+        }
 
-                    boolean isOwner = false;
-                    List<Member> members = accountDao.getMembers(accountId);
-                    if (members.isEmpty()) {
-                        throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
-                    }
-                    for (Member accountMember : members) {
-                        if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
-                            isOwner = true;
-                            break;
-                        }
-                    }
-                    if (!isOwner) {
-                        throw new ConflictException("You are not authorized to use this accountId.");
-                    }
-                } catch (NotFoundException | ServerException e) {
-                    throw new ConflictException("You are not authorized to use this accountId.");
+        try {
+            User user = userDao.getById(userId);
+            Profile profile = profileDao.getById(userId);
+            if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary"))) {
+                throw new ConflictException("Current user is not allowed for using this method.");
+            }
+
+            boolean isOwner = false;
+            List<Member> members = accountDao.getMembers(accountId);
+            if (members.isEmpty()) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
+            }
+            for (Member accountMember : members) {
+                if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
+                    isOwner = true;
+                    break;
                 }
             }
+            if (!isOwner) {
+                throw new ConflictException("You are not authorized to use this accountId.");
+            }
+        } catch (NotFoundException | ServerException e) {
+            throw new ConflictException("You are not authorized to use this accountId.");
         }
     }
 
@@ -182,26 +183,30 @@ public abstract class FactoryUrlBaseValidator {
         }
 
         final Policies policies = factory.getPolicies();
-        if (policies != null) {
+        if (policies != null && accountId == null) {
             Long validSince = policies.getValidSince();
             Long validUntil = policies.getValidUntil();
 
             if (validSince != null && validSince > 0) {
-                if (null == accountId) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
-                }
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
             }
 
             if (validUntil != null && validUntil > 0) {
-                if (null == accountId) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
-                }
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
+            }
+
+            if (policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
+                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
             }
         }
 
-        if (policies != null && policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
-            if (null == accountId) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
+        final Workspace workspace = factory.getWorkspace();
+        //TODO Add tests
+        if (workspace != null) {
+            if (factory.getWorkspace().getNamed() && (policies == null || !policies.getRequireAuthentication())) {
+                //TODO move message to constant
+                throw new ConflictException("This factory was improperly configured. The parameter " +
+                                            "'workspace.named=true' requires 'policies.requireAuthentication=true'.");
             }
         }
 

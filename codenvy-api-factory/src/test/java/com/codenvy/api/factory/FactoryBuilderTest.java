@@ -178,8 +178,7 @@ public class FactoryBuilderTest {
                                                 .withLogo("logo")
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")));
+                                .withNamed(true));
         factoryBuilder.checkValid(actual, ENCODED);
 
         verify(sourceProjectParametersValidator).validate(any(ImportSourceDescriptor.class), eq(FactoryParameter.Version.V2_0));
@@ -227,8 +226,7 @@ public class FactoryBuilderTest {
                                                                                               .withReplace("replace")
                                                                                               .withReplacemode("mode"))))))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")));
+                                .withNamed(true));
 
         factoryBuilder.checkValid(actual, NONENCODED);
 
@@ -276,8 +274,7 @@ public class FactoryBuilderTest {
                                                 .withLogo("logo")
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")))
+                                .withNamed(true))
               .withIde(dto.createDto(Ide.class)
                           .withOnAppClosed(
                                   dto.createDto(OnAppClosed.class)
@@ -344,8 +341,7 @@ public class FactoryBuilderTest {
                                .withValidSince(123l)
                                .withValidUntil(123l))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withTemp(true)
-                                .withAttributes(singletonMap("key", "value")))
+                                .withNamed(true))
               .withIde(dto.createDto(Ide.class)
                           .withOnAppClosed(
                                   dto.createDto(OnAppClosed.class)
@@ -645,13 +641,7 @@ public class FactoryBuilderTest {
                                                                                                 .withReplace("replace")
                                                                                                 .withReplacemode("mode"))))))
                 .withWorkspace(dto.createDto(Workspace.class)
-                                  .withTemp(true)
-                                  .withAttributes(new HashMap<String, String>() {
-                                      {
-                                          put("key1", "value1");
-                                          put("key2", "value2");
-                                      }
-                                  }));
+                                  .withNamed(true));
 
 
         StringBuilder sb = new StringBuilder("?");
@@ -666,9 +656,7 @@ public class FactoryBuilderTest {
         sb.append("creator.accountId=accountId").append("&");
         sb.append("creator.email=email").append("&");
         sb.append("creator.name=name").append("&");
-        sb.append("workspace.temp=true").append("&");
-        sb.append("workspace.attributes.key1=value1").append("&");
-        sb.append("workspace.attributes.key2=value2").append("&");
+        sb.append("workspace.named=true").append("&");
         sb.append("source.project.type=git").append("&");
         sb.append("source.project.location=location").append("&");
         sb.append("source.project.parameters.keepVcs=true").append("&");
@@ -743,13 +731,7 @@ public class FactoryBuilderTest {
                                  .withValidSince(123l)
                                  .withValidUntil(123l))
                 .withWorkspace(dto.createDto(Workspace.class)
-                                  .withTemp(true)
-                                  .withAttributes(new HashMap<String, String>() {
-                                      {
-                                          put("key1", "value1");
-                                          put("key2", "value2");
-                                      }
-                                  }))
+                                  .withNamed(true))
                 .withIde(dto.createDto(Ide.class)
                             .withOnAppClosed(
                                     dto.createDto(OnAppClosed.class)
@@ -787,9 +769,7 @@ public class FactoryBuilderTest {
         sb.append("creator.accountId=accountId").append("&");
         sb.append("creator.email=email").append("&");
         sb.append("creator.name=name").append("&");
-        sb.append("workspace.temp=true").append("&");
-        sb.append("workspace.attributes.key1=value1").append("&");
-        sb.append("workspace.attributes.key2=value2").append("&");
+        sb.append("workspace.named=true").append("&");
         sb.append("source.project.type=git").append("&");
         sb.append("source.project.location=location").append("&");
         sb.append("source.project.parameters.keepVcs=true").append("&");

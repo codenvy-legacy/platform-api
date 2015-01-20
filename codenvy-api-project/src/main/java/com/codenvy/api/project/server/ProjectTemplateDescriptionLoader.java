@@ -35,14 +35,12 @@ import java.util.Set;
 @Singleton
 public class ProjectTemplateDescriptionLoader {
 
-    private final Set<ProjectType>       projectTypes;
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
+    private final Set<ProjectType>        projectTypes;
     private final ProjectTemplateRegistry templateRegistry;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
-
     @Inject
-    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes,
-                                            ProjectTemplateRegistry templateRegistry) {
+    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes, ProjectTemplateRegistry templateRegistry) {
         this.projectTypes = projectTypes;
         this.templateRegistry = templateRegistry;
     }

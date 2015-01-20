@@ -158,36 +158,30 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.named=true' requires 'policies.requireAuthentication=true'.")
     public void shouldNotValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationAbsent() throws ApiException {
-        // given
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
                                            .withNamed(true));
 
-        // when, then
         validator.validateWorkspace(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
           expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.named=true' requires 'policies.requireAuthentication=true'.")
     public void shouldNotValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsFalse() throws ApiException {
-        // given
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
                                            .withNamed(true))
                          .withPolicies(dto.createDto(Policies.class)
                                           .withRequireAuthentication(false));
 
-        // when, then
         validator.validateWorkspace(factory);
     }
 
     @Test
     public void shouldValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsTrue() throws ApiException {
-        // given
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
                                            .withNamed(true))
                          .withPolicies(dto.createDto(Policies.class)
                                           .withRequireAuthentication(true));
 
-        // when, then
         validator.validateWorkspace(factory);
     }
 

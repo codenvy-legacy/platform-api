@@ -93,6 +93,5 @@ public class FactoryConstants {
             "The parameter %s has a value submitted %s with a value that is unexpected. For more information, " +
             "please visit http://docs.codenvy.com/user/project-lifecycle/#configuration-reference";
 
-    private FactoryConstants() {
-    }
+    private FactoryConstants() {}
 }

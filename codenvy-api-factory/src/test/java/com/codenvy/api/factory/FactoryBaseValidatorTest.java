@@ -27,6 +27,7 @@ import com.codenvy.api.factory.dto.OnAppLoaded;
 import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
+import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.Source;
@@ -63,10 +64,8 @@ import static org.mockito.Mockito.when;
 
 @Listeners(value = {MockitoTestNGListener.class})
 public class FactoryBaseValidatorTest {
-
-    private static String VALID_REPOSITORY_URL = "http://github.com/codenvy/cloudide";
-
-    private static final String ID = "id";
+    private static final String VALID_REPOSITORY_URL = "http://github.com/codenvy/cloudide";
+    private static final String ID                   = "id";
 
     @Mock
     private AccountDao accountDao;
@@ -102,10 +101,7 @@ public class FactoryBaseValidatorTest {
                                                     .withLocation(VALID_REPOSITORY_URL)))
                      .withCreator(dto.createDto(Author.class)
                                      .withAccountId(ID)
-                                     .withUserId("userid")
-
-                                 );
-
+                                     .withUserId("userid"));
 
         User user = new User().withId("userid");
 
@@ -155,9 +151,44 @@ public class FactoryBaseValidatorTest {
                                                         .withType("git")
                                                         .withLocation("http://codenvy.com/git/04%2")));
 
-
         // when, then
         validator.validateSource(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.named=true' requires 'policies.requireAuthentication=true'.")
+    public void shouldNotValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationAbsent() throws ApiException {
+        // given
+        factory = factory.withWorkspace(dto.createDto(Workspace.class)
+                                           .withNamed(true));
+
+        // when, then
+        validator.validateWorkspace(factory);
+    }
+
+    @Test(expectedExceptions = ApiException.class,
+          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.named=true' requires 'policies.requireAuthentication=true'.")
+    public void shouldNotValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsFalse() throws ApiException {
+        // given
+        factory = factory.withWorkspace(dto.createDto(Workspace.class)
+                                           .withNamed(true))
+                         .withPolicies(dto.createDto(Policies.class)
+                                          .withRequireAuthentication(false));
+
+        // when, then
+        validator.validateWorkspace(factory);
+    }
+
+    @Test
+    public void shouldValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsTrue() throws ApiException {
+        // given
+        factory = factory.withWorkspace(dto.createDto(Workspace.class)
+                                           .withNamed(true))
+                         .withPolicies(dto.createDto(Policies.class)
+                                          .withRequireAuthentication(true));
+
+        // when, then
+        validator.validateWorkspace(factory);
     }
 
     @Test
@@ -168,7 +199,6 @@ public class FactoryBaseValidatorTest {
                                                         .withType("git")
                                                         .withLocation("ssh://codenvy@review.gerrithub.io:29418/codenvy/exampleProject")));
 
-
         // when, then
         validator.validateSource(factory);
     }
@@ -176,7 +206,6 @@ public class FactoryBaseValidatorTest {
     @Test
     public void shouldValidateIfVcsurlIsCorrectHttps() throws ApiException {
         // given
-
         factory = factory.withSource(dto.createDto(Source.class)
                                         .withProject(dto.createDto(ImportSourceDescriptor.class)
                                                         .withType("git")
@@ -187,8 +216,8 @@ public class FactoryBaseValidatorTest {
     }
 
     @Test(dataProvider = "badAdvancedFactoryUrlProvider", expectedExceptions = ApiException.class)
-    public void shouldNotValidateIfVcsOrVcsUrlIsInvalid(Factory factoryUrl) throws ApiException {
-        validator.validateSource(factoryUrl);
+    public void shouldNotValidateIfVcsOrVcsUrlIsInvalid(Factory factory) throws ApiException {
+        validator.validateSource(factory);
     }
 
     @DataProvider(name = "badAdvancedFactoryUrlProvider")
@@ -296,9 +325,9 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ApiException.class, expectedExceptionsMessageRegExp = "You are not authorized to use this accountId.")
     public void shouldNotValidateIfFactoryOwnerIsNotOrgidOwner()
             throws ApiException, ParseException {
-        Member wronMember = member;
-        wronMember.setUserId("anotheruserid");
-        when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(wronMember));
+        Member wrongMember = member;
+        wrongMember.setUserId("anotheruserid");
+        when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(wrongMember));
 
         // when, then
         validator.validateAccountId(factory);
@@ -330,7 +359,6 @@ public class FactoryBaseValidatorTest {
         // given
         factory.withPolicies(dto.createDto(Policies.class).withRefererHostname("notcodenvy.com"));
 
-
         when(request.getHeader("Referer")).thenReturn("http://notcodenvy.com/factories-examples");
 
         // when, then
@@ -338,8 +366,7 @@ public class FactoryBaseValidatorTest {
     }
 
     @Test
-    public void shouldValidateIfRefererIsRelativeAndCurrentHostnameIsEqualToRequiredHostName()
-            throws ApiException, ParseException {
+    public void shouldValidateIfRefererIsRelativeAndCurrentHostnameIsEqualToRequiredHostName() throws ApiException, ParseException {
         // given
         factory.withPolicies(dto.createDto(Policies.class).withRefererHostname("next.codenvy.com"));
 
@@ -520,7 +547,7 @@ public class FactoryBaseValidatorTest {
         validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
         Ide ide = dto.createDto(Ide.class).withOnAppClosed(dto.createDto(OnAppClosed.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -531,7 +558,7 @@ public class FactoryBaseValidatorTest {
         validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace"));
         Ide ide = dto.createDto(Ide.class).withOnAppLoaded(dto.createDto(OnAppLoaded.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -542,7 +569,7 @@ public class FactoryBaseValidatorTest {
         validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
         Ide ide = dto.createDto(Ide.class).withOnProjectOpened(dto.createDto(OnProjectOpened.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -553,7 +580,7 @@ public class FactoryBaseValidatorTest {
         validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openWelcomePage"));
         Ide ide = dto.createDto(Ide.class).withOnAppLoaded((dto.createDto(OnAppLoaded.class).withActions(actions)));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -569,7 +596,7 @@ public class FactoryBaseValidatorTest {
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace").withProperties(params));
         Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
                 dto.createDto(OnProjectOpened.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -585,7 +612,7 @@ public class FactoryBaseValidatorTest {
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace").withProperties(params));
         Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
                 dto.createDto(OnProjectOpened.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }
@@ -599,7 +626,7 @@ public class FactoryBaseValidatorTest {
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile").withProperties(params));
         Ide ide = dto.createDto(Ide.class).withOnProjectOpened(
                 dto.createDto(OnProjectOpened.class).withActions(actions));
-        Factory factoryWithAccountId = (Factory)dto.clone(factory).withIde(ide);
+        Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
         //when
         validator.validateProjectActions(factoryWithAccountId);
     }

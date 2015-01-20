@@ -40,6 +40,7 @@ import java.util.regex.Pattern;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
+import static com.codenvy.api.factory.FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_WORKSPACE_NAMED_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
 import static com.codenvy.commons.lang.Strings.emptyToNull;
@@ -121,6 +122,16 @@ public abstract class FactoryBaseValidator {
         }
     }
 
+    protected void validateWorkspace(Factory factory) throws ApiException {
+        final Workspace workspace = factory.getWorkspace();
+        if (workspace != null && workspace.getNamed()) {
+            Policies policies = factory.getPolicies();
+            if (policies == null || !policies.getRequireAuthentication()) {
+                throw new ConflictException(ILLEGAL_REQUIRE_AUTHENTICATION_FOR_WORKSPACE_NAMED_MESSAGE);
+            }
+        }
+    }
+
     protected void validateAccountId(Factory factory) throws ApiException {
         // TODO do we need check if user is temporary?
         String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
@@ -197,16 +208,6 @@ public abstract class FactoryBaseValidator {
 
             if (policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
-            }
-        }
-
-        final Workspace workspace = factory.getWorkspace();
-        //TODO Add tests
-        if (workspace != null) {
-            if (factory.getWorkspace().getNamed() && (policies == null || !policies.getRequireAuthentication())) {
-                //TODO move message to constant
-                throw new ConflictException("This factory was improperly configured. The parameter " +
-                                            "'workspace.named=true' requires 'policies.requireAuthentication=true'.");
             }
         }
 

@@ -133,7 +133,6 @@ public class NonEncodedFactoryBuilderTest {
     @BeforeMethod
     public void setUp() throws Exception {
 
-
     }
 
     @Test

@@ -24,7 +24,7 @@ import org.testng.annotations.Test;
 import static org.mockito.Mockito.*;
 
 /**
- * Tests for {@link com.codenvy.api.factory.FactoryUrlAcceptValidatorImpl} and {@link com.codenvy.api.factory.FactoryUrlCreateValidatorImpl}
+ * Tests for {@link FactoryAcceptValidatorImpl} and {@link FactoryCreateValidatorImpl}
  */
 @Listeners(value = {MockitoTestNGListener.class})
 public class FactoryCreateAndAcceptValidatorsImplsTest {
@@ -41,25 +41,26 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
     @Mock
     private Factory factoryUrl;
 
-    private FactoryUrlAcceptValidatorImpl acceptValidator;
+    private FactoryAcceptValidatorImpl acceptValidator;
 
-    private FactoryUrlCreateValidatorImpl createValidator;
+    private FactoryCreateValidatorImpl createValidator;
 
     @BeforeMethod
     public void setUp() throws Exception {
-        acceptValidator = new FactoryUrlAcceptValidatorImpl(accountDao, userDao, profileDao, false);
-        createValidator = new FactoryUrlCreateValidatorImpl(accountDao, userDao, profileDao, false);
+        acceptValidator = new FactoryAcceptValidatorImpl(accountDao, userDao, profileDao, false);
+        createValidator = new FactoryCreateValidatorImpl(accountDao, userDao, profileDao, false);
     }
 
     @Test
     public void testValidateOnCreate() throws ApiException {
-        FactoryUrlCreateValidatorImpl spy = spy(createValidator);
+        FactoryCreateValidatorImpl spy = spy(createValidator);
         doNothing().when(spy).validateSource(any(Factory.class));
         doNothing().when(spy).validateAccountId(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
+        doNothing().when(spy).validateWorkspace(any(Factory.class));
 
         //main invoke
         spy.validateOnCreate(factoryUrl);
@@ -71,17 +72,19 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         verify(spy).validateOnCreate(any(Factory.class));
         verify(spy).validateProjectActions(any(Factory.class));
+        verify(spy).validateWorkspace(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 
     @Test
     public void testOnAcceptNonEncoded() throws ApiException {
-        FactoryUrlAcceptValidatorImpl spy = spy(acceptValidator);
+        FactoryAcceptValidatorImpl spy = spy(acceptValidator);
         doNothing().when(spy).validateSource(any(Factory.class));
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
+        doNothing().when(spy).validateWorkspace(any(Factory.class));
 
         //main invoke
         spy.validateOnAccept(factoryUrl, false);
@@ -92,15 +95,17 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         verify(spy).validateOnAccept(any(Factory.class), eq(false));
         verify(spy).validateProjectActions(any(Factory.class));
+        verify(spy).validateWorkspace(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 
     @Test
     public void testOnAcceptEncoded() throws ApiException {
-        FactoryUrlAcceptValidatorImpl spy = spy(acceptValidator);
+        FactoryAcceptValidatorImpl spy = spy(acceptValidator);
         doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
+        doNothing().when(spy).validateWorkspace(any(Factory.class));
 
         //main invoke
         spy.validateOnAccept(factoryUrl, true);
@@ -109,6 +114,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         verify(spy).validateOnAccept(any(Factory.class), eq(true));
         verify(spy).validateProjectActions(any(Factory.class));
+        verify(spy).validateWorkspace(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 

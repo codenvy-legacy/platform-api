@@ -24,12 +24,12 @@ import javax.inject.Singleton;
  * Factory URL accept stage builder.
  */
 @Singleton
-public class FactoryUrlAcceptValidatorImpl extends FactoryUrlBaseValidator implements FactoryUrlAcceptValidator {
+public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements FactoryAcceptValidator {
     @Inject
-    public FactoryUrlAcceptValidatorImpl(AccountDao accountDao,
-                                         UserDao userDao,
-                                         UserProfileDao profileDao,
-                                         @Named("subscription.orgaddon.enabled") boolean onPremises) {
+    public FactoryAcceptValidatorImpl(AccountDao accountDao,
+                                      UserDao userDao,
+                                      UserProfileDao profileDao,
+                                      @Named("subscription.orgaddon.enabled") boolean onPremises) {
         super(accountDao,userDao,profileDao, onPremises);
     }
 
@@ -39,6 +39,7 @@ public class FactoryUrlAcceptValidatorImpl extends FactoryUrlBaseValidator imple
             validateSource(factory);
             validateProjectName(factory);
         }
+        validateWorkspace(factory);
         validateTrackedFactoryAndParams(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);

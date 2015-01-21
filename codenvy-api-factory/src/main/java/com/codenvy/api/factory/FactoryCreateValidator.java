@@ -21,7 +21,7 @@ import java.net.URI;
  *
  * @author Alexander Garagatyi
  */
-public interface FactoryUrlCreateValidator {
+public interface FactoryCreateValidator {
 
     /**
      * Validates factory url object on creation stage. Implementation should throw

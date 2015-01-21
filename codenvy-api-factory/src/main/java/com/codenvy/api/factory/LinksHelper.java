@@ -27,7 +27,7 @@ public class LinksHelper {
 
     private static List<String> snippetTypes = Collections.unmodifiableList(Arrays.asList("markdown", "url", "html", "iframe"));
 
-    public List<Link> createLinks(Factory factoryUrl, Set<FactoryImage> images, UriInfo uriInfo)
+    public List<Link> createLinks(Factory factory, Set<FactoryImage> images, UriInfo uriInfo)
             throws UnsupportedEncodingException {
         List<Link> links = new LinkedList<>();
 
@@ -39,7 +39,7 @@ public class LinksHelper {
         }
         // add path to factory service
         UriBuilder factoryUriBuilder = baseUriBuilder.clone().path(FactoryService.class);
-        String factoryId = factoryUrl.getId();
+        String factoryId = factory.getId();
         Link createProject;
 
         // uri to retrieve factory

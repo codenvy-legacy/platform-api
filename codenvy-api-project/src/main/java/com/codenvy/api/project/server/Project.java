@@ -366,7 +366,7 @@ public class Project {
 
         CreateModuleHandler moduleHandler = manager.getHandlers().getCreateModuleHandler(getConfig().getTypeId());
         if (moduleHandler != null) {
-            moduleHandler.onCreateModule(module.getBaseFolder(), module.getConfig(), options);
+            moduleHandler.onCreateModule(module.getBaseFolder(), name, module.getConfig(), options);
         }
         return module;
 

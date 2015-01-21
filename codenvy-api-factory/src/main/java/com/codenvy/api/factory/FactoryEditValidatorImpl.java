@@ -61,7 +61,6 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
         // ok access is granted !
     }
 
-
     /**
      * Ensures that the given user is the same author than the one that has created the factory
      * @param factory the factory to check
@@ -69,7 +68,6 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
      * @return true if this is matching, else false
      */
     protected boolean validateAuthor(Factory factory, String userId) throws ApiException {
-
         // Checks if there is an author from the factory (It may be missing for some old factories)
         Author author = factory.getCreator();
         if (author == null || author.getUserId() == null) {
@@ -83,9 +81,6 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
         return factoryUserId.equals(userId);
     }
 
-
-
-
     /**
      * Ensures that the given user may be an account owner
      * @param factory the factory to check
@@ -93,7 +88,6 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
      * @return true if this is matching, else false
      */
     protected void validateAccountOwner(Factory factory, String userId) throws ApiException {
-
         // Checks if there is an author from the factory (It may be missing for some old factories)
         // And if there is an accountID
         Author author = factory.getCreator();
@@ -104,11 +98,11 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
         // Gets accountID
         String factoryAccountId = factory.getCreator().getAccountId();
 
-
         List<Member> members = accountDao.getMembers(factoryAccountId);
         if (members.isEmpty()) {
             throw new ForbiddenException(format("You are not authorized for the factory '%s'", factory.getId()));
         }
+
         boolean isOwner = false;
         for (Member accountMember : members) {
             if (accountMember.getUserId().equals(userId) && accountMember.getRoles().contains("account/owner")) {
@@ -116,10 +110,8 @@ public class FactoryEditValidatorImpl implements FactoryEditValidator {
                 break;
             }
         }
-
         if (!isOwner) {
             throw new ForbiddenException(format("You are not an account/owner for the factory '%s'", factory.getId()));
         }
-
     }
 }

@@ -10,22 +10,34 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 
 /**
+ * Represents process in the machine created by user command
+ *
  * @author andrew00x
+ * @author Alexander Garagatyi
  */
 public interface CommandProcess {
-    /** Returns pid of the process. Returns {@code 0} if process isn't started yet. */
-    int getPid();
+    /**
+     * Returns pid of the process. Returns {@code 0} if process isn't started yet.
+     *
+     * @return pid of the process
+     * @throws ServerException if internal error occurs
+     */
+    int getPid() throws ServerException;
 
     /**
      * Starts process in the background.
      *
+     * @throws ConflictException if process is started already
+     * @throws ServerException if internal error occurs
      * @see #start()
      * @see #isAlive()
      */
-    void start();
+    void start() throws ConflictException, ServerException;
 
     /**
      * Starts process.
@@ -33,18 +45,23 @@ public interface CommandProcess {
      * @param output
      *         consumer for process' output. If this parameter is {@code null} process started in the background. If this parameter is
      *         specified then this method is blocked until process is running.
+     * @throws ConflictException if process is started already
+     * @throws ServerException if internal error occurs
      */
-    void start(LineConsumer output);
+    void start(LineConsumer output) throws ConflictException, ServerException;
 
     /**
      * Checks is process is running or not.
      *
      * @return {@code true} if process running and {@code false} otherwise
+     * @throws ServerException if internal error occurs
      */
-    boolean isAlive();
+    boolean isAlive() throws ServerException;
 
     /**
      * Kills this process.
+     *
+     * @throws ServerException if internal error occurs
      */
-    void kill();
+    void kill() throws ServerException;
 }

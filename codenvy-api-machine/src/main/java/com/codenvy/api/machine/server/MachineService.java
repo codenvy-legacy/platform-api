@@ -12,10 +12,12 @@ package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.shared.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
+import javax.annotation.Nullable;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -26,6 +28,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.InputStream;
 import java.util.List;
@@ -38,7 +41,7 @@ import java.util.List;
 @Path("/machine")
 public class MachineService {
     @Inject
-    private MachineBuilder machineBuilder;
+    private MachineBuilderFactory machineBuilderFactory;
 
     @Inject
     private MachineRegistry machineRegistry;
@@ -46,8 +49,9 @@ public class MachineService {
     @PUT
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
-    public MachineDescriptor createMachine(final InputStream recipeStream) throws BuildMachineException {
-        final Machine machine = machineBuilder.setRecipe(new BaseMachineRecipe() {
+    public MachineDescriptor createMachine(final InputStream recipeStream, @Nullable @QueryParam("type") String machineType)
+            throws ServerException, NotFoundException, ForbiddenException {
+        final Machine machine = machineBuilderFactory.newMachineBuilder(machineType).setRecipe(new BaseMachineRecipe() {
             @Override
             public InputStream asStream() {
                 return recipeStream;
@@ -62,7 +66,7 @@ public class MachineService {
     @Path("/{machineId}")
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
-    public void destroyMachine(@PathParam("machineId") String id) throws NotFoundException {
+    public void destroyMachine(@PathParam("machineId") String id) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(id);
         machine.destroy();
     }
@@ -72,7 +76,8 @@ public class MachineService {
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.APPLICATION_JSON)
     public ApplicationProcessDescriptor executeCommandInMachine(@PathParam("machineId") String id,
-                                                                @FormParam("command") String command) throws NotFoundException {
+                                                                @FormParam("command") String command)
+            throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(id);
         final CommandProcess commandProcess = machine.newCommandProcess(command);
 
@@ -82,7 +87,7 @@ public class MachineService {
     @Path("/{machineId}/kill/{processId}")
     @DELETE
     public void killProcess(@PathParam("machineId") String machineId,
-                            @PathParam("processId") int processId) throws NotFoundException, ForbiddenException {
+                            @PathParam("processId") int processId) throws NotFoundException, ForbiddenException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
             if (commandProcess.getPid() == processId) {
@@ -98,7 +103,7 @@ public class MachineService {
 
     @Path("/{machineId}/suspend")
     @POST
-    public void suspendMachine(@PathParam("machineId") String machineId) throws NotFoundException {
+    public void suspendMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
 
         machine.suspend();
@@ -107,7 +112,7 @@ public class MachineService {
     @Path("/{machineId}/resume")
     @POST
     @Produces(MediaType.APPLICATION_JSON)
-    public MachineDescriptor resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException {
+    public MachineDescriptor resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
 
         machine.resume();
@@ -118,7 +123,7 @@ public class MachineService {
     @Path("/{machineId}/processes")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<CommandProcess> getProcesses(@PathParam("machineId") String machineId) throws NotFoundException {
+    public List<CommandProcess> getProcesses(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
         return machine.getRunningProcesses();
     }

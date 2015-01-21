@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ServerException;
+
 import java.util.List;
 
 /**
@@ -18,15 +20,41 @@ import java.util.List;
 public interface Machine {
     String getId();
 
-    void start();
+    /**
+     * Start machine
+     *
+     * @throws ServerException if internal error occurs
+     */
+    void start() throws ServerException;
 
-    void suspend();
+    /**
+     * Suspend machine
+     *
+     * @throws ServerException if internal error occurs
+     */
+    void suspend() throws ServerException;
 
-    void resume();
+    /**
+     * Resume machine
+     *
+     * @throws ServerException if internal error occurs
+     */
+    void resume() throws ServerException;
 
-    void destroy();
+    /**
+     * Destroy machine
+     *
+     * @throws ServerException if internal error occurs
+     */
+    void destroy() throws ServerException;
 
     CommandProcess newCommandProcess(String command);
 
-    List<CommandProcess> getRunningProcesses();
+    /**
+     * Get list of processes that are running in the machine
+     *
+     * @return list of running processes
+     * @throws ServerException if internal error occurs
+     */
+    List<CommandProcess> getRunningProcesses() throws ServerException;
 }

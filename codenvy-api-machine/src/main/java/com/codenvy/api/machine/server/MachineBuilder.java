@@ -10,6 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
+
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -27,7 +30,13 @@ public abstract class MachineBuilder {
     protected MachineBuilder() {
     }
 
-    public abstract Machine buildMachine() throws BuildMachineException;
+    /**
+     * Build machine using supplied configuration
+     *
+     * @throws ForbiddenException if machine can't be built due to misconfiguration
+     * @throws ServerException if internal error occurs
+     */
+    public abstract Machine buildMachine() throws ServerException, ForbiddenException;
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;

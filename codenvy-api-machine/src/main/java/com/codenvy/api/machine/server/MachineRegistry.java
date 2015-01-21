@@ -24,7 +24,7 @@ import java.util.concurrent.ConcurrentMap;
  */
 @Singleton
 public class MachineRegistry {
-    private final ConcurrentMap<String, Machine>                   machines;
+    private final ConcurrentMap<String, Machine> machines;
 
     @Inject
     public MachineRegistry() {

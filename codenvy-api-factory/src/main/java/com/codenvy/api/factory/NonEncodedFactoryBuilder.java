@@ -114,7 +114,7 @@ public abstract class NonEncodedFactoryBuilder {
 
         final Workspace workspace = factory.getWorkspace();
         if (workspace != null) {
-            appendIfNotNull(builder, "&workspace.named=", workspace.getNamed(), false);
+            appendIfNotNull(builder, "&workspace.type=", workspace.getType(), false);
         }
 
         final NewProject project = factory.getProject();

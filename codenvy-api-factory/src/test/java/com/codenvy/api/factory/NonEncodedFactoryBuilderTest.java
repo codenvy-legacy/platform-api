@@ -76,7 +76,7 @@ public class NonEncodedFactoryBuilderTest {
                                                "creator.name=Alex+Garagatyi&" +
                                                "creator.email=garagatyi%40gmail.com&" +
                                                "creator.accountId=account51xd02utpfvtp8zo&" +
-                                               "workspace.named=true&" +
+                                               "workspace.type=true&" +
                                                "project.name=spring-sad&" +
                                                "project.description=A+basic+example+using+Spring+servlets.+The+app+returns+values+entered+into+a+submit+form.&" +
                                                "project.type=maven&" +
@@ -277,7 +277,7 @@ public class NonEncodedFactoryBuilderTest {
                                   .withEmail("garagatyi@gmail.com")
                                   .withName("Alex Garagatyi"))
                   .withWorkspace(dto.createDto(Workspace.class)
-                                    .withNamed(true))
+                                    .withType(true))
                   .withProject(dto.createDto(NewProject.class)
                                   .withName("spring-sad")
                                   .withDescription(

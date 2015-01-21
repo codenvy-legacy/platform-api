@@ -13,22 +13,21 @@ package com.codenvy.api.factory.dto;
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
-import java.util.Map;
-
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 
 /**
  * Describes parameters of the workspace that should be used for factory
  *
  * @author Alexander Garagatyi
+ * @author Sergii Leschenko
  */
 @DTO
 public interface Workspace {
-    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "named")
-    Boolean getNamed();
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "type")
+    Boolean getType();
 
-    void setNamed(Boolean named);
+    void setType(Boolean type);
 
-    Workspace withNamed(Boolean named);
+    Workspace withType(Boolean type);
 }
 

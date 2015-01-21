@@ -37,10 +37,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Pattern;
 
+import static com.codenvy.api.factory.FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_FIND_REPLACE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
-import static com.codenvy.api.factory.FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_WORKSPACE_NAMED_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
 import static com.codenvy.commons.lang.Strings.emptyToNull;
@@ -124,10 +124,10 @@ public abstract class FactoryBaseValidator {
 
     protected void validateWorkspace(Factory factory) throws ApiException {
         final Workspace workspace = factory.getWorkspace();
-        if (workspace != null && workspace.getNamed()) {
+        if (workspace != null && workspace.getType() != null && workspace.getType()) {
             Policies policies = factory.getPolicies();
-            if (policies == null || !policies.getRequireAuthentication()) {
-                throw new ConflictException(ILLEGAL_REQUIRE_AUTHENTICATION_FOR_WORKSPACE_NAMED_MESSAGE);
+            if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
+                throw new ConflictException(ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
             }
         }
     }

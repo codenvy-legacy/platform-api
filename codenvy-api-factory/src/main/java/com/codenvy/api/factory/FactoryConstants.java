@@ -78,8 +78,8 @@ public class FactoryConstants {
     public static final String INVALID_WELCOME_PAGE_ACTION = "The openWelcomePage action requires 'nonAuthenticatedContentUrl', " +
                                                              "'authenticatedContentUrl' properties to be set.";
 
-    public static final String ILLEGAL_REQUIRE_AUTHENTICATION_FOR_WORKSPACE_NAMED_MESSAGE =
-            "This factory was improperly configured. The parameter 'workspace.named=true' requires 'policies.requireAuthentication=true'.";
+    public static final String ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE =
+            "This factory was improperly configured. The parameter 'workspace.type=true' requires 'policies.requireAuthentication=true'.";
 
     public static final String ILLEGAL_FACTORY_BY_VALIDSINCE_MESSAGE =
             "This Factory is not yet valid due to time restrictions applied by its owner. Please, " +

@@ -16,8 +16,8 @@ import com.codenvy.api.core.util.LineConsumer;
  * @author andrew00x
  */
 public interface CommandProcess {
-    /** Return id of the process. Should be unique against machine. */
-    int getId();
+    /** Returns pid of the process. Returns {@code 0} if process isn't started yet. */
+    int getPid();
 
     /**
      * Starts process in the background.

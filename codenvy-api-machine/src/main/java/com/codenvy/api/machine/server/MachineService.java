@@ -76,7 +76,7 @@ public class MachineService {
         final Machine machine = machineRegistry.getMachine(id);
         final CommandProcess commandProcess = machine.newCommandProcess(command);
 
-        return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class).withId(commandProcess.getId());
+        return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class).withId(commandProcess.getPid());
     }
 
     @Path("/{machineId}/kill/{processId}")
@@ -85,7 +85,7 @@ public class MachineService {
                             @PathParam("processId") int processId) throws NotFoundException, ForbiddenException {
         final Machine machine = machineRegistry.getMachine(machineId);
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
-            if (commandProcess.getId() == processId) {
+            if (commandProcess.getPid() == processId) {
                 if (!commandProcess.isAlive()) {
                     throw new ForbiddenException("Process finished already");
                 }

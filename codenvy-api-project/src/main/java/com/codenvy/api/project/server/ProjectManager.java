@@ -140,4 +140,8 @@ public interface ProjectManager {
             ValueStorageException, ServerException, ForbiddenException, NotFoundException,
             ProjectTypeConstraintException;
 
+
+    Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
+            String> options, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException;
 }

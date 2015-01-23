@@ -494,5 +494,24 @@ public class ProjectTest {
 
     }
 
+
+    @Test
+    public void testAddModule() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testModule", "my type", true, false) {
+        });
+
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.updateConfig(new ProjectConfig("my proj", "testModule"));
+
+        Assert.assertEquals(myProject.getModules().get().size(), 0);
+
+        pm.addModule("my_ws", "my_project", "test", new ProjectConfig("descr", "testModule"), null, null);
+
+        Assert.assertEquals(myProject.getModules().get().size(), 1);
+        Assert.assertEquals(myProject.getModules().get().iterator().next(), "test");
+
+    }
+
 }
 

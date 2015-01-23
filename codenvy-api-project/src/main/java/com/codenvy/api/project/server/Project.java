@@ -26,6 +26,10 @@ import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Writer;
 import java.util.*;
 
 /**
@@ -37,10 +41,12 @@ import java.util.*;
 public class Project {
     private final FolderEntry    baseFolder;
     private final ProjectManager manager;
+    private final Modules modules;
 
     public Project(FolderEntry baseFolder, ProjectManager manager) {
         this.baseFolder = baseFolder;
         this.manager = manager;
+        modules = new Modules();
     }
 
     /** Gets id of workspace which this project belongs to. */
@@ -351,26 +357,17 @@ public class Project {
         return entry;
     }
 
-    public Project createModule(String name, ProjectConfig moduleConfig, Map<String, String> options)
-            throws ConflictException, ForbiddenException, ServerException {
 
-        final FolderEntry moduleFolder = baseFolder.createFolder(name);
-        final Project module = new Project(moduleFolder, manager);
 
-        module.updateConfig(moduleConfig);
-
-        final CreateProjectHandler generator = manager.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
-        if (generator != null) {
-            generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
-        }
-
-        CreateModuleHandler moduleHandler = manager.getHandlers().getCreateModuleHandler(getConfig().getTypeId());
-        if (moduleHandler != null) {
-            moduleHandler.onCreateModule(module.getBaseFolder(), name, module.getConfig(), options);
-        }
-        return module;
-
+    /**
+     *
+     * @return list of paths to modules
+     */
+    public Modules getModules() {
+        return modules;
     }
+
+
 
     private VirtualFileEntry getVirtualFileEntry(String path)
             throws NotFoundException, ForbiddenException, ServerException {
@@ -381,6 +378,75 @@ public class Project {
         }
         return entry;
     }
+
+
+    public class Modules {
+
+        private final String MODULES_PATH = ".codenvy/modules";
+
+        public void remove(String path) throws ForbiddenException, ServerException, ConflictException {
+
+            Set<String> all = read();
+            all.remove(path);
+            write(all);
+
+        }
+
+        public void add(String path) throws ForbiddenException, ServerException, ConflictException {
+            Set<String> all = read();
+            all.add(path);
+            write(all);
+        }
+
+        public Set<String> get() throws ForbiddenException, ServerException {
+            return read();
+        }
+
+        private Set<String> read() throws ForbiddenException, ServerException {
+            HashSet<String> modules = new HashSet<>();
+            VirtualFileEntry file = null;
+
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null || file.isFolder())
+                return modules;
+
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(((FileEntry) file).getInputStream()));
+                while (in.ready()) {
+                    modules.add(in.readLine());
+                }
+                in.close();
+            } catch (IOException e) {
+                throw new ServerException(e);
+            }
+
+            return modules;
+        }
+
+        private void write(Set<String> modules) throws ForbiddenException, ServerException, ConflictException {
+
+            VirtualFileEntry file = null;
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null && !modules.isEmpty())
+                file = ((FolderEntry) baseFolder.getChild(".codenvy")).createFile("modules", new byte[0], "text/plain");
+
+//                if(modules.isEmpty() && file != null)
+//                    file.remove();
+
+            String all = "";
+            for (String path : modules) {
+                all += (path + "\n");
+            }
+
+            ((FileEntry) file).updateContent(all.getBytes());
+
+        }
+
+
+    }
+
 
 
     private class ProjectTypes {

@@ -177,4 +177,11 @@ public interface AccountDao {
      * @throws ServerException
      */
     List<Account> getPaidSaasAccountsWithOldBillingDate(Date newDate) throws ServerException, ForbiddenException;
+
+    /**
+     * Get all SAAS community accounts which are locked after RAM runner resources was exceeded.
+     *
+     * @return all locked SAAS community accounts
+     */
+    List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException;
 }

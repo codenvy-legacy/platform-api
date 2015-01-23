@@ -99,12 +99,12 @@ import static java.util.Collections.singletonList;
 @Path("/account")
 public class AccountService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
-    private final AccountDao                       accountDao;
-    private final UserDao                          userDao;
-    private final SubscriptionServiceRegistry      registry;
-    private final PaymentService                   paymentService;
-    private final PlanDao                          planDao;
-    private final ResourcesManager                 resourcesManager;
+    private final AccountDao                  accountDao;
+    private final UserDao                     userDao;
+    private final SubscriptionServiceRegistry registry;
+    private final PaymentService              paymentService;
+    private final PlanDao                     planDao;
+    private final ResourcesManager            resourcesManager;
 
     @Inject
     public AccountService(AccountDao accountDao,
@@ -142,9 +142,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Create a new account",
-            notes = "Create a new account",
-            response = Account.class,
-            position = 1)
+                  notes = "Create a new account",
+                  response = Account.class,
+                  position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -596,10 +596,10 @@ public class AccountService extends Service {
      * @see SubscriptionDescriptor
      */
     @ApiOperation(value = "Get account subscriptions",
-            notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
-            response = SubscriptionDescriptor.class,
-            responseContainer = "List",
-            position = 10)
+                  notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
+                  response = SubscriptionDescriptor.class,
+                  responseContainer = "List",
+                  position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -638,9 +638,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Get subscription details",
-            notes = "Get information on a particular subscription by its unique ID.",
-            response = SubscriptionDescriptor.class,
-            position = 11)
+                  notes = "Get information on a particular subscription by its unique ID.",
+                  response = SubscriptionDescriptor.class,
+                  position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this method"),
@@ -679,9 +679,9 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Validate new subscription",
-            notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
-            response = NewSubscriptionTemplate.class,
-            position = 16)
+                  notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
+                  response = NewSubscriptionTemplate.class,
+                  position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -759,9 +759,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Add new subscription",
-            notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
-            response = SubscriptionDescriptor.class,
-            position = 12)
+                  notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
+                  response = SubscriptionDescriptor.class,
+                  position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -941,8 +941,8 @@ public class AccountService extends Service {
      * @see #getSubscriptions(String, String, SecurityContext)
      */
     @ApiOperation(value = "Remove subscription",
-            notes = "Remove subscription from account. Roles: account/owner, system/admin.",
-            position = 13)
+                  notes = "Remove subscription from account. Roles: account/owner, system/admin.",
+                  position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -973,8 +973,8 @@ public class AccountService extends Service {
     }
 
     @ApiOperation(value = "Add credit card",
-            notes = "Add credit card to account. Roles: account/owner, system/admin, system/manager.",
-            position = 14)
+                  notes = "Add credit card to account. Roles: account/owner, system/admin, system/manager.",
+                  position = 14)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Created"),
             @ApiResponse(code = 403, message = "This token is not assigned to provided account"),
@@ -1003,8 +1003,8 @@ public class AccountService extends Service {
     }
 
     @ApiOperation(value = "Remove credit card",
-            notes = "Remove credit card and make account free. Roles: account/owner, system/admin, system/manager.",
-            position = 15)
+                  notes = "Remove credit card and make account free. Roles: account/owner, system/admin, system/manager.",
+                  position = 15)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "Created"),
             @ApiResponse(code = 403, message = "This token is not assigned to provided account"),

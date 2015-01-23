@@ -35,7 +35,6 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
-
 import javax.annotation.security.RolesAllowed;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
@@ -55,20 +54,19 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static com.codenvy.api.core.util.LinksHelper.createLink;
-import static javax.ws.rs.core.Response.status;
-import static javax.ws.rs.core.Response.Status.CREATED;
-import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
-import static javax.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
 import static com.codenvy.api.user.server.Constants.LINK_REL_CREATE_USER;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER;
-import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_PASSWORD;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_EMAIL;
-import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_USER_BY_ID;
-import static com.codenvy.api.user.server.Constants.PASSWORD_LENGTH;
-import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER_PROFILE;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_EMAIL;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
+import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID;
+import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_USER_BY_ID;
+import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_PASSWORD;
+import static com.codenvy.api.user.server.Constants.PASSWORD_LENGTH;
+import static javax.ws.rs.core.MediaType.APPLICATION_FORM_URLENCODED;
+import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
+import static javax.ws.rs.core.Response.Status.CREATED;
+import static javax.ws.rs.core.Response.status;
 
 /**
  * User API

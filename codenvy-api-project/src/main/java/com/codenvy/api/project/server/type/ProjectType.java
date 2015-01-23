@@ -52,15 +52,15 @@ public abstract class ProjectType {
 //        providedFactories = new HashSet<>();
     }
 
-    /**
-     *
-     * @param id
-     * @param displayName
-     * @deprecated
-     */
-    protected ProjectType(String id, String displayName) {
-        this(id, displayName, true, true);
-    }
+//    /**
+//     *
+//     * @param id
+//     * @param displayName
+//     * @deprecated
+//     */
+//    protected ProjectType(String id, String displayName) {
+//        this(id, displayName, true, true);
+//    }
 
 
     public String getId() {

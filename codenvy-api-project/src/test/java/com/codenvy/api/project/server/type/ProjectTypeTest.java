@@ -88,7 +88,7 @@ public class ProjectTypeTest {
         Assert.assertEquals(BaseProjectType.ID, type.getParents().get(0).getId());
         Assert.assertNotNull(((Variable) type.getAttribute("var")).getValueProviderFactory());
         Assert.assertNull(type.getAttribute("var").getValue());
-        Assert.assertEquals(4, type.getAttributes().size());
+        Assert.assertEquals(3, type.getAttributes().size());
         Assert.assertNotNull(type.getAttribute("const"));
         Assert.assertEquals(new AttributeValue("const_value"), type.getAttribute("const").getValue());
         Assert.assertEquals(new AttributeValue("value"), type.getAttribute("var1").getValue());
@@ -102,7 +102,7 @@ public class ProjectTypeTest {
     @Test
     public void testInvalidPTDefinition() throws Exception {
 
-        ProjectType pt = new ProjectType("my", "second") {};
+        ProjectType pt = new ProjectType("my", "second", true, false) {};
 
         Set<ProjectType> pts = new HashSet<>();
         pts.add(new MyProjectType(null));
@@ -114,18 +114,18 @@ public class ProjectTypeTest {
 
         // Invalid names
         pts.clear();
-        pts.add(new ProjectType(null, "null id") {});
-        pts.add(new ProjectType("", "empty id") {});
-        pts.add(new ProjectType("invalid id", "invalid id") {});
-        pts.add(new ProjectType("id1", null) {});
-        pts.add(new ProjectType("id2", "") {});
+        pts.add(new ProjectType(null, "null id", true, false) {});
+        pts.add(new ProjectType("", "empty id", true, false) {});
+        pts.add(new ProjectType("invalid id", "invalid id", true, false) {});
+        pts.add(new ProjectType("id1", null, true, false) {});
+        pts.add(new ProjectType("id2", "", true, false) {});
         reg = new ProjectTypeRegistry(pts);
         // BASE only
         Assert.assertEquals(1, reg.getProjectTypes().size());
 
         // Invalid parent
-        final ProjectType invalidParent = new ProjectType("parent", "parent") { };
-        pts.add(new ProjectType("notRegParent", "not reg parent") {
+        final ProjectType invalidParent = new ProjectType("parent", "parent", true, false) { };
+        pts.add(new ProjectType("notRegParent", "not reg parent", true, false) {
             {
                 addParent(invalidParent);
             }
@@ -140,13 +140,13 @@ public class ProjectTypeTest {
     public void testPTInheritance() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent = new ProjectType("parent", "parent") {
+        final ProjectType parent = new ProjectType("parent", "parent", true, false) {
             {
                 addConstantDefinition("parent_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent);
                 addConstantDefinition("child_const", "Constant", "const_value");
@@ -159,8 +159,8 @@ public class ProjectTypeTest {
         ProjectTypeRegistry reg = new ProjectTypeRegistry(pts);
         Assert.assertEquals(3, reg.getProjectTypes().size());
         Assert.assertEquals(1, child.getParents().size());
-        Assert.assertEquals(3, reg.getProjectType("child").getAttributes().size());
-        Assert.assertEquals(2, reg.getProjectType("parent").getAttributes().size());
+        Assert.assertEquals(2, reg.getProjectType("child").getAttributes().size());
+        Assert.assertEquals(1, reg.getProjectType("parent").getAttributes().size());
         Assert.assertTrue(reg.getProjectType("child").isTypeOf("parent"));
 
     }
@@ -169,13 +169,13 @@ public class ProjectTypeTest {
     public void testAttributeNameConflict() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent = new ProjectType("parent", "parent") {
+        final ProjectType parent = new ProjectType("parent", "parent", true, false) {
             {
                 addConstantDefinition("parent_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent);
                 addConstantDefinition("parent_const", "Constant", "const_value");
@@ -197,19 +197,19 @@ public class ProjectTypeTest {
     public void testMultiInheritance() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent1 = new ProjectType("parent1", "parent") {
+        final ProjectType parent1 = new ProjectType("parent1", "parent", true, false) {
             {
                 addConstantDefinition("parent1_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType parent2 = new ProjectType("parent2", "parent") {
+        final ProjectType parent2 = new ProjectType("parent2", "parent", true, false) {
             {
                 addConstantDefinition("parent2_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent1);
                 addParent(parent2);
@@ -224,7 +224,7 @@ public class ProjectTypeTest {
         ProjectTypeRegistry reg = new ProjectTypeRegistry(pts);
 
         Assert.assertEquals(2, child.getParents().size());
-        Assert.assertEquals(4, reg.getProjectType("child").getAttributes().size());
+        Assert.assertEquals(3, reg.getProjectType("child").getAttributes().size());
 
     }
 
@@ -232,19 +232,19 @@ public class ProjectTypeTest {
     public void testMultiInheritanceAttributeConflict() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent1 = new ProjectType("parent1", "parent") {
+        final ProjectType parent1 = new ProjectType("parent1", "parent", true, false) {
             {
                 addConstantDefinition("parent_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType parent2 = new ProjectType("parent2", "parent") {
+        final ProjectType parent2 = new ProjectType("parent2", "parent", true, false) {
             {
                 addConstantDefinition("parent_const", "Constant", "const_value");
             }
 
         };
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent1);
                 addParent(parent2);
@@ -269,7 +269,7 @@ public class ProjectTypeTest {
     public void testWithDefaultBuilderAndRunner() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType type = new ProjectType("testWithDefaultBuilderAndRunner", "testWithDefaultBuilderAndRunner") {
+        final ProjectType type = new ProjectType("testWithDefaultBuilderAndRunner", "testWithDefaultBuilderAndRunner", true, false) {
             {
                 addConstantDefinition("parent_const", "Constant", "const_value");
                 setDefaultBuilder("builder1");
@@ -294,20 +294,20 @@ public class ProjectTypeTest {
     public void testTypeOf() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent = new ProjectType("parent", "parent") { };
+        final ProjectType parent = new ProjectType("parent", "parent", true, false) { };
 
-        final ProjectType parent1 = new ProjectType("parent1", "parent") {};
+        final ProjectType parent1 = new ProjectType("parent1", "parent", true, false) {};
 
-        final ProjectType parent2 = new ProjectType("parent2", "parent") {};
+        final ProjectType parent2 = new ProjectType("parent2", "parent", true, false) {};
 
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent);
                 addParent(parent2);
             }
         };
 
-        final ProjectType child2 = new ProjectType("child2", "child2") {
+        final ProjectType child2 = new ProjectType("child2", "child2", true, false) {
             {
                 addParent(child);
             }
@@ -336,15 +336,15 @@ public class ProjectTypeTest {
     public void testSortPTs() throws Exception {
 
         Set<ProjectType> pts = new HashSet<>();
-        final ProjectType parent = new ProjectType("parent", "parent") { };
+        final ProjectType parent = new ProjectType("parent", "parent", true, false) { };
 
-        final ProjectType child = new ProjectType("child", "child") {
+        final ProjectType child = new ProjectType("child", "child", true, false) {
             {
                 addParent(parent);
             }
         };
 
-        final ProjectType child2 = new ProjectType("child2", "child2") {
+        final ProjectType child2 = new ProjectType("child2", "child2", true, false) {
             {
                 addParent(child);
             }
@@ -401,7 +401,7 @@ public class ProjectTypeTest {
         @Inject
         public MyProjectType(MyVPFactory myVPFactory) {
 
-            super("my", "my type");
+            super("my", "my type", true, false);
 
             addConstantDefinition("const", "Constant", "const_value");
             addVariableDefinition("var", "Variable", false, myVPFactory);

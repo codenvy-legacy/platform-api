@@ -69,7 +69,7 @@ public class ProjectTest {
         };
 
 
-        ProjectType pt = new ProjectType("my_project_type", "my project type") {
+        ProjectType pt = new ProjectType("my_project_type", "my project type", true, false) {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
@@ -142,7 +142,7 @@ public class ProjectTest {
         Assert.assertEquals(myConfig.getTypeId(), "my_project_type");
         //Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
 
-        Assert.assertEquals(pm.getProjectTypeRegistry().getProjectType("my_project_type").getAttributes().size(), 4);
+        Assert.assertEquals(pm.getProjectTypeRegistry().getProjectType("my_project_type").getAttributes().size(), 3);
 
 
         //System.out.println(">>>>"+myConfig.getAttribute("calculated_attribute"));
@@ -257,7 +257,7 @@ public class ProjectTest {
         };
 
 
-        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type") {
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type", true, false) {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);

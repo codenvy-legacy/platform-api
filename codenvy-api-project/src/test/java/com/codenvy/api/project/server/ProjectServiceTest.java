@@ -127,7 +127,7 @@ public class ProjectServiceTest {
         vfsRegistry.registerProvider(workspace, memoryFileSystemProvider);
 
         // PTs for test
-        ProjectType chuck = new ProjectType("chuck_project_type", "chuck_project_type") {
+        ProjectType chuck = new ProjectType("chuck_project_type", "chuck_project_type", true, false) {
 
             {
                 addConstantDefinition("x", "attr description",
@@ -411,7 +411,7 @@ public class ProjectServiceTest {
         headers.put("Content-Type", Arrays.asList("application/json"));
 
 
-        ProjectType pt = new ProjectType("testCreateProject", "my project type") {
+        ProjectType pt = new ProjectType("testCreateProject", "my project type", true, false) {
 
             {
                 addConstantDefinition("new_project_attribute", "attr description", "to be or not to be");
@@ -645,7 +645,7 @@ public class ProjectServiceTest {
         Map<String, List<String>> headers = new HashMap<>();
         headers.put("Content-Type", Arrays.asList("application/json"));
 
-        ProjectType pt = new ProjectType("testUpdateProject", "my project type") {
+        ProjectType pt = new ProjectType("testUpdateProject", "my project type", true, false) {
 
             {
                 addVariableDefinition("my_attribute", "attr description", false);
@@ -2345,7 +2345,7 @@ public class ProjectServiceTest {
         };
 
 
-        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type") {
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type", true, false) {
 
             {
                 addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
@@ -2481,7 +2481,7 @@ public class ProjectServiceTest {
     private class MyProjType extends ProjectType {
         private MyProjType() {
 
-            super("my_project_type", "my project type");
+            super("my_project_type", "my project type", true, false);
             addConstantDefinition("my_attribute", "Constant", "attribute value 1");
 
         }

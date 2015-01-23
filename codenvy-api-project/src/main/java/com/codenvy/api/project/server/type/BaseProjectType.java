@@ -21,8 +21,8 @@ public class BaseProjectType extends ProjectType {
     public static final String ID = "blank";
 
     public BaseProjectType() {
-        super(ID, "Blank");
-        addVariableDefinition("vcs", "VCS", false);
+        super(ID, "Blank", true, false);
+        //addVariableDefinition("vcs", "VCS", false);
     }
 
 }

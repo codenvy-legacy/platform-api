@@ -291,20 +291,6 @@ public class ProjectService extends Service {
         return modules;
     }
 
-//    @POST
-//    @Path("/modules/{path:.*}")
-//    @Produces(MediaType.APPLICATION_JSON)
-//    public void removeModule(@ApiParam(value = "Workspace ID", required = true)
-//                                              @PathParam("ws-id") String workspace,
-//                                              @ApiParam(value = "Path to a project", required = true)
-//                                              @PathParam("path") String path,
-//                                              @QueryParam("module") String modulePath)
-//            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
-//
-//        Project parent = projectManager.getProject(workspace, path);
-//        parent.getModules().remove(modulePath);
-//    }
-
     @ApiOperation(value = "Create a new module",
                   notes = "Create a new module in a specified project",
                   response = ProjectDescriptor.class,

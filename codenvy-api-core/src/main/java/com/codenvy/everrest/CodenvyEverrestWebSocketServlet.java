@@ -26,6 +26,7 @@ import org.everrest.websockets.WSConnectionImpl;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
@@ -39,10 +40,12 @@ public class CodenvyEverrestWebSocketServlet extends EverrestWebSocketServlet {
 
     static final String ENVIRONMENT_CONTEXT = "ide.websocket." + EnvironmentContext.class.getName();
 
+    @Inject
+    private EverrestConfiguration config;
+
     @Override
     protected EverrestProcessor getEverrestProcessor() {
         final ServletContext servletContext = getServletContext();
-        final EverrestConfiguration config = (EverrestConfiguration)servletContext.getAttribute(EverrestConfiguration.class.getName());
         final DependencySupplier dependencies = (DependencySupplier)servletContext.getAttribute(DependencySupplier.class.getName());
         final ResourceBinder resources = (ResourceBinder)servletContext.getAttribute(ResourceBinder.class.getName());
         final ProviderBinder providers = (ProviderBinder)servletContext.getAttribute(ApplicationProviderBinder.class.getName());

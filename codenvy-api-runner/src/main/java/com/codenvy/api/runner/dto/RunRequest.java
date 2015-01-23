@@ -127,11 +127,11 @@ public interface RunRequest {
     RunRequest withProject(String project);
 
 
-    String getUserName();
+    String getUserId();
 
-    RunRequest withUserName(String userName);
+    RunRequest withUserId(String userId);
 
-    void setUserName(String userName);
+    void setUserId(String userId);
 
     String getUserToken();
 

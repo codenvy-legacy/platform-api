@@ -18,7 +18,6 @@ import org.everrest.core.impl.async.AsynchronousJob;
 import org.everrest.core.impl.async.AsynchronousJobPool;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import javax.ws.rs.core.UriBuilder;
 import javax.ws.rs.ext.ContextResolver;
@@ -31,26 +30,10 @@ import java.util.concurrent.Callable;
 @Singleton
 @Provider
 public class CodenvyAsynchronousJobPool extends AsynchronousJobPool implements ContextResolver<AsynchronousJobPool> {
-    @Inject
-    public CodenvyAsynchronousJobPool(@Named("everrest.async.pool_size") int poolSize,
-                                      @Named("everrest.async.queue_size") int queueSize,
-                                      @Named("everrest.async.job_timeout") int jobTimeOut,
-                                      @Named("everrest.async.cache_size") int cacheSize) {
-        super(createEverrestConfiguration(poolSize, queueSize, jobTimeOut, cacheSize, "/async/"));
-    }
 
-    private static EverrestConfiguration createEverrestConfiguration(int poolSize,
-                                                                     int queueSize,
-                                                                     int jobTimeOut,
-                                                                     int cacheSize,
-                                                                     String servicePath) {
-        final EverrestConfiguration configuration = new EverrestConfiguration();
-        configuration.setAsynchronousPoolSize(poolSize);
-        configuration.setAsynchronousQueueSize(queueSize);
-        configuration.setAsynchronousJobTimeout(jobTimeOut);
-        configuration.setAsynchronousCacheSize(cacheSize);
-        configuration.setAsynchronousServicePath(servicePath);
-        return configuration;
+    @Inject
+    public CodenvyAsynchronousJobPool(EverrestConfiguration everrestConfiguration) {
+        super(everrestConfiguration);
     }
 
     @Override

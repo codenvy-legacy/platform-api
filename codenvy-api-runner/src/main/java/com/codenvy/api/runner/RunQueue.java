@@ -1296,7 +1296,8 @@ public class RunQueue {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final ApplicationProcessDescriptor descriptor = getTask(event.getProcessId()).getDescriptor();
-                    bm.setChannel(String.format("runner:process_started:%s:%s:%s", event.getWorkspace(), event.getProject(), descriptor.getUserId()));
+                    bm.setChannel(String.format("runner:process_started:%s:%s:%s", event.getWorkspace(), event.getProject(),
+                                                descriptor.getUserId()));
                     bm.setBody(DtoFactory.getInstance().toJson(descriptor));
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {

@@ -12,8 +12,6 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.Map;
-
 /**
  * @author Sergii Leschenko
  */

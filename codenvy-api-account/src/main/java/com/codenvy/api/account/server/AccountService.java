@@ -19,6 +19,7 @@ import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
+import com.codenvy.api.account.shared.dto.AccountMetrics;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.CreditCard;
@@ -1064,7 +1065,7 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Redistributes resources",
-                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/admin.",
+                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/manager, system/admin.",
                   position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
@@ -1080,12 +1081,33 @@ public class AccountService extends Service {
                                       @PathParam("id") String id,
                                       @ApiParam(value = "Resources description", required = true)
                                       @Required
-                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors,
-                                      @Context SecurityContext securityContext) throws ForbiddenException,
-                                                                                       ConflictException,
-                                                                                       NotFoundException,
-                                                                                       ServerException {
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors) throws ForbiddenException,
+                                                                                                         ConflictException,
+                                                                                                         NotFoundException,
+                                                                                                         ServerException {
         resourcesManager.redistributeResources(id, updateResourcesDescriptors);
+    }
+
+    /**
+     * Returns metrics information of account
+     *
+     * @param id
+     *         account id
+     */
+    @ApiOperation(value = "Get metrics information of account",
+                  notes = "Returns metrics information of account. Roles: account/owner, account/member, system/manager, system/admin.",
+                  position = 17)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GET
+    @Path("/{id}/metrics")
+    @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public AccountMetrics getMetrics(@ApiParam(value = "Account ID", required = true)
+                                     @PathParam("id") String id) throws ServerException, NotFoundException {
+        return resourcesManager.getAccountMetrics(id);
     }
 
     /**

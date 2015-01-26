@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
+import com.codenvy.api.account.shared.dto.AccountMetrics;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -42,4 +43,6 @@ public interface ResourcesManager {
      */
     void redistributeResources(String accountId, List<UpdateResourcesDescriptor> updateResourcesDescriptors)
             throws NotFoundException, ServerException, ConflictException, ForbiddenException;
+
+    AccountMetrics getAccountMetrics(String accountId) throws ServerException, NotFoundException;
 }

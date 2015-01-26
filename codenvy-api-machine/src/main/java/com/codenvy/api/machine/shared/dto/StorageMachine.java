@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -21,46 +20,34 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface MachineDescription extends ActiveMachineDescriptor {
+public interface StorageMachine {
     String getId();
 
     void setId(String id);
 
-    MachineDescription withId(String id);
+    StorageMachine withId(String id);
 
     String getProject();
 
     void setProject(String project);
 
-    MachineDescription withProject(String project);
+    StorageMachine withProject(String project);
 
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
-    MachineDescription withWorkspaceId(String workspaceId);
+    StorageMachine withWorkspaceId(String workspaceId);
 
     String getUser();
 
     void setUser(String user);
 
-    MachineDescription withUser(String user);
+    StorageMachine withUser(String user);
 
     List<String> getSnapshots();
 
     void setSnapshots(List<String> snapshots);
 
-    MachineDescription withSnapshots(List<String> snapshots);
-
-    String getState();
-
-    void setState(String state);
-
-    MachineDescription withState(String state);
-
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    MachineDescription withLinks(List<Link> links);
+    StorageMachine withSnapshots(List<String> snapshots);
 }

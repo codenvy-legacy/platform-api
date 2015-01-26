@@ -12,6 +12,7 @@ package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.util.LineConsumer;
 
 import java.io.File;
 import java.util.HashMap;
@@ -26,6 +27,7 @@ public abstract class MachineBuilder {
     private Set<File>           files;
     private Map<String, Object> parameters;
     private MachineRecipe       recipe;
+    private String              id;
 
     protected MachineBuilder() {
     }
@@ -38,8 +40,21 @@ public abstract class MachineBuilder {
      */
     public abstract Machine buildMachine() throws ServerException, ForbiddenException;
 
+    /**
+     * Build machine using supplied configuration. Put logs to given line consumer
+     *
+     * @throws ForbiddenException if machine can't be built due to misconfiguration
+     * @throws ServerException if internal error occurs
+     */
+    public abstract Machine buildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
+
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;
+        return this;
+    }
+
+    public MachineBuilder setId(String id) {
+        this.id = id;
         return this;
     }
 
@@ -74,5 +89,9 @@ public abstract class MachineBuilder {
             files = new LinkedHashSet<>();
         }
         return this.files;
+    }
+
+    protected String getId() {
+        return id;
     }
 }

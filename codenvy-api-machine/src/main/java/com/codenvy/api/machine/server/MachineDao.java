@@ -8,27 +8,23 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.dto;
+package com.codenvy.api.machine.server;
 
-import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.machine.shared.dto.StorageMachine;
 
 import java.util.List;
 
 /**
- * Describe application process inside of machine
- *
  * @author Alexander Garagatyi
  */
-public interface ApplicationProcessDescription {
-    int getId();
+public interface MachineDao {
+    StorageMachine getById(String machineId) throws NotFoundException, ServerException;
 
-    void setId(String id);
+    void create(StorageMachine machine) throws ServerException;
 
-    ApplicationProcessDescription withId(int id);
+    void remove(String machineId) throws NotFoundException, ServerException;
 
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
-    ApplicationProcessDescription withLinks(List<Link> links);
+    List<StorageMachine> findByUserWorkspaceProject(String userId, String wsId, String projectName) throws ServerException;
 }

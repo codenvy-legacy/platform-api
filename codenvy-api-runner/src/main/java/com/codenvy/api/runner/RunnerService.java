@@ -128,12 +128,12 @@ public class RunnerService extends Service {
         final List<ApplicationProcessDescriptor> processes = new LinkedList<>();
         final User user = EnvironmentContext.getCurrent().getUser();
         if (user != null) {
-            final String userName = user.getName();
+            final String userId = user.getId();
             for (RunQueueTask task : runQueue.getTasks()) {
                 final RunRequest request = task.getRequest();
                 if (request.getWorkspace().equals(workspace)
                     && request.getProject().equals(project)
-                    && request.getUserName().equals(userName)) {
+                    && request.getUserId().equals(userId)) {
                     try {
                         processes.add(task.getDescriptor());
                     } catch (NotFoundException ignored) {

@@ -15,9 +15,9 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.machine.server.dto.StoredMachine;
 import com.codenvy.api.machine.shared.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
-import com.codenvy.api.machine.server.dto.StoredMachine;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
@@ -60,16 +60,17 @@ import java.util.concurrent.Executors;
 @Singleton
 @Path("/machine")
 public class MachineService {
-    private MachineRegistry machineRegistry;
+    private final MachineRegistry machineRegistry;
 
-    private MachineBuilderFactory          machineBuilderFactory;
+    private final ExecutorService executorService;
 
-    private ExecutorService executorService;
+    private final MachineBuilderFactoryRegistry machineBuilderFactoryRegistry;
 
     @Inject
-    public MachineService(MachineRegistry machineRegistry, MachineBuilderFactory machineBuilderFactory) {
+    public MachineService(MachineRegistry machineRegistry,
+                          MachineBuilderFactoryRegistry machineBuilderFactoryRegistry) {
         this.machineRegistry = machineRegistry;
-        this.machineBuilderFactory = machineBuilderFactory;
+        this.machineBuilderFactoryRegistry = machineBuilderFactoryRegistry;
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
 
@@ -85,19 +86,19 @@ public class MachineService {
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
     public MachineDescriptor createMachine(final InputStream recipeStream,
-                                                   @Nullable @QueryParam("type") String machineType,
-                                                   @PathParam("ws-id") final String workspace,
-                                                   @QueryParam("project") final String project, // TODO make it mandatory
-                                                   @QueryParam("user") final String user,
-                                                   @Context SecurityContext context)
+                                           @Nullable @QueryParam("type") String machineType,
+                                           @PathParam("ws-id") final String workspace,
+                                           @QueryParam("project") final String project, // TODO make it mandatory
+                                           @QueryParam("user") final String user,
+                                           @Context SecurityContext context)
             throws ServerException, NotFoundException, ForbiddenException {
-        final MachineBuilder machineBuilder = machineBuilderFactory.newMachineBuilder(machineType)
-                                                                   .setRecipe(new BaseMachineRecipe() {
-                                                                       @Override
-                                                                       public InputStream asStream() {
-                                                                           return recipeStream;
-                                                                       }
-                                                                   });
+        final MachineBuilder machineBuilder = machineBuilderFactoryRegistry.get(machineType).newMachineBuilder()
+                                                                           .setRecipe(new BaseMachineRecipe() {
+                                                                               @Override
+                                                                               public InputStream asStream() {
+                                                                                   return recipeStream;
+                                                                               }
+                                                                           });
         final MachineOutputWsLineConsumer machineOutputWsLineConsumer = new MachineOutputWsLineConsumer(machineBuilder.getMachineId());
 
         executorService.execute(new Runnable() {
@@ -133,9 +134,9 @@ public class MachineService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<MachineDescriptor> getMachines(@PathParam("ws-id") String wsId,
-                                                       @QueryParam("project") String project,
-                                                       @QueryParam("user") String user,
-                                                       @Context SecurityContext context)
+                                               @QueryParam("project") String project,
+                                               @QueryParam("user") String user,
+                                               @Context SecurityContext context)
             throws ServerException {
 
 
@@ -213,7 +214,7 @@ public class MachineService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     public List<ApplicationProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
-                                                        @Context SecurityContext context)
+                                                           @Context SecurityContext context)
             throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getActiveMachine(machineId);
         final List<CommandProcess> processes = machine.getRunningProcesses();
@@ -250,16 +251,16 @@ public class MachineService {
                          .withUser(machines.getUser())
                          .withProject(machines.getProject())
                          .withState(machines.getState())
-                         .withWorkspaceId(machines.getWorkspaceId())
-                         // TODO
-                         .withLinks(null);
+                .withWorkspaceId(machines.getWorkspaceId())
+                        // TODO
+                .withLinks(null);
     }
 
     private ApplicationProcessDescriptor toDescriptor(CommandProcess process, SecurityContext context) throws ServerException {
         return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
-                         .withId(process.getPid())
-                         // TODO
-                         .withLinks(null);
+                .withId(process.getPid())
+                        // TODO
+                .withLinks(null);
     }
 
     private static class MachineOutputWsLineConsumer implements LineConsumer {

@@ -106,13 +106,13 @@ public interface ApplicationProcessDescriptor extends Hyperlinks {
 
     ApplicationProcessDescriptor withProject(String project);
 
-    /** The name of user who ran application. */
+    /** The id of user who ran application. */
     @ApiModelProperty(value = "User who initiated run")
-    String getUserName();
+    String getUserId();
 
-    ApplicationProcessDescriptor withUserName(String userName);
+    ApplicationProcessDescriptor withUserId(String userId);
 
-    void setUserName(String userName);
+    void setUserId(String userId);
 
     /**
      * The URL of server where application is running. This information is accessible only over RunnerAdminServer and is not available for

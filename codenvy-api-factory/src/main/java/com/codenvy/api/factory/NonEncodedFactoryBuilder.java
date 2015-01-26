@@ -114,13 +114,7 @@ public abstract class NonEncodedFactoryBuilder {
 
         final Workspace workspace = factory.getWorkspace();
         if (workspace != null) {
-            appendIfNotNull(builder, "&workspace.temp=", workspace.getTemp(), false);
-            for (Map.Entry<String, String> entry : workspace.getAttributes().entrySet()) {
-                builder.append("&workspace.attributes.")
-                       .append(encode(entry.getKey()))
-                       .append("=")
-                       .append(encode(entry.getValue()));
-            }
+            appendIfNotNull(builder, "&workspace.type=", workspace.getType(), false);
         }
 
         final NewProject project = factory.getProject();

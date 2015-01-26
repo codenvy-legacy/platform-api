@@ -8,19 +8,20 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory;
+package com.codenvy.api.machine.server;
 
+import com.codenvy.inject.DynaModule;
 import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
 /**
  * @author andrew00x
  */
-public class FactoryModule extends AbstractModule {
+@DynaModule
+public class MachineApiModule extends AbstractModule {
     @Override
     protected void configure() {
-        bind(FactoryService.class);
-        bind(FactoryCreateValidator.class).to(FactoryCreateValidatorImpl.class);
-        bind(FactoryAcceptValidator.class).to(FactoryAcceptValidatorImpl.class);
-        bind(FactoryEditValidator.class).to(FactoryEditValidatorImpl.class);
+        Multibinder.newSetBinder(binder(), MachineBuilderFactory.class);
+        bind(MachineBuilderFactoryPlugin.class).asEagerSingleton();
     }
 }

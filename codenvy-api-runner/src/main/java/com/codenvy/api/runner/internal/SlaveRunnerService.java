@@ -287,7 +287,7 @@ public class SlaveRunnerService extends Service {
                          .withLinks(links)
                          .withWorkspace(request.getWorkspace())
                          .withProject(request.getProject())
-                         .withUserName(request.getUserName())
+                         .withUserId(request.getUserId())
                          .withDebugHost(configuration.getDebugHost())
                          .withDebugPort(configuration.getDebugPort())
                          .withPortMapping(portMapping);

@@ -1262,7 +1262,7 @@ public class MemoryVirtualFile implements VirtualFile {
 
     private void checkExist() {
         if (!exists) {
-            throw new RuntimeException("Item already removed. ");
+            throw new RuntimeException(String.format("Item '%s' already removed. ", name));
         }
     }
 

@@ -8,19 +8,21 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.factory;
+package com.codenvy.api.machine.server;
 
-import com.google.inject.AbstractModule;
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Set;
 
 /**
  * @author andrew00x
  */
-public class FactoryModule extends AbstractModule {
-    @Override
-    protected void configure() {
-        bind(FactoryService.class);
-        bind(FactoryCreateValidator.class).to(FactoryCreateValidatorImpl.class);
-        bind(FactoryAcceptValidator.class).to(FactoryAcceptValidatorImpl.class);
-        bind(FactoryEditValidator.class).to(FactoryEditValidatorImpl.class);
+@Singleton
+class MachineBuilderFactoryPlugin {
+    @Inject
+    MachineBuilderFactoryPlugin(MachineBuilderFactoryRegistry builderFactoryRegistry, Set<MachineBuilderFactory> builderFactories) {
+        for (MachineBuilderFactory builderFactory : builderFactories) {
+            builderFactoryRegistry.add(builderFactory);
+        }
     }
 }

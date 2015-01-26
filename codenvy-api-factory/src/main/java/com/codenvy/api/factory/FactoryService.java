@@ -86,26 +86,20 @@ import static com.codenvy.commons.lang.Strings.nullToEmpty;
 public class FactoryService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
-
-    /**
-     * Validator for editing factories.
-     */
-    private FactoryEditValidator factoryEditValidator;
-
-
-    private String                    baseApiUrl;
-    private FactoryStore              factoryStore;
-    private FactoryUrlCreateValidator createValidator;
-    private FactoryUrlAcceptValidator acceptValidator;
-    private LinksHelper               linksHelper;
-    private FactoryBuilder            factoryBuilder;
-    private ProjectManager            projectManager;
+    private String                 baseApiUrl;
+    private FactoryStore           factoryStore;
+    private FactoryEditValidator   factoryEditValidator;
+    private FactoryCreateValidator createValidator;
+    private FactoryAcceptValidator acceptValidator;
+    private LinksHelper            linksHelper;
+    private FactoryBuilder         factoryBuilder;
+    private ProjectManager         projectManager;
 
     @Inject
     public FactoryService(@Named("api.endpoint") String baseApiUrl,
                           FactoryStore factoryStore,
-                          FactoryUrlCreateValidator createValidator,
-                          FactoryUrlAcceptValidator acceptValidator,
+                          FactoryCreateValidator createValidator,
+                          FactoryAcceptValidator acceptValidator,
                           FactoryEditValidator factoryEditValidator,
                           LinksHelper linksHelper,
                           FactoryBuilder factoryBuilder,
@@ -140,14 +134,13 @@ public class FactoryService extends Service {
      *         - {@link com.codenvy.api.core.ServerException} when internal server error occurs
      */
     @ApiOperation(value = "Create a Factory and return data",
-            notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
-            response = Factory.class,
-            position = 1)
+                  notes = "Save factory to storage and return stored data. Field 'factoryUrl' should contains factory url information.",
+                  response = Factory.class,
+                  position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 409, message = "Conflict error. Some parameter is missing"),
             @ApiResponse(code = 500, message = "Unable to identify user from context")})
-
     @RolesAllowed("user")
     @POST
     @Consumes({MediaType.MULTIPART_FORM_DATA})
@@ -203,7 +196,6 @@ public class FactoryService extends Service {
             factory = factory.withLinks(linksHelper.createLinks(factory, images, uriInfo));
 
             LOG.info(
-
                     "EVENT#factory-created# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# REPO-URL#{}# FACTORY-URL#{}# AFFILIATE-ID#{}# ORG-ID#{}#",
                     "",
                     context.getUser().getName(),
@@ -316,7 +308,7 @@ public class FactoryService extends Service {
      *         when factory with given id doesn't exist
      */
     @ApiOperation(value = "Removes Factory information by its ID",
-            notes = "Removes factory based on the Factory ID which is passed in a path parameter")
+                  notes = "Removes factory based on the Factory ID which is passed in a path parameter")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -327,7 +319,7 @@ public class FactoryService extends Service {
     @RolesAllowed("user")
     public void removeFactory(@ApiParam(value = "Factory ID", required = true)
                               @PathParam("id") String id,
-                              @Context UriInfo uriInfo) throws ForbiddenException, NotFoundException, ApiException {
+                              @Context UriInfo uriInfo) throws ApiException {
 
         // Check we've a user
         final User user = EnvironmentContext.getCurrent().getUser();
@@ -362,10 +354,11 @@ public class FactoryService extends Service {
      *         the new data for the factory
      * @throws NotFoundException
      *         when factory with given id doesn't exist
-     * @throws com.codenvy.api.core.ServerException if given factory is null
+     * @throws com.codenvy.api.core.ServerException
+     *         if given factory is null
      */
     @ApiOperation(value = "Updates factory information by its ID",
-            notes = "Updates factory based on the Factory ID which is passed in a path parameter")
+                  notes = "Updates factory based on the Factory ID which is passed in a path parameter")
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -378,7 +371,7 @@ public class FactoryService extends Service {
     @Produces({MediaType.APPLICATION_JSON})
     public Factory updateFactory(@ApiParam(value = "Factory ID", required = true)
                                  @PathParam("id") String id,
-                                 Factory newFactory) throws ForbiddenException, NotFoundException, ApiException {
+                                 Factory newFactory) throws ApiException {
 
         // forbid null update
         if (newFactory == null) {

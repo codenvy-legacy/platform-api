@@ -19,8 +19,8 @@ public class FactoryModule extends AbstractModule {
     @Override
     protected void configure() {
         bind(FactoryService.class);
-        bind(FactoryUrlCreateValidator.class).to(FactoryUrlCreateValidatorImpl.class);
-        bind(FactoryUrlAcceptValidator.class).to(FactoryUrlAcceptValidatorImpl.class);
+        bind(FactoryCreateValidator.class).to(FactoryCreateValidatorImpl.class);
+        bind(FactoryAcceptValidator.class).to(FactoryAcceptValidatorImpl.class);
         bind(FactoryEditValidator.class).to(FactoryEditValidatorImpl.class);
     }
 }

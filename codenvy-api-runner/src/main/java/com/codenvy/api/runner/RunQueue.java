@@ -38,7 +38,6 @@ import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.api.runner.dto.ResourcesDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
-import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.api.runner.dto.RunnerServerAccessCriteria;
 import com.codenvy.api.runner.dto.RunnerServerLocation;
@@ -417,7 +416,7 @@ public class RunQueue {
                                              .withWorkspace(workspace)
                                              .withProject(project)
                                              .withProjectDescriptor(projectDescriptor)
-                                             .withUserName(user == null ? "" : user.getName())
+                                             .withUserId(user == null ? "" : user.getId())
                                              .withUserToken(getUserToken());
         String environmentId = runOptions.getEnvironmentId();
         // Project configuration for runner.
@@ -1293,8 +1292,8 @@ public class RunQueue {
             if (event.getType() == RunnerEvent.EventType.STARTED) {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-                    bm.setChannel(String.format("runner:process_started:%s:%s", event.getWorkspace(), event.getProject()));
                     final ApplicationProcessDescriptor descriptor = getTask(event.getProcessId()).getDescriptor();
+                    bm.setChannel(String.format("runner:process_started:%s:%s:%s", event.getWorkspace(), event.getProject(), descriptor.getUserId()));
                     bm.setBody(DtoFactory.getInstance().toJson(descriptor));
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {
@@ -1319,6 +1318,7 @@ public class RunQueue {
                         try {
                             final ApplicationProcessDescriptor descriptor = getTask(id).getDescriptor();
                             bm.setBody(DtoFactory.getInstance().toJson(descriptor));
+
                             if (event.getType() == RunnerEvent.EventType.STARTED) {
                                 final Link appLink = descriptor.getLink(Constants.LINK_REL_WEB_URL);
                                 if (appLink != null) {
@@ -1386,7 +1386,7 @@ public class RunQueue {
                     }
                     final String projectTypeId = request.getProjectDescriptor().getType();
                     final boolean debug = request.isInDebugMode();
-                    final String user = request.getUserName();
+                    final String user = request.getUserId();
                     switch (event.getType()) {
                         case PREPARATION_STARTED:
                             final String preparationStartLineFormat =

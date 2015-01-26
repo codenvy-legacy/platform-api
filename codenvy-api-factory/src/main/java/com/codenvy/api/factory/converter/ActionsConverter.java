@@ -23,7 +23,6 @@ import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
 import com.codenvy.api.vfs.shared.dto.Variable;
 import com.codenvy.dto.server.DtoFactory;
-import com.google.common.collect.ImmutableMap;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -91,13 +90,15 @@ public class ActionsConverter implements LegacyConverter {
             for (ReplacementSet replacementSet : replacement) {
                 for (String file : replacementSet.getFiles()) {
                     for (Variable variable : replacementSet.getEntries()) {
+                        Map<String, String> findReplaceProperties = new HashMap<>();
+                        findReplaceProperties.put("in", file);
+                        findReplaceProperties.put("find", variable.getFind());
+                        findReplaceProperties.put("replace", variable.getReplace());
+                        findReplaceProperties.put("replaceMode", variable.getReplacemode());
+
                         replacementActions.add(dto.createDto(Action.class)
                                                   .withId("findReplace")
-                                                  .withProperties(ImmutableMap.of(
-                                                          "in", file,
-                                                          "find", variable.getFind(),
-                                                          "replace", variable.getReplace(),
-                                                          "replaceMode", variable.getReplacemode())));
+                                                  .withProperties(findReplaceProperties));
                     }
                 }
             }

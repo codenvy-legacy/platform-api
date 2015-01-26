@@ -39,21 +39,12 @@ import static org.mockito.Mockito.mock;
 @Listeners(value = {MockitoTestNGListener.class})
 public class FactoryEditValidatorImplTest {
 
-    /**
-     * Account DAO
-     */
     @Mock
     private AccountDao accountDao;
 
-    /**
-     * Factory Mocking
-     */
     @Mock
     private Factory factory;
 
-    /**
-     * Instance of validator to test
-     */
     @InjectMocks
     private FactoryEditValidator factoryEditValidator = new FactoryEditValidatorImpl();
 
@@ -72,7 +63,6 @@ public class FactoryEditValidatorImplTest {
      */
     @Test
     public void testUserIsTheAuthor() throws ApiException {
-
         String userId = "florent";
         Author author = mock(Author.class);
         doReturn(author).when(factory).getCreator();
@@ -87,7 +77,6 @@ public class FactoryEditValidatorImplTest {
      */
     @Test(expectedExceptions = ForbiddenException.class)
     public void testWithoutAccountID() throws ApiException {
-
         String userIdFactory = "florent";
         Author author = mock(Author.class);
         doReturn(author).when(factory).getCreator();
@@ -103,7 +92,6 @@ public class FactoryEditValidatorImplTest {
      */
     @Test(expectedExceptions = ForbiddenException.class)
     public void testUserWithNoMembersInAccountID() throws ApiException {
-
         String userIdFactory = "florent";
         String accountId = "myAccount";
         Author author = mock(Author.class);
@@ -122,7 +110,6 @@ public class FactoryEditValidatorImplTest {
      */
     @Test(expectedExceptions = ForbiddenException.class)
     public void testUserNotInAccountOwner() throws ApiException {
-
         String currentUserId = "florent";
 
         String userIdFactory = "johndoe";
@@ -148,7 +135,6 @@ public class FactoryEditValidatorImplTest {
      */
     @Test
     public void testUserIsAccountOwner() throws ApiException {
-
         String currentUserId = "florent";
 
         String userIdFactory = "johndoe";

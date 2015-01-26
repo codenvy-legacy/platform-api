@@ -90,7 +90,6 @@ import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPA
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
-import static java.util.Collections.replaceAll;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.CREATED;
@@ -178,9 +177,11 @@ public class WorkspaceService extends Service {
                                                                     ForbiddenException {
         requiredNotNull(newWorkspace, "New workspace");
         requiredNotNull(newWorkspace.getAccountId(), "Account ID");
-        requiredNotNull(newWorkspace.getName(), "Workspace name");
         if (newWorkspace.getAttributes() != null) {
             validateAttributes(newWorkspace.getAttributes());
+        }
+        if (newWorkspace.getName() == null || newWorkspace.getName().isEmpty()) {
+            newWorkspace.setName(generateWorkspaceName());
         }
         final Account account = accountDao.getById(newWorkspace.getAccountId());
 
@@ -1095,6 +1096,39 @@ public class WorkspaceService extends Service {
             }
         }
         return false;
+    }
+
+    /**
+     * Generates workspace name based on current user email.
+     * Generating process is simple, assuming we have user with email user@codenvy.com,
+     * then first time we will check for workspace with name equal to "user" and if it is free
+     * it will be returned, but if it is reserved then  number suffix will be added to the end of "user" name
+     * and it will be checked again until free workspace name is not found.
+     */
+    private String generateWorkspaceName() throws ServerException {
+        //should be email
+        String userName = currentUser().getName();
+        int atIdx = userName.indexOf('@');
+        //if username contains email then fetch part before '@'
+        if (atIdx != -1) {
+            userName = userName.substring(0, atIdx);
+        }
+        //search first workspace name which is free
+        int suffix = 2;
+        String workspaceName = userName;
+        while (workspaceExists(workspaceName)) {
+            workspaceName = userName + suffix++;
+        }
+        return workspaceName;
+    }
+
+    private boolean workspaceExists(String name) throws ServerException {
+        try {
+            workspaceDao.getByName(name);
+        } catch (NotFoundException nfEx) {
+            return false;
+        }
+        return true;
     }
 
     private com.codenvy.commons.user.User currentUser() {

@@ -87,10 +87,10 @@ public class FactoryServiceTest {
     private FactoryStore factoryStore;
 
     @Mock
-    private FactoryUrlCreateValidator createValidator;
+    private FactoryCreateValidator createValidator;
 
     @Mock
-    private FactoryUrlAcceptValidator acceptValidator;
+    private FactoryAcceptValidator acceptValidator;
 
     @Mock
     private FactoryEditValidator editValidator;

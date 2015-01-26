@@ -214,6 +214,40 @@ public class WorkspaceServiceTest {
     }
 
     @Test
+    public void workspaceNameShouldBeGeneratedIfNewWorkspaceDoesNotContainsIt() throws Exception {
+        //create new account with empty workspace list
+        final Account testAccount = createAccount();
+        when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(Collections.<Workspace>emptyList());
+
+        final String email = testUser.getEmail();
+        final String expectedWsName = email.substring(0, email.indexOf('@'));
+        when(workspaceDao.getByName(expectedWsName)).thenThrow(new NotFoundException("not found"));
+
+        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withAccountId(testAccount.getId());
+
+        final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH, newWorkspace, CREATED);
+
+        assertEquals(descriptor.getName(), expectedWsName);
+    }
+
+    @Test
+    public void workspaceNameShouldBeGeneratedUntilNotReservedIsFound() throws Exception {
+        //create new account with empty workspace list
+        final Account testAccount = createAccount();
+        when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(Collections.<Workspace>emptyList());
+
+        final String email = testUser.getEmail();
+        final String expectedWsName = email.substring(0, email.indexOf('@')) + "11";
+        when(workspaceDao.getByName(expectedWsName)).thenThrow(new NotFoundException("not found"));
+
+        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withAccountId(testAccount.getId());
+
+        final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH, newWorkspace, CREATED);
+
+        assertEquals(descriptor.getName(), expectedWsName);
+    }
+
+    @Test
     public void shouldNotBeAbleToCreateWorkspaceAssociatedWithOtherAccount() throws Exception {
         //new workspace descriptor
         final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("new_workspace")

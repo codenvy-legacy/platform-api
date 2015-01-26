@@ -1067,14 +1067,14 @@ public class AccountServiceTest {
         SubscriptionDescriptor expectedDescriptor = convertToDescriptor(subscription);
         Link[] expectedLinks = new Link[2];
         expectedLinks[0] = (DtoFactory.getInstance().createDto(Link.class)
-                                    .withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION)
-                                    .withMethod(HttpMethod.DELETE)
-                                    .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID));
+                                      .withRel(Constants.LINK_REL_REMOVE_SUBSCRIPTION)
+                                      .withMethod(HttpMethod.DELETE)
+                                      .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID));
         expectedLinks[1] = (DtoFactory.getInstance().createDto(Link.class)
-                                    .withRel(Constants.LINK_REL_GET_SUBSCRIPTION)
-                                    .withMethod(HttpMethod.GET)
-                                    .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)
-                                    .withProduces(MediaType.APPLICATION_JSON));
+                                      .withRel(Constants.LINK_REL_GET_SUBSCRIPTION)
+                                      .withMethod(HttpMethod.GET)
+                                      .withHref(SERVICE_PATH + "/subscriptions/" + SUBSCRIPTION_ID)
+                                      .withProduces(MediaType.APPLICATION_JSON));
 
         prepareSecurityContext("system/admin");
 
@@ -1194,7 +1194,7 @@ public class AccountServiceTest {
 
     @DataProvider(name = "roleProvider")
     public String[][] roleProvider() {
-        return new String[][] {
+        return new String[][]{
                 {"system/admin"},
                 {"system/manager"},
         };

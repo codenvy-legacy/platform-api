@@ -14,14 +14,23 @@ import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.shared.dto.ActiveMachineDescriptor;
-import com.codenvy.api.machine.shared.dto.MachineDescriptor;
+import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.machine.shared.dto.RuntimeMachine;
+import com.codenvy.api.machine.shared.dto.StorageMachine;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.everrest.core.impl.provider.json.JsonUtils;
+import org.everrest.websockets.WSConnectionContext;
+import org.everrest.websockets.message.ChannelBroadcastMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Singleton;
+import java.io.IOException;
 import java.io.InputStream;
 import java.util.LinkedList;
 import java.util.List;
@@ -37,15 +46,15 @@ import java.util.concurrent.Executors;
  */
 @Singleton
 public class MachineRegistry {
-    private final MachineMetaInfoDao             machineMetaInfoDao;
+    private final MachineDao                     machineDao;
     private final ConcurrentMap<String, Machine> activeMachines;
-    private       ExecutorService                executorService;
-    private       MachineBuilderFactory          machineBuilderFactory;
+    private final ExecutorService                executorService;
+    private final MachineBuilderFactory          machineBuilderFactory;
 
     @Inject
-    public MachineRegistry(MachineMetaInfoDao machineMetaInfoDao,
+    public MachineRegistry(MachineDao machineDao,
                            MachineBuilderFactory machineBuilderFactory) {
-        this.machineMetaInfoDao = machineMetaInfoDao;
+        this.machineDao = machineDao;
         this.machineBuilderFactory = machineBuilderFactory;
         this.activeMachines = new ConcurrentHashMap<>();
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
@@ -58,14 +67,54 @@ public class MachineRegistry {
 
     // TODO Save errors somewhere to send to client if client wasn't subscribed to build output
 
-    public List<ActiveMachineDescriptor> getMachines(String workspaceId, String project, String user) throws ServerException {
-        List<ActiveMachineDescriptor> result = new LinkedList<>();
-        final List<MachineDescriptor> machines = machineMetaInfoDao.findByUserWorkspaceProject(workspaceId, project, user);
-        for (MachineDescriptor machine : machines) {
-            // TODO should ask slave machine runner for state
+    public String createMachine(final InputStream recipeStream,
+                                final String machineType,
+                                final String workspace,
+                                final String project,
+                                final String user) throws NotFoundException {
+        final String machineId = NameGenerator.generate("", 16);
+        final MachineOutputWsLineConsumer machineOutputWsLineConsumer = new MachineOutputWsLineConsumer(machineId);
+        final MachineBuilder machineBuilder = machineBuilderFactory.newMachineBuilder(machineType)
+                                                                   .setId(machineId)
+                                                                   .setRecipe(new BaseMachineRecipe() {
+                                                                       @Override
+                                                                       public InputStream asStream() {
+                                                                           return recipeStream;
+                                                                       }
+                                                                   });
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    // TODO Add logReader to send logs to client
+                    final Machine machine = machineBuilder.buildMachine(machineOutputWsLineConsumer);
+
+                    // TODO get snapshots from machine and put them to Dao
+
+                    machineDao.create(DtoFactory.getInstance().createDto(StorageMachine.class)
+                                                .withId(machineId)
+                                                .withUser(user)
+                                                .withWorkspaceId(workspace)
+                                                .withProject(project));
+
+                    activeMachines.put(machine.getId(), machine);
+                } catch (ServerException | ForbiddenException e) {
+                    // TODO put to logReader
+                }
+            }
+        });
+
+        return machineId;
+    }
+
+    public List<RuntimeMachine> getMachines(String workspaceId, String project, String user) throws ServerException {
+        List<RuntimeMachine> result = new LinkedList<>();
+        final List<StorageMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
+        for (StorageMachine machine : machines) {
+            // TODO should ask slave machine runners for state
             String state = activeMachines.containsKey(machine.getId()) ? "active" : "inactive";
 
-            result.add(DtoFactory.getInstance().createDto(ActiveMachineDescriptor.class)
+            result.add(DtoFactory.getInstance().createDto(RuntimeMachine.class)
                                  .withId(machine.getId())
                                  .withWorkspaceId(machine.getWorkspaceId())
                                  .withProject(machine.getProject())
@@ -76,55 +125,19 @@ public class MachineRegistry {
         return result;
     }
 
-    public String createMachine(final InputStream recipeStream,
-                                final String machineType,
-                                final String workspace,
-                                final String project,
-                                final String user) {
-        final String outputChannelId = NameGenerator.generate("", 16);
-        executorService.submit(new Runnable() {
-            @Override
-            public void run() {
-                final Machine machine;
-                try {
-                    // TODO Add logReader to send logs to client
-                    machine = machineBuilderFactory.newMachineBuilder(machineType)
-                            // TODO .setOutput(id)
-                            .setRecipe(new BaseMachineRecipe() {
-                                @Override
-                                public InputStream asStream() {
-                                    return recipeStream;
-                                }
-                            })
-                            .buildMachine();
-
-                    machineMetaInfoDao.create(DtoFactory.getInstance().createDto(MachineDescriptor.class)
-                            // TODO put image id here .withId()
-                                                      .withUser(user)
-                                                      .withWorkspaceId(workspace)
-                                                      .withProject(project));
-
-                    activeMachines.put(machine.getId(), machine);
-                } catch (ServerException | ForbiddenException | NotFoundException e) {
-                    // TODO put to logReader
-                }
-            }
-        });
-
-        return outputChannelId;
-    }
-
     public void destroy(final String machineId) throws NotFoundException {
         if (!activeMachines.containsKey(machineId)) {
             throw new NotFoundException(String.format("Machine with id %s not found", machineId));
         }
 
-        executorService.submit(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
                     activeMachines.get(machineId).destroy();
-                } catch (ServerException e) {
+
+                    machineDao.remove(machineId);
+                } catch (ServerException | NotFoundException e) {
                     // TODO put to logReader
                 }
             }
@@ -136,7 +149,7 @@ public class MachineRegistry {
             throw new NotFoundException(String.format("Machine with id %s not found", machineId));
         }
 
-        executorService.submit(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 final Machine machine = activeMachines.get(machineId);
@@ -150,19 +163,15 @@ public class MachineRegistry {
         });
     }
 
-    public String resumeMachine(String machineId) throws NotFoundException, ServerException {
-        machineMetaInfoDao.getById(machineId);
+    public void resumeMachine(String machineId) throws NotFoundException, ServerException {
+        machineDao.getById(machineId);
 
-        final String outputChannelId = NameGenerator.generate("", 16);
-
-        executorService.submit(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 // TODO resume
             }
         });
-
-        return outputChannelId;
     }
 
     public String execute(String machineId, final String command) throws NotFoundException {
@@ -173,7 +182,7 @@ public class MachineRegistry {
 
         final String outputChannelId = NameGenerator.generate("", 16);
 
-        executorService.submit(new Runnable() {
+        executorService.execute(new Runnable() {
             @Override
             public void run() {
                 final CommandProcess commandProcess = machine.newCommandProcess(command);
@@ -188,8 +197,13 @@ public class MachineRegistry {
         return outputChannelId;
     }
 
-    public List<CommandProcess> getProcesses(String machineId) throws ServerException {
-        return activeMachines.get(machineId).getRunningProcesses();
+    public List<CommandProcess> getProcesses(String machineId) throws ServerException, NotFoundException {
+        final Machine machine;
+        if ((machine = activeMachines.get(machineId)) == null) {
+            throw new NotFoundException(String.format("Machine with id %s not found", machineId));
+        }
+
+        return machine.getRunningProcesses();
     }
 
     public void killProcess(String machineId, int processId) throws NotFoundException, ServerException, ForbiddenException {
@@ -208,5 +222,37 @@ public class MachineRegistry {
             }
         }
         throw new NotFoundException(String.format("Process with id %s not found in machine %s.", processId, machineId));
+    }
+
+    private static class MachineOutputWsLineConsumer implements LineConsumer {
+        private static final Logger LOG = LoggerFactory.getLogger(MachineOutputWsLineConsumer.class);
+
+        private final String machineId;
+
+        public MachineOutputWsLineConsumer(String machineId) {
+            this.machineId = machineId;
+        }
+
+        @Override
+        public void writeLine(String line) throws IOException {
+            final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
+            bm.setChannel("machineLogs:output:" + machineId);
+            bm.setBody(JsonUtils.getJsonString(line));
+            try {
+                WSConnectionContext.sendMessage(bm);
+            } catch (Exception e) {
+                LOG.error("A problem occurred while sending websocket message", e);
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+
+        }
+    }
+
+    @PreDestroy
+    private void cleanUp() {
+        executorService.shutdownNow();
     }
 }

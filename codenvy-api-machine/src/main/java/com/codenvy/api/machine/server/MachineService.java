@@ -13,9 +13,9 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.shared.dto.ActiveMachineDescriptor;
+import com.codenvy.api.machine.shared.dto.RuntimeMachine;
 import com.codenvy.api.machine.shared.dto.ApplicationProcessDescription;
-import com.codenvy.api.machine.shared.dto.MachineDescription;
+import com.codenvy.api.machine.shared.dto.RuntimeMachineDescription;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.annotation.Nullable;
@@ -52,33 +52,42 @@ public class MachineService {
     @Path("/{ws-id}")
     @PUT
     @Consumes(MediaType.TEXT_PLAIN)
-    @Produces(MediaType.TEXT_PLAIN)
-    public String createMachine(InputStream recipeStream,
+    @Produces(MediaType.APPLICATION_JSON)
+    public RuntimeMachineDescription createMachine(InputStream recipeStream,
                                 @Nullable @QueryParam("type") String machineType,
                                 @PathParam("ws-id") String workspace,
-                                @QueryParam("project") String project,
-                                @QueryParam("user") String user)
+                                @QueryParam("project") String project, // TODO make it mandatory
+                                @QueryParam("user") String user,
+                                @Context SecurityContext context)
             throws ServerException, NotFoundException, ForbiddenException {
-        // TODO should we respond with JSON instead of string?
-        // returns channel id for process output listening
-        return machineRegistry.createMachine(recipeStream, machineType, workspace, project, user);
+        return toDescription(DtoFactory.getInstance().createDto(RuntimeMachine.class)
+                                       .withId(machineRegistry.createMachine(recipeStream, machineType, workspace, project, user))
+                                       .withWorkspaceId(workspace)
+                                       .withProject(project)
+                                       .withUser(user)
+                                       .withState("creating"),
+                             context);
     }
 
     @Path("/{ws-id}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MachineDescription> getMachines(@PathParam("ws-id") String wsId,
+    public List<RuntimeMachineDescription> getMachines(@PathParam("ws-id") String wsId,
                                                 @QueryParam("project") String project,
                                                 @QueryParam("user") String user,
                                                 @Context SecurityContext context)
             throws ServerException {
-        final List<ActiveMachineDescriptor> machines = machineRegistry.getMachines(wsId, project, user);
-        final List<MachineDescription> machinesDescriptions = new LinkedList<>();
-        for (ActiveMachineDescriptor machine : machines) {
+        final List<RuntimeMachine> machines = machineRegistry.getMachines(wsId, project, user);
+        final List<RuntimeMachineDescription> machinesDescriptions = new LinkedList<>();
+        for (RuntimeMachine machine : machines) {
             machinesDescriptions.add(toDescription(machine, context));
         }
         return machinesDescriptions;
     }
+
+    //  TODO update image, e.g. remove bad slices
+
+    // TODO add method for image removing from registry
 
     @Path("/{machineId}")
     @DELETE
@@ -96,9 +105,8 @@ public class MachineService {
     @Path("/{machineId}/resume")
     @POST
     @Produces(MediaType.TEXT_PLAIN)
-    public String resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
-        // returns channel id for process output listening
-        return machineRegistry.resumeMachine(machineId);
+    public void resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
+        machineRegistry.resumeMachine(machineId);
     }
 
     // TODO add channels for process output
@@ -136,8 +144,8 @@ public class MachineService {
         machineRegistry.killProcess(machineId, processId);
     }
 
-    private MachineDescription toDescription(ActiveMachineDescriptor machines, SecurityContext context) {
-        return DtoFactory.getInstance().createDto(MachineDescription.class)
+    private RuntimeMachineDescription toDescription(RuntimeMachine machines, SecurityContext context) {
+        return DtoFactory.getInstance().createDto(RuntimeMachineDescription.class)
                          .withId(machines.getId())
                          .withUser(machines.getUser())
                          .withProject(machines.getProject())
@@ -149,6 +157,8 @@ public class MachineService {
 
     private ApplicationProcessDescription toDescription(CommandProcess process, SecurityContext context) throws ServerException {
         return DtoFactory.getInstance().createDto(ApplicationProcessDescription.class)
-                         .withId(process.getPid());
+                         .withId(process.getPid())
+                         // TODO
+                         .withLinks(null);
     }
 }

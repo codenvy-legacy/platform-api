@@ -10,15 +10,18 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-/**
- * Factory for builders of different types of machines
- *
- * @author Alexander Garagatyi
- */
-public interface MachineBuilderFactory {
-    /** Returns new machine builder. */
-    MachineBuilder newMachineBuilder();
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-    /** Returns type of machine builder that this factory produces. */
-    String getMachineBuilderType();
+/**
+ * @author andrew00x
+ */
+@DynaModule
+public class MachineApiModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        Multibinder.newSetBinder(binder(), MachineBuilderFactory.class);
+        bind(MachineBuilderFactoryPlugin.class).asEagerSingleton();
+    }
 }

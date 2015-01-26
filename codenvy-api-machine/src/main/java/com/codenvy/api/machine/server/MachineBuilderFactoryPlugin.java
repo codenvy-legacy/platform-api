@@ -10,15 +10,19 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-/**
- * Factory for builders of different types of machines
- *
- * @author Alexander Garagatyi
- */
-public interface MachineBuilderFactory {
-    /** Returns new machine builder. */
-    MachineBuilder newMachineBuilder();
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.Set;
 
-    /** Returns type of machine builder that this factory produces. */
-    String getMachineBuilderType();
+/**
+ * @author andrew00x
+ */
+@Singleton
+class MachineBuilderFactoryPlugin {
+    @Inject
+    MachineBuilderFactoryPlugin(MachineBuilderFactoryRegistry builderFactoryRegistry, Set<MachineBuilderFactory> builderFactories) {
+        for (MachineBuilderFactory builderFactory : builderFactories) {
+            builderFactoryRegistry.add(builderFactory);
+        }
+    }
 }

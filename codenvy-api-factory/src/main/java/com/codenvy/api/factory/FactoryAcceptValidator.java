@@ -19,7 +19,7 @@ import com.codenvy.api.factory.dto.Factory;
  *
  **/
 
-public interface FactoryUrlAcceptValidator {
+public interface FactoryAcceptValidator {
 
     /**
      * Validates factory url object on accept stage. Implementation should throw

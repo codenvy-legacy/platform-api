@@ -8,7 +8,7 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.dto;
+package com.codenvy.api.machine.server.dto;
 
 import com.codenvy.dto.shared.DTO;
 
@@ -20,34 +20,34 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface StorageMachine {
+public interface StoredMachine {
     String getId();
 
     void setId(String id);
 
-    StorageMachine withId(String id);
+    StoredMachine withId(String id);
 
     String getProject();
 
     void setProject(String project);
 
-    StorageMachine withProject(String project);
+    StoredMachine withProject(String project);
 
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
-    StorageMachine withWorkspaceId(String workspaceId);
+    StoredMachine withWorkspaceId(String workspaceId);
 
     String getUser();
 
     void setUser(String user);
 
-    StorageMachine withUser(String user);
+    StoredMachine withUser(String user);
 
     List<String> getSnapshots();
 
     void setSnapshots(List<String> snapshots);
 
-    StorageMachine withSnapshots(List<String> snapshots);
+    StoredMachine withSnapshots(List<String> snapshots);
 }

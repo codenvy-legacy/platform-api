@@ -19,16 +19,16 @@ import java.util.List;
  *
  * @author Alexander Garagatyi
  */
-public interface ApplicationProcessDescription {
+public interface ApplicationProcessDescriptor {
     int getId();
 
     void setId(String id);
 
-    ApplicationProcessDescription withId(int id);
+    ApplicationProcessDescriptor withId(int id);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    ApplicationProcessDescription withLinks(List<Link> links);
+    ApplicationProcessDescriptor withLinks(List<Link> links);
 }

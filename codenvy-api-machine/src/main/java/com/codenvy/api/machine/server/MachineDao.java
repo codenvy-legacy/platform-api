@@ -12,7 +12,7 @@ package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.shared.dto.StorageMachine;
+import com.codenvy.api.machine.server.dto.StoredMachine;
 
 import java.util.List;
 
@@ -20,11 +20,11 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 public interface MachineDao {
-    StorageMachine getById(String machineId) throws NotFoundException, ServerException;
+    StoredMachine getById(String machineId) throws NotFoundException, ServerException;
 
-    void create(StorageMachine machine) throws ServerException;
+    void create(StoredMachine machine) throws ServerException;
 
     void remove(String machineId) throws NotFoundException, ServerException;
 
-    List<StorageMachine> findByUserWorkspaceProject(String userId, String wsId, String projectName) throws ServerException;
+    List<StoredMachine> findByUserWorkspaceProject(String userId, String wsId, String projectName) throws ServerException;
 }

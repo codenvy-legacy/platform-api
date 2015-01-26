@@ -18,7 +18,15 @@ import java.util.List;
  * @author andrew00x
  */
 public interface Machine {
+    public enum Type {
+        CREATING, ACTIVE, INACTIVE
+    }
+
+    /** Get id of machine */
     String getId();
+
+    /** Get state of machine */
+    Type getState();
 
     /**
      * Start machine

@@ -11,6 +11,7 @@
 package com.codenvy.api.machine.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.machine.server.Machine;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -21,40 +22,46 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface RuntimeMachineDescription {
+public interface MachineDescriptor {
     String getId();
 
     void setId(String id);
 
-    RuntimeMachineDescription withId(String id);
+    MachineDescriptor withId(String id);
 
     String getProject();
 
     void setProject(String project);
 
-    RuntimeMachineDescription withProject(String project);
+    MachineDescriptor withProject(String project);
 
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
-    RuntimeMachineDescription withWorkspaceId(String workspaceId);
+    MachineDescriptor withWorkspaceId(String workspaceId);
 
     String getUser();
 
     void setUser(String user);
 
-    RuntimeMachineDescription withUser(String user);
+    MachineDescriptor withUser(String user);
 
-    String getState();
+    List<String> getSnapshots();
 
-    void setState(String state);
+    void setSnapshots(List<String> snapshots);
 
-    RuntimeMachineDescription withState(String state);
+    MachineDescriptor withSnapshots(List<String> snapshots);
+
+    Machine.Type getState();
+
+    void setState(Machine.Type state);
+
+    MachineDescriptor withState(Machine.Type state);
 
     List<Link> getLinks();
 
     void setLinks(List<Link> links);
 
-    RuntimeMachineDescription withLinks(List<Link> links);
+    MachineDescriptor withLinks(List<Link> links);
 }

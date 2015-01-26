@@ -21,7 +21,7 @@ import javax.annotation.Nullable;
  */
 public interface MachineBuilderFactory {
     /**
-     * Return machine builder of specified machine type.
+     * Returns machine builder of specified machine type.
      * Default machine type will be used if specified type is null
      *
      * @param machineType machine type of builder

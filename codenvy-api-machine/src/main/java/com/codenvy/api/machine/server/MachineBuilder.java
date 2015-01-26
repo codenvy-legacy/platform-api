@@ -14,6 +14,8 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -27,21 +29,24 @@ public abstract class MachineBuilder {
     private Set<File>           files;
     private Map<String, Object> parameters;
     private MachineRecipe       recipe;
-    private String              id;
+    private String              machineId;
 
-    protected MachineBuilder() {
+    protected MachineBuilder(String machineId) {
+        this.machineId = machineId;
     }
 
     /**
-     * Build machine using supplied configuration
+     * Builds machine using supplied configuration
      *
      * @throws ForbiddenException if machine can't be built due to misconfiguration
      * @throws ServerException if internal error occurs
      */
-    public abstract Machine buildMachine() throws ServerException, ForbiddenException;
+    public Machine buildMachine() throws ServerException, ForbiddenException {
+        return buildMachine(LineConsumer.DEV_NULL);
+    }
 
     /**
-     * Build machine using supplied configuration. Put logs to given line consumer
+     * Builds machine using supplied configuration. Puts logs to given line consumer.
      *
      * @throws ForbiddenException if machine can't be built due to misconfiguration
      * @throws ServerException if internal error occurs
@@ -50,11 +55,6 @@ public abstract class MachineBuilder {
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;
-        return this;
-    }
-
-    public MachineBuilder setId(String id) {
-        this.id = id;
         return this;
     }
 
@@ -91,7 +91,7 @@ public abstract class MachineBuilder {
         return this.files;
     }
 
-    protected String getId() {
-        return id;
+    protected String getMachineId() {
+        return machineId;
     }
 }

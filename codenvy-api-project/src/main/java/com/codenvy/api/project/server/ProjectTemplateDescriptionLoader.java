@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Reads project template descriptions that may be described in separate .json files for every project type. This file should be named as
+ * Reads project template descriptions that may be described in separate json-files for every project type. This file should be named as
  * &lt;project_type_id&gt;.json.
  *
  * @author Artem Zatsarynnyy
@@ -35,21 +35,19 @@ import java.util.Set;
 @Singleton
 public class ProjectTemplateDescriptionLoader {
 
-    private final Set<ProjectType2>       projectTypes;
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
+    private final Set<ProjectType>        projectTypes;
     private final ProjectTemplateRegistry templateRegistry;
 
-    private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
-
     @Inject
-    public ProjectTemplateDescriptionLoader(Set<ProjectType2> projectTypes,
-                                            ProjectTemplateRegistry templateRegistry) {
+    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes, ProjectTemplateRegistry templateRegistry) {
         this.projectTypes = projectTypes;
         this.templateRegistry = templateRegistry;
     }
 
     @PostConstruct
-    protected void load() {
-        for (ProjectType2 projectType : projectTypes) {
+    private void start() {
+        for (ProjectType projectType : projectTypes) {
             load(projectType.getId());
         }
     }
@@ -59,8 +57,6 @@ public class ProjectTemplateDescriptionLoader {
      *
      * @param projectTypeId
      *         id of the project type for which templates should be loaded
-     * @throws IOException
-     *         if i/o error occurs while reading file with templates
      */
     private void load(String projectTypeId) {
         try {
@@ -69,6 +65,9 @@ public class ProjectTemplateDescriptionLoader {
                 final List<ProjectTemplateDescriptor> templates;
                 try (InputStream inputStream = url.openStream()) {
                     templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
+                    for (ProjectTemplateDescriptor template : templates) {
+                        template.setProjectType(projectTypeId);
+                    }
                 }
                 templateRegistry.register(projectTypeId, templates);
             }

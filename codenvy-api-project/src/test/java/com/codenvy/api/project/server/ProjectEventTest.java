@@ -10,20 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import com.codenvy.api.core.notification.EventService;
-import com.codenvy.api.project.server.type.ProjectType2;
-import com.codenvy.api.project.server.type.ProjectTypeRegistry;
-import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
-import com.codenvy.api.vfs.server.VirtualFileSystemUser;
-import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
-import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
-
-import org.testng.Assert;
-import org.testng.annotations.BeforeMethod;
-import org.testng.annotations.Test;
-
-import java.util.*;
-
 /**
  * @author andrew00x
  */
@@ -39,7 +25,7 @@ public class ProjectEventTest {
 //        EventService eventService = new EventService();
 //
 //
-//        ProjectType2 pt = new ProjectType2("my_project_type", "my proj type") {
+//        ProjectType pt = new ProjectType("my_project_type", "my proj type") {
 //
 //            {
 //                addConstantDefinition("my_attribute", "attr description", "attribute value 1");
@@ -47,7 +33,7 @@ public class ProjectEventTest {
 //
 //        };
 //
-//        HashSet<ProjectType2> ptypes = new HashSet<>();
+//        HashSet<ProjectType> ptypes = new HashSet<>();
 //        ptypes.add(pt);
 //
 //        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(ptypes);

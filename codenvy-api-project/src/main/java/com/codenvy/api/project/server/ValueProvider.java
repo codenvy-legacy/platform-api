@@ -16,12 +16,18 @@ import java.util.List;
  * Provides access to the value of attribute of Project.
  *
  * @author andrew00x
+ * @author gazarenkov
  */
 public interface ValueProvider {
 
     /** Gets value. */
     List<String> getValues(String attributeName) throws ValueStorageException;
 
-    /** Sets value. */
+    /**
+     * Sets value.
+     * The method should also takes care about creating persistent storage for values if needed.
+     * For instance create file for properties if not found etc.
+     *
+     **/
     void setValues(String attributeName, List<String> value) throws ValueStorageException, InvalidValueException;
 }

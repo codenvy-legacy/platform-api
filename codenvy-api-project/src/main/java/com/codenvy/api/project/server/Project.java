@@ -17,10 +17,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.server.handlers.CreateModuleHandler;
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.GetItemHandler;
-import com.codenvy.api.project.server.type.Attribute2;
-import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.server.type.ProjectType2;
-import com.codenvy.api.project.server.type.Variable;
+import com.codenvy.api.project.server.type.*;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.server.VirtualFile;
@@ -29,6 +26,10 @@ import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Writer;
 import java.util.*;
 
 /**
@@ -40,10 +41,12 @@ import java.util.*;
 public class Project {
     private final FolderEntry    baseFolder;
     private final ProjectManager manager;
+    private final Modules modules;
 
     public Project(FolderEntry baseFolder, ProjectManager manager) {
         this.baseFolder = baseFolder;
         this.manager = manager;
+        modules = new Modules();
     }
 
     /** Gets id of workspace which this project belongs to. */
@@ -90,16 +93,15 @@ public class Project {
     public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
             InvalidValueException {
 
-
-        final ProjectJson2 projectJson = ProjectJson2.load(this);
+        final ProjectJson projectJson = ProjectJson.load(this);
 
         ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
 
         final Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for(ProjectType2 t : types.all) {
+        for(ProjectType t : types.all) {
 
-            for (Attribute2 attr : t.getAttributes()) {
+            for (Attribute attr : t.getAttributes()) {
 
                 if (attr.isVariable()) {
                     Variable var = (Variable) attr;
@@ -120,6 +122,7 @@ public class Project {
                         if (var.isRequired())
                             throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable " + var.getId());
                         // else just not add it
+
                     } else {
                         attributes.put(var.getName(), new AttributeValue(val));
 
@@ -128,7 +131,6 @@ public class Project {
                 } else {  // Constant
 
                     attributes.put(attr.getName(), attr.getValue());
-                    //attributes.add(attr);
                 }
             }
         }
@@ -154,10 +156,30 @@ public class Project {
     public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
             ProjectTypeConstraintException, InvalidValueException {
 
-
-        final ProjectJson2 projectJson = new ProjectJson2();
+        final ProjectJson projectJson = new ProjectJson();
 
         ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
+
+        // init Provided attributes if any
+//        if(ProjectJson.isReadable(this)) {
+//            ProjectJson oldJson = ProjectJson.load(this);
+//            ProjectTypes oldTypes = new ProjectTypes(oldJson.getType(), oldJson.getMixinTypes());
+//
+//            for(ProjectType t : types.all) {
+//                if(!oldTypes.all.contains(t)) {
+//                    for(ValueProviderFactory f : t.getProvidedFactories()) {
+//                        f.newInstance(this.baseFolder).setValues();
+//                    }
+//                }
+//            }
+//        } else {
+//            for (ProjectType t : types.all) {
+//                for (ValueProviderFactory f : t.getProvidedFactories()) {
+//                    f.newInstance(this.baseFolder).init();
+//                }
+//
+//            }
+//        }
 
         projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
@@ -165,7 +187,7 @@ public class Project {
         projectJson.setDescription(update.getDescription());
 
         ArrayList <String> ms = new ArrayList<>();
-        ms.addAll(types.mixinIDs);
+        ms.addAll(types.mixins.keySet());
         projectJson.setMixinTypes(ms);
 
         // update attributes
@@ -173,9 +195,9 @@ public class Project {
 
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
 
-            // Try to Find definition in all the types (primary first)
-            Attribute2 definition = null;
-            for(ProjectType2 t : types.all) {
+            // Try to Find definition in all the types
+            Attribute definition = null;
+            for(ProjectType t : types.all) {
                 definition = t.getAttribute(attributeName);
                 if(definition != null)
                     break;
@@ -198,12 +220,14 @@ public class Project {
             }
         }
 
-        for(ProjectType2 t : types.all) {
-            for(Attribute2 attr : t.getAttributes()) {
+        for(ProjectType t : types.all) {
+            for(Attribute attr : t.getAttributes()) {
                 if(attr.isVariable()) {
                     // check if required variables initialized
+//                    if(attr.isRequired() && attr.getValue() == null) {
                     if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
                         throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
+
                     }
                 } else {
                     // add constants
@@ -333,26 +357,17 @@ public class Project {
         return entry;
     }
 
-    public Project createModule(String name, ProjectConfig moduleConfig, Map<String, String> options)
-            throws ConflictException, ForbiddenException, ServerException {
 
-        final FolderEntry moduleFolder = baseFolder.createFolder(name);
-        final Project module = new Project(moduleFolder, manager);
 
-        module.updateConfig(moduleConfig);
-
-        final CreateProjectHandler generator = manager.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
-        if (generator != null) {
-            generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
-        }
-
-        CreateModuleHandler moduleHandler = manager.getHandlers().getCreateModuleHandler(getConfig().getTypeId());
-        if (moduleHandler != null) {
-            moduleHandler.onCreateModule(module.getBaseFolder(), module.getConfig(), options);
-        }
-        return module;
-
+    /**
+     *
+     * @return list of paths to modules
+     */
+    public Modules getModules() {
+        return modules;
     }
+
+
 
     private VirtualFileEntry getVirtualFileEntry(String path)
             throws NotFoundException, ForbiddenException, ServerException {
@@ -365,12 +380,80 @@ public class Project {
     }
 
 
+    public class Modules {
+
+        private final String MODULES_PATH = ".codenvy/modules";
+
+        public void remove(String path) throws ForbiddenException, ServerException, ConflictException {
+
+            Set<String> all = read();
+            all.remove(path);
+            write(all);
+
+        }
+
+        public void add(String path) throws ForbiddenException, ServerException, ConflictException {
+            Set<String> all = read();
+            all.add(path);
+            write(all);
+        }
+
+        public Set<String> get() throws ForbiddenException, ServerException {
+            return read();
+        }
+
+        private Set<String> read() throws ForbiddenException, ServerException {
+            HashSet<String> modules = new HashSet<>();
+            VirtualFileEntry file = null;
+
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null || file.isFolder())
+                return modules;
+
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(((FileEntry) file).getInputStream()));
+                while (in.ready()) {
+                    modules.add(in.readLine());
+                }
+                in.close();
+            } catch (IOException e) {
+                throw new ServerException(e);
+            }
+
+            return modules;
+        }
+
+        private void write(Set<String> modules) throws ForbiddenException, ServerException, ConflictException {
+
+            VirtualFileEntry file = null;
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null && !modules.isEmpty())
+                file = ((FolderEntry) baseFolder.getChild(".codenvy")).createFile("modules", new byte[0], "text/plain");
+
+//                if(modules.isEmpty() && file != null)
+//                    file.remove();
+
+            String all = "";
+            for (String path : modules) {
+                all += (path + "\n");
+            }
+
+            ((FileEntry) file).updateContent(all.getBytes());
+
+        }
+
+
+    }
+
+
+
     private class ProjectTypes {
 
-        ProjectType2 primary;
-        Set<ProjectType2> mixins = new HashSet<>();
-        Set<ProjectType2> all = new HashSet<>();
-        Set<String> mixinIDs = new HashSet<>();
+        ProjectType primary;
+        Map<String, ProjectType> mixins = new HashMap<>();
+        Set<ProjectType> all = new HashSet<>();
 
         ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
             if(pt == null)
@@ -387,8 +470,8 @@ public class Project {
                 mss = new ArrayList<>();
 
             // temporary storage to detect duplicated attributes
-            HashMap<String, Attribute2> tmpAttrs = new HashMap<>();
-            for(Attribute2 attr : primary.getAttributes()) {
+            HashMap<String, Attribute> tmpAttrs = new HashMap<>();
+            for(Attribute attr : primary.getAttributes()) {
                 tmpAttrs.put(attr.getName(), attr);
             }
 
@@ -396,14 +479,14 @@ public class Project {
             for(String m : mss) {
                 if(!m.equals(primary.getId())) {
 
-                    ProjectType2 mixin = manager.getProjectTypeRegistry().getProjectType(m);
+                    ProjectType mixin = manager.getProjectTypeRegistry().getProjectType(m);
                     if(mixin == null)
                         throw new ProjectTypeConstraintException("No project type registered for "+m);
                     if(!mixin.canBeMixin())
                         throw new ProjectTypeConstraintException("Project type "+mixin+" is not allowable to be mixin");
 
                     // detect duplicated attributes
-                    for(Attribute2 attr : mixin.getAttributes()) {
+                    for(Attribute attr : mixin.getAttributes()) {
                         if(tmpAttrs.containsKey(attr.getName()))
                             throw new ProjectTypeConstraintException("Attribute name conflict. Duplicated attributes detected "+getPath() +
                                     " Attribute "+ attr.getName() + " declared in " + mixin.getId() + " already declared in " +
@@ -414,9 +497,9 @@ public class Project {
 
 
                     // Silently remove repeated items from mixins if any
-                    mixins.add(mixin);
+                    mixins.put(m, mixin);
                     all.add(mixin);
-                    mixinIDs.add(m);
+
                 }
 
             }

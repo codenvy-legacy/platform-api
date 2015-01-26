@@ -16,7 +16,7 @@ import com.codenvy.api.project.server.*;
 /**
  * @author gazarenkov
  */
-public class Variable extends AbstractAttribute {
+public class Variable extends Attribute {
 
     protected ValueProviderFactory valueProviderFactory = null;
     protected AttributeValue value = null;

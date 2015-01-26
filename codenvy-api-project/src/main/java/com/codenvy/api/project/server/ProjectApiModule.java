@@ -11,7 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.project.server.type.BaseProjectType;
-import com.codenvy.api.project.server.type.ProjectType2;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.google.inject.AbstractModule;
 import com.google.inject.multibindings.Multibinder;
 
@@ -23,7 +23,7 @@ public class ProjectApiModule extends AbstractModule {
     @Override
     protected void configure() {
 
-        Multibinder<ProjectType2> projectTypesMultibinder = Multibinder.newSetBinder(binder(), ProjectType2.class);
+        Multibinder<ProjectType> projectTypesMultibinder = Multibinder.newSetBinder(binder(), ProjectType.class);
         projectTypesMultibinder.addBinding().to(BaseProjectType.class);
 
     }

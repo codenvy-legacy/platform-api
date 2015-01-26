@@ -16,9 +16,11 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.server.handlers.CreateModuleHandler;
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.*;
+import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 
@@ -223,6 +225,62 @@ public final class DefaultProjectManager implements ProjectManager {
         return project;
     }
 
+    public Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
+            String> options, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException {
+
+        String absModulePath = modulePath.startsWith("/")?modulePath:projectPath+"/"+modulePath;
+        Project module = getProject(workspace, absModulePath);
+
+        if(module == null) {
+
+            if(moduleConfig == null)
+                throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
+
+            String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
+            String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
+            final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
+            if(parentFolder == null || parentFolder.isFile())
+                throw new NotFoundException("Parent Folder not found "+parentPath);
+
+            VirtualFileEntry moduleFolder = ((FolderEntry)parentFolder).getChild(name);
+            if(moduleFolder == null)
+                moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
+            else if(moduleFolder.isFile())
+                throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
+
+            module = new Project((FolderEntry)moduleFolder, this);
+
+
+            module.updateConfig(moduleConfig);
+
+            final ProjectMisc misc = module.getMisc();
+            misc.setCreationDate(System.currentTimeMillis());
+            misc.save(); // Important to save misc!!
+
+            if (visibility != null) {
+                module.setVisibility(visibility);
+            }
+
+            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+            if (generator != null) {
+                generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
+            }
+
+        }
+
+        Project parentProject = getProject(workspace, projectPath);
+        parentProject.getModules().add(modulePath);
+
+
+        CreateModuleHandler moduleHandler = this.getHandlers().getCreateModuleHandler(parentProject.getConfig().getTypeId());
+        if (moduleHandler != null) {
+            moduleHandler.onCreateModule(parentProject.getBaseFolder(), absModulePath, module.getConfig(), options);
+        }
+        return module;
+
+    }
+
     /**
      * Gets root folder od project tree.
      *
@@ -386,7 +444,7 @@ public final class DefaultProjectManager implements ProjectManager {
             ProjectTypeConstraintException {
 
 
-        ProjectType2 projectType = projectTypeRegistry.getProjectType(projectTypeId);
+        ProjectType projectType = projectTypeRegistry.getProjectType(projectTypeId);
         if(projectType == null)
             throw new NotFoundException("Project Type "+projectTypeId+" not found.");
 
@@ -397,7 +455,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
         Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for (Attribute2 attr : projectType.getAttributes()) {
+        for (Attribute attr : projectType.getAttributes()) {
 
             if (attr.isVariable() && ((Variable) attr).getValueProviderFactory() != null) {
 

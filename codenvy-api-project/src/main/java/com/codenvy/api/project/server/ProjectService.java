@@ -278,22 +278,16 @@ public class ProjectService extends Service {
                                               @ApiParam(value = "Path to a project", required = true)
                                               @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
-        final FolderEntry folder = asFolder(workspace, path);
+
+        Project parent = projectManager.getProject(workspace, path);
         final List<ProjectDescriptor> modules = new LinkedList<>();
-        for (FolderEntry childFolder : folder.getChildFolders()) {
-            if (childFolder.isProjectFolder()) {
-                try {
-
-
-                    modules.add(DtoConverter.toDescriptorDto2(new Project(childFolder, projectManager),
-                            getServiceContext().getServiceUriBuilder(), projectManager.getProjectTypeRegistry()));
-                } catch (RuntimeException e) {
-                    // Ignore known error for single module.
-                    // In result we won't have them in project tree but at least 'bad' modules won't prevent to show 'good' modules.
-                    LOG.error(e.getMessage(), e);
-                }
-            }
+        for(String p : parent.getModules().get()) {
+            String modulePath = p.startsWith("/")?p:parent.getPath()+"/"+p;
+            Project module = projectManager.getProject(workspace, modulePath);
+            modules.add(DtoConverter.toDescriptorDto2(module,
+                    getServiceContext().getServiceUriBuilder(), projectManager.getProjectTypeRegistry()));
         }
+
         return modules;
     }
 
@@ -316,18 +310,17 @@ public class ProjectService extends Service {
                                           @ApiParam(value = "Path to a target directory", required = true)
                                           @PathParam("path") String parentPath,
                                           @ApiParam(value = "New module name", required = true)
-                                          @QueryParam("name") String name,
+                                          @QueryParam("path") String path,
                                           NewProject newProject)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException, ValueStorageException,
     ProjectTypeConstraintException, InvalidValueException {
 
+        //final GeneratorDescription generatorDescription = (newProject == null)?null:newProject.getGeneratorDescription();
 
-        final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
-
-        Project parent = projectManager.getProject(workspace, parentPath);
-
-        Project module = parent.createModule(name, DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()),
-                generatorDescription.getOptions());
+        Project module = projectManager.addModule(workspace, parentPath, path,
+                (newProject == null)?null:DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()),
+                (newProject == null)?null:newProject.getGeneratorDescription().getOptions(),
+                (newProject == null)?null:newProject.getVisibility());
 
 
         final ProjectDescriptor descriptor = DtoConverter.toDescriptorDto2(module, getServiceContext().getServiceUriBuilder(),
@@ -339,6 +332,9 @@ public class ProjectService extends Service {
 
         return descriptor;
     }
+
+
+
 
     @ApiOperation(value = "Updates existing project",
                   response = ProjectDescriptor.class,
@@ -563,16 +559,23 @@ public class ProjectService extends Service {
     public void delete(@ApiParam(value = "Workspace ID", required = true)
                        @PathParam("ws-id") String workspace,
                        @ApiParam(value = "Path to a resource to be deleted", required = true)
-                       @PathParam("path") String path)
+                       @PathParam("path") String path,
+                       @QueryParam("module") String modulePath)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+
         final VirtualFileEntry entry = getVirtualFileEntry(workspace, path);
         if (entry.isFolder() && ((FolderEntry)entry).isProjectFolder()) {
             // In case of folder extract some information about project for logger before delete project.
             Project project = new Project((FolderEntry)entry, projectManager);
+            // remove module only
+            if(modulePath != null) {
+                project.getModules().remove(modulePath);
+                return;
+            }
+
             final String name = project.getName();
             String projectType = null;
             try {
-                //projectType = project.getDescription().getProjectType().getId();
                 projectType = project.getConfig().getTypeId();
             } catch (ServerException | ValueStorageException e) {
                 // Let delete even project in invalid state.

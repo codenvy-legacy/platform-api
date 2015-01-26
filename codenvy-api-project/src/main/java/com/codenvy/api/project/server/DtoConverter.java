@@ -14,11 +14,8 @@ import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LinksHelper;
-import com.codenvy.api.project.server.type.Attribute2;
-import com.codenvy.api.project.server.type.AttributeValue;
-import com.codenvy.api.project.server.type.BaseProjectType;
-import com.codenvy.api.project.server.type.ProjectType2;
-import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.server.type.*;
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.AttributeDescriptor;
@@ -80,7 +77,7 @@ public class DtoConverter {
     public static ProjectConfig fromDto2(ProjectUpdate dto, ProjectTypeRegistry typeRegistry) throws ServerException,
             ProjectTypeConstraintException, InvalidValueException, ValueStorageException {
         final String typeId = dto.getType();
-        ProjectType2 projectType;
+        ProjectType projectType;
         if (typeId == null) {
             // Treat type as blank type if type is not set in .codenvy/project.json
             projectType = new BaseProjectType();
@@ -94,14 +91,13 @@ public class DtoConverter {
 
 
         final Map<String, List<String>> updateAttributes = dto.getAttributes();
-        //final List<Attribute2> attributes = new ArrayList<>(updateAttributes.size());
         final HashMap <String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
 
 
         if (!updateAttributes.isEmpty()) {
             for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
 
-                Attribute2 attr = projectType.getAttribute(e.getKey());
+                Attribute attr = projectType.getAttribute(e.getKey());
                 if(attr != null)  {
                     attributes.put(attr.getName(), new AttributeValue(e.getValue()));
 
@@ -137,7 +133,7 @@ public class DtoConverter {
     }
 
 
-    public static ProjectTypeDefinition toTypeDescriptor2(ProjectType2 projectType) {
+    public static ProjectTypeDefinition toTypeDescriptor2(ProjectType projectType) {
 
         final DtoFactory dtoFactory = DtoFactory.getInstance();
         final ProjectTypeDefinition definition = dtoFactory.createDto(ProjectTypeDefinition.class)
@@ -148,7 +144,7 @@ public class DtoConverter {
                 .withDefaultBuilder(projectType.getDefaultBuilder());
 
         final List<AttributeDescriptor> typeAttributes = new ArrayList<>();
-        for (Attribute2 attr : projectType.getAttributes()) {
+        for (Attribute attr : projectType.getAttributes()) {
 
             List <String> valueList = null;
 
@@ -434,7 +430,7 @@ public class DtoConverter {
             dto.withDescription(projectConfig.getDescription()).withType(projectConfig.getTypeId());
 
 
-            //final ProjectType2 projectType = projectConfig.getTypeId();
+            //final ProjectType projectType = projectConfig.getTypeId();
 
 //            final ProjectDescription projectDescription = project.getDescription();
 //            dto.withDescription(projectDescription.getDescription());

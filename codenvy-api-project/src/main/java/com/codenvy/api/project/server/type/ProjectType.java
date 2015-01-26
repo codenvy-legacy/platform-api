@@ -12,55 +12,55 @@ package com.codenvy.api.project.server.type;
 
 import com.codenvy.api.project.server.ValueProviderFactory;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 
 /**
  * @author gazarenkov
  */
-public abstract class ProjectType2 {
+public abstract class ProjectType {
 
 
     private final   String                  id;
     private final   String                  displayName;
-    private final   Map<String, Attribute2> attributes;
-    private final   List<ProjectType2>      parents;
+    private final   Map<String, Attribute> attributes;
+    private final   List<ProjectType>      parents;
     protected final List<String>            runnerCategories;
     protected final List<String>            builderCategories;
     private String defaultBuilder = null;
     private String defaultRunner  = null;
     private final boolean mixable;
     private final boolean primaryable;
+//    private final Set<ValueProviderFactory> providedFactories;
 
     /**
      *
      * @param id
      * @param displayName
-     * @param primaryable
-     * @param mixable
+     * @param primaryable - whether the ProjectType can be used as Primary
+     * @param mixable - whether the projectType can be used as Mixin
      */
-    protected ProjectType2(String id, String displayName, boolean primaryable, boolean mixable) {
+    protected ProjectType(String id, String displayName, boolean primaryable, boolean mixable) {
         this.id = id;
         this.displayName = displayName;
         this.attributes = new HashMap<>();
-        this.parents = new ArrayList<ProjectType2>();
+        this.parents = new ArrayList<ProjectType>();
         this.runnerCategories = new ArrayList<String>();
         this.builderCategories = new ArrayList<String>();
         this.mixable = mixable;
         this.primaryable = primaryable;
+//        providedFactories = new HashSet<>();
     }
 
-    /**
-     * @deprecated
-     * @param id
-     * @param displayName
-     */
-    protected ProjectType2(String id, String displayName) {
-        this(id, displayName, true, true);
-    }
+//    /**
+//     *
+//     * @param id
+//     * @param displayName
+//     * @deprecated
+//     */
+//    protected ProjectType(String id, String displayName) {
+//        this(id, displayName, true, true);
+//    }
 
 
     public String getId() {
@@ -71,11 +71,11 @@ public abstract class ProjectType2 {
         return displayName;
     }
 
-    public List<Attribute2> getAttributes() {
+    public List<Attribute> getAttributes() {
         return new ArrayList<>(attributes.values());
     }
 
-    public List<ProjectType2> getParents() {
+    public List<ProjectType> getParents() {
         return parents;
     }
 
@@ -97,7 +97,7 @@ public abstract class ProjectType2 {
         return defaultRunner;
     }
 
-    public Attribute2 getAttribute(String name) {
+    public Attribute getAttribute(String name) {
         return attributes.get(name);
     }
 
@@ -113,6 +113,10 @@ public abstract class ProjectType2 {
     public boolean canBePrimary() {
         return primaryable;
     }
+
+//    public Set<ValueProviderFactory> getProvidedFactories() {
+//        return providedFactories;
+//    }
 
     protected void addConstantDefinition(String name, String description, AttributeValue value) {
         attributes.put(name, new Constant(id, name, description, value));
@@ -132,13 +136,14 @@ public abstract class ProjectType2 {
 
     protected void addVariableDefinition(String name, String description, boolean required, ValueProviderFactory factory) {
         attributes.put(name, new Variable(id, name, description, required, factory));
+//        this.providedFactories.add(factory);
     }
 
-    protected void addAttributeDefinition(Attribute2 attr) {
+    protected void addAttributeDefinition(Attribute attr) {
         attributes.put(attr.getName(), attr);
     }
 
-    protected void addParent(ProjectType2 parent) {
+    protected void addParent(ProjectType parent) {
         parents.add(parent);
     }
 
@@ -150,9 +155,13 @@ public abstract class ProjectType2 {
         this.defaultRunner = runner;
     }
 
-    private boolean recurseParents(ProjectType2 child, String parent) {
+    protected void addRunnerCategories(List<String> categories) {
+        this.runnerCategories.addAll(categories);
+    }
 
-        for (ProjectType2 p : child.getParents()) {
+    private boolean recurseParents(ProjectType child, String parent) {
+
+        for (ProjectType p : child.getParents()) {
             if(p.getId().equals(parent)) {
                 return true;
             }

@@ -24,6 +24,6 @@ import java.util.Map;
  */
 public interface CreateModuleHandler extends ProjectHandler {
 
-    void onCreateModule(FolderEntry baseFolder, ProjectConfig moduleConfig, Map<String, String> options)
+    void onCreateModule(FolderEntry parentFolder, String modulePath, ProjectConfig moduleConfig, Map<String, String> options)
             throws ForbiddenException, ConflictException, ServerException;
 }

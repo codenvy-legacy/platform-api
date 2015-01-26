@@ -10,25 +10,18 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.server.ValueStorageException;
+import com.codenvy.api.project.server.ValueProviderFactory;
 
 /**
  * @author gazarenkov
  */
-public interface Attribute2 {
+public class ProvidedVariable extends Variable {
 
-    String getId();
+    protected ValueProviderFactory valueProviderFactory = null;
 
-    String getName();
-
-    String getProjectType();
-
-    String getDescription();
-
-    boolean isRequired();
-
-    boolean isVariable();
-
-    AttributeValue getValue() throws ValueStorageException;
-
+    public ProvidedVariable(String projectType, String name, String description, boolean required,
+                    ValueProviderFactory valueProviderFactory) {
+        super(projectType, name, description, required);
+        this.valueProviderFactory = valueProviderFactory;
+    }
 }

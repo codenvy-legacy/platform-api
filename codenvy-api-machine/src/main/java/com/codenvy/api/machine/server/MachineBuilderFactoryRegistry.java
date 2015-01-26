@@ -31,18 +31,18 @@ public class MachineBuilderFactoryRegistry {
         machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
     }
 
-    public MachineBuilderFactory get(String name) {
-        if (name == null) {
+    public MachineBuilderFactory get(String type) {
+        if (type == null) {
             return null;
         }
-        return machineBuilderFactories.get(name);
+        return machineBuilderFactories.get(type);
     }
 
-    public MachineBuilderFactory remove(String name) {
-        if (name == null) {
+    public MachineBuilderFactory remove(String type) {
+        if (type == null) {
             return null;
         }
-        return machineBuilderFactories.remove(name);
+        return machineBuilderFactories.remove(type);
     }
 
     public Set<MachineBuilderFactory> getAll() {

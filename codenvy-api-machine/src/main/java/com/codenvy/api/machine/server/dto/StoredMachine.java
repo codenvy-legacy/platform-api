@@ -27,6 +27,12 @@ public interface StoredMachine {
 
     StoredMachine withId(String id);
 
+    String getType();
+
+    void setType(String type);
+
+    StoredMachine withType(String type);
+
     String getProject();
 
     void setProject(String project);
@@ -45,9 +51,9 @@ public interface StoredMachine {
 
     StoredMachine withUser(String user);
 
-    List<String> getSnapshots();
+    List<Snapshot> getSnapshots();
 
-    void setSnapshots(List<String> snapshots);
+    void setSnapshots(List<Snapshot> snapshots);
 
-    StoredMachine withSnapshots(List<String> snapshots);
+    StoredMachine withSnapshots(List<Snapshot> snapshots);
 }

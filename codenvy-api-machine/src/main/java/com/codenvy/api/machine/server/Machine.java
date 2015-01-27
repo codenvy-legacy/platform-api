@@ -11,7 +11,7 @@
 package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.api.machine.server.dto.Snapshot;
 
 import java.util.List;
 
@@ -66,7 +66,7 @@ public interface Machine {
 
     void removeSnapshot(String snapshotId) throws ServerException;
 
-    List<SnapshotDescriptor> getSnapshots() throws ServerException;
+    List<Snapshot> getSnapshots() throws ServerException;
 
     CommandProcess newCommandProcess(String command);
 

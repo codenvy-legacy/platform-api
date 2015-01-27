@@ -22,7 +22,7 @@ import java.util.List;
 public interface MachineDao {
     StoredMachine getById(String machineId) throws NotFoundException, ServerException;
 
-    void create(StoredMachine machine) throws ServerException;
+    void add(StoredMachine machine) throws ServerException;
 
     void remove(String machineId) throws NotFoundException, ServerException;
 

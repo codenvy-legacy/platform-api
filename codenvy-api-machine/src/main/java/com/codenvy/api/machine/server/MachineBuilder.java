@@ -35,12 +35,6 @@ public abstract class MachineBuilder {
         this.machineId = machineId;
     }
 
-    public Machine restoreMachine() throws ServerException {
-        return restoreMachine(null);
-    }
-
-    public abstract Machine restoreMachine(String snapshotId) throws ServerException;
-
     /**
      * Builds machine using supplied configuration
      *
@@ -57,7 +51,14 @@ public abstract class MachineBuilder {
      * @throws ForbiddenException if machine can't be built due to misconfiguration
      * @throws ServerException if internal error occurs
      */
-    public abstract Machine buildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
+    public Machine buildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException {
+        if (machineId == null) {
+            throw new ForbiddenException("Machine id is required");
+        }
+        return doBuildMachine(lineConsumer);
+    }
+
+    public abstract Machine doBuildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;

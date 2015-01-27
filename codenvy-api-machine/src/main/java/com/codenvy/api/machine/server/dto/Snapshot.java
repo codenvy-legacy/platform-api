@@ -8,17 +8,25 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.server;
+package com.codenvy.api.machine.server.dto;
+
+import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.dto.shared.DTO;
 
 /**
- * Factory for builders of different types of machines
- *
  * @author Alexander Garagatyi
  */
-public interface MachineBuilderFactory {
-    /** Returns new machine builder. */
-    MachineBuilder newMachineBuilder();
+@DTO
+public interface Snapshot {
+    String getId();
 
-    /** Returns type of machine builder that this factory produces. */
-    String getMachineBuilderType();
+    void setId(String id);
+
+    SnapshotDescriptor withId(String id);
+
+    String getDescription();
+
+    void setDescription(String description);
+
+    SnapshotDescriptor withDescription(String description);
 }

@@ -13,15 +13,12 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.server.dto.StoredMachine;
-import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 /**
  * Storage for created machines
@@ -31,54 +28,32 @@ import java.util.concurrent.ConcurrentMap;
 @Singleton
 public class MachineRegistry {
     private final MachineDao                     machineDao;
-    private final ConcurrentMap<String, Machine> activeMachines;
+    private final MachineBuilderFactoryRegistry machineBuilderFactoryRegistry;
 
     @Inject
-    public MachineRegistry(MachineDao machineDao) {
+    public MachineRegistry(MachineDao machineDao, MachineBuilderFactoryRegistry machineBuilderFactoryRegistry) {
         this.machineDao = machineDao;
-        this.activeMachines = new ConcurrentHashMap<>();
+        this.machineBuilderFactoryRegistry = machineBuilderFactoryRegistry;
     }
 
-    public void addMachine(StoredMachine persistMachine, Machine runtimeMachine) throws ServerException {
-        machineDao.create(DtoFactory.getInstance().createDto(StoredMachine.class)
-                                    .withId(persistMachine.getId())
-                                    .withUser(persistMachine.getUser())
-                                    .withWorkspaceId(persistMachine.getWorkspaceId())
-                                    .withProject(persistMachine.getProject()));
-
-        activeMachines.put(persistMachine.getId(), runtimeMachine);
+    public void addMachine(StoredMachine persistMachine) throws ServerException {
+        machineDao.add(persistMachine);
     }
 
-    public List<MachineDescriptor> getMachines(String workspaceId, String project, String user) throws ServerException {
-        List<MachineDescriptor> result = new LinkedList<>();
+    public List<Machine> getMachines(String workspaceId, String project, String user) throws ServerException {
+        List<Machine> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {
-            Machine.State state =
-                    activeMachines.containsKey(machine.getId()) ? activeMachines.get(machine.getId()).getState() : Machine.State.INACTIVE;
-
-            result.add(DtoFactory.getInstance().createDto(MachineDescriptor.class)
-                                 .withId(machine.getId())
-                                 .withWorkspaceId(machine.getWorkspaceId())
-                                 .withProject(machine.getProject())
-                                 .withUser(machine.getUser())
-                                 .withState(state));
+            result.add(machineBuilderFactoryRegistry.get(machine.getType()).restoreMachine(machine.getId()));
         }
-
         return result;
     }
 
-    public Machine getActiveMachine(String machineId) throws NotFoundException {
-        final Machine machine = activeMachines.get(machineId);
+    public Machine getMachine(String machineId) throws NotFoundException, ServerException {
+        final StoredMachine machine = machineDao.getById(machineId);
         if (machine == null) {
             throw new NotFoundException(String.format("Machine %s not found", machineId));
         }
-        return machine;
-    }
-
-    public void removeActiveMachine(String machineId) throws NotFoundException {
-        if (!activeMachines.containsKey(machineId)) {
-            throw new NotFoundException(String.format("Machine with id %s not found", machineId));
-        }
-        activeMachines.remove(machineId);
+        return machineBuilderFactoryRegistry.get(machine.getType()).restoreMachine(machineId);
     }
 }

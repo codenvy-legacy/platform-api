@@ -21,31 +21,31 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Singleton
 public class MachineBuilderFactoryRegistry {
-    private final Map<String, MachineBuilderFactory> machineBuilderFactories;
+    private final Map<String, MachineFactory> machineBuilderFactories;
 
     public MachineBuilderFactoryRegistry() {
         machineBuilderFactories = new ConcurrentHashMap<>();
     }
 
-    public void add(MachineBuilderFactory builderFactory) {
+    public void add(MachineFactory builderFactory) {
         machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
     }
 
-    public MachineBuilderFactory get(String type) {
+    public MachineFactory get(String type) {
         if (type == null) {
             return null;
         }
         return machineBuilderFactories.get(type);
     }
 
-    public MachineBuilderFactory remove(String type) {
+    public MachineFactory remove(String type) {
         if (type == null) {
             return null;
         }
         return machineBuilderFactories.remove(type);
     }
 
-    public Set<MachineBuilderFactory> getAll() {
+    public Set<MachineFactory> getAll() {
         return new LinkedHashSet<>(machineBuilderFactories.values());
     }
 

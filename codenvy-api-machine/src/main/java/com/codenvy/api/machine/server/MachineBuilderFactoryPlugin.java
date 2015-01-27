@@ -20,8 +20,8 @@ import java.util.Set;
 @Singleton
 class MachineBuilderFactoryPlugin {
     @Inject
-    MachineBuilderFactoryPlugin(MachineBuilderFactoryRegistry builderFactoryRegistry, Set<MachineBuilderFactory> builderFactories) {
-        for (MachineBuilderFactory builderFactory : builderFactories) {
+    MachineBuilderFactoryPlugin(MachineBuilderFactoryRegistry builderFactoryRegistry, Set<MachineFactory> builderFactories) {
+        for (MachineFactory builderFactory : builderFactories) {
             builderFactoryRegistry.add(builderFactory);
         }
     }

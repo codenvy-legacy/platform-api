@@ -21,7 +21,7 @@ import com.google.inject.multibindings.Multibinder;
 public class MachineApiModule extends AbstractModule {
     @Override
     protected void configure() {
-        Multibinder.newSetBinder(binder(), MachineBuilderFactory.class);
+        Multibinder.newSetBinder(binder(), MachineFactory.class);
         bind(MachineBuilderFactoryPlugin.class).asEagerSingleton();
     }
 }

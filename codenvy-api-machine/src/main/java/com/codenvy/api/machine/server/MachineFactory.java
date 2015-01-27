@@ -8,25 +8,19 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.dto;
-
-import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
-import com.codenvy.api.core.rest.shared.dto.Link;
-
-import java.util.List;
+package com.codenvy.api.machine.server;
 
 /**
- * Describe application process inside of machine
+ * Factory for builders of different types of machines
  *
  * @author Alexander Garagatyi
  */
-public interface ApplicationProcessDescriptor extends Hyperlinks {
-    int getId();
+public interface MachineFactory {
+    /** Returns new machine builder. */
+    MachineBuilder newMachineBuilder();
 
-    void setId(String id);
+    Machine restoreMachine(String machineId);
 
-    ApplicationProcessDescriptor withId(int id);
-
-    @Override
-    ApplicationProcessDescriptor withLinks(List<Link> links);
+    /** Returns type of machine builder that this factory produces. */
+    String getMachineBuilderType();
 }

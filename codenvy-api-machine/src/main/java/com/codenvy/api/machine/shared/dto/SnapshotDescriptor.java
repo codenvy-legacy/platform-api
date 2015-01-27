@@ -34,5 +34,5 @@ public interface SnapshotDescriptor extends Hyperlinks {
     SnapshotDescriptor withDescription(String description);
 
     @Override
-    Hyperlinks withLinks(List<Link> links);
+    SnapshotDescriptor withLinks(List<Link> links);
 }

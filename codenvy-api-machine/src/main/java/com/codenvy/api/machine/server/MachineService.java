@@ -109,14 +109,11 @@ public class MachineService {
                 try {
                     final Machine machine = machineBuilder.buildMachine(websocketLineConsumer);
 
-                    // TODO get snapshots from machine and put them to Dao
-
                     machineRegistry.addMachine(DtoFactory.getInstance().createDto(StoredMachine.class)
                                                          .withId(machineBuilder.getMachineId())
                                                          .withUser(user)
                                                          .withWorkspaceId(workspace)
-                                                         .withProject(project)
-                                                         .withSnapshots(machine.getSnapshots()));
+                                                         .withProject(project));
 
                 } catch (ServerException | ForbiddenException e) {
                     // TODO put to websocket
@@ -170,7 +167,6 @@ public class MachineService {
         final Machine machine = machineRegistry.getMachine(machineId);
 
         machine.suspend();
-        // TODO update snapshots
     }
 
     @Path("/{machineId}/resume")

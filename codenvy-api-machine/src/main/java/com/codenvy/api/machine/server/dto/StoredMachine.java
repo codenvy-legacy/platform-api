@@ -50,10 +50,4 @@ public interface StoredMachine {
     void setUser(String user);
 
     StoredMachine withUser(String user);
-
-    List<Snapshot> getSnapshots();
-
-    void setSnapshots(List<Snapshot> snapshots);
-
-    StoredMachine withSnapshots(List<Snapshot> snapshots);
 }

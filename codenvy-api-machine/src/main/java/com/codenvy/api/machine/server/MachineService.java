@@ -126,7 +126,7 @@ public class MachineService {
                                       .withWorkspaceId(workspace)
                                       .withProject(project)
                                       .withUser(user)
-                                      .withState(Machine.Type.CREATING),
+                                      .withState(Machine.State.CREATING),
                             context);
     }
 

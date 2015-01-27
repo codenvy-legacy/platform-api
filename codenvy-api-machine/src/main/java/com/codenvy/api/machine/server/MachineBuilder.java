@@ -26,10 +26,11 @@ import java.util.Set;
  * @author andrew00x
  */
 public abstract class MachineBuilder {
+    private final String machineId;
+
     private Set<File>           files;
     private Map<String, Object> parameters;
     private MachineRecipe       recipe;
-    private String              machineId;
 
     protected MachineBuilder(String machineId) {
         this.machineId = machineId;

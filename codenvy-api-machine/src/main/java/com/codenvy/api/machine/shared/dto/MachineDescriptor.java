@@ -53,11 +53,11 @@ public interface MachineDescriptor {
 
     MachineDescriptor withSnapshots(List<String> snapshots);
 
-    Machine.Type getState();
+    Machine.State getState();
 
-    void setState(Machine.Type state);
+    void setState(Machine.State state);
 
-    MachineDescriptor withState(Machine.Type state);
+    MachineDescriptor withState(Machine.State state);
 
     List<Link> getLinks();
 

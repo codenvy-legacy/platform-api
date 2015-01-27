@@ -53,8 +53,8 @@ public class MachineRegistry {
         List<MachineDescriptor> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {
-            Machine.Type state =
-                    activeMachines.containsKey(machine.getId()) ? activeMachines.get(machine.getId()).getState() : Machine.Type.INACTIVE;
+            Machine.State state =
+                    activeMachines.containsKey(machine.getId()) ? activeMachines.get(machine.getId()).getState() : Machine.State.INACTIVE;
 
             result.add(DtoFactory.getInstance().createDto(MachineDescriptor.class)
                                  .withId(machine.getId())

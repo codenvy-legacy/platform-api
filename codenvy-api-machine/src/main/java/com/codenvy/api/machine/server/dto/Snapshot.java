@@ -22,11 +22,11 @@ public interface Snapshot {
 
     void setId(String id);
 
-    SnapshotDescriptor withId(String id);
+    Snapshot withId(String id);
 
     String getDescription();
 
     void setDescription(String description);
 
-    SnapshotDescriptor withDescription(String description);
+    Snapshot withDescription(String description);
 }

@@ -19,7 +19,7 @@ public interface MachineFactory {
     /** Returns new machine builder. */
     MachineBuilder newMachineBuilder();
 
-    Machine restoreMachine(String machineId);
+    Machine getMachine(String machineId);
 
     /** Returns type of machine builder that this factory produces. */
     String getMachineBuilderType();

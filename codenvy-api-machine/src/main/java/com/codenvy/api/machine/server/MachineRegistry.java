@@ -13,7 +13,6 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.server.dto.StoredMachine;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -44,7 +43,7 @@ public class MachineRegistry {
         List<Machine> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {
-            result.add(machineBuilderFactoryRegistry.get(machine.getType()).restoreMachine(machine.getId()));
+            result.add(machineBuilderFactoryRegistry.get(machine.getType()).getMachine(machine.getId()));
         }
         return result;
     }
@@ -54,6 +53,6 @@ public class MachineRegistry {
         if (machine == null) {
             throw new NotFoundException(String.format("Machine %s not found", machineId));
         }
-        return machineBuilderFactoryRegistry.get(machine.getType()).restoreMachine(machineId);
+        return machineBuilderFactoryRegistry.get(machine.getType()).getMachine(machineId);
     }
 }

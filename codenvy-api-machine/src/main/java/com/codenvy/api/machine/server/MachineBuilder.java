@@ -14,8 +14,6 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 
-import javax.annotation.Nonnull;
-import javax.annotation.Nullable;
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -28,13 +26,20 @@ import java.util.Set;
 public abstract class MachineBuilder {
     private final String machineId;
 
-    private Set<File>           files;
-    private Map<String, Object> parameters;
     private MachineRecipe       recipe;
+    private Set<File>           files;
+    private Map<String, String> machineEnvironmentVariables;
+    private Map<String, Object> buildOptions;
 
     protected MachineBuilder(String machineId) {
         this.machineId = machineId;
     }
+
+    public Machine restoreMachine() throws ServerException {
+        return restoreMachine(null);
+    }
+
+    public abstract Machine restoreMachine(String snapshotId) throws ServerException;
 
     /**
      * Builds machine using supplied configuration
@@ -64,13 +69,23 @@ public abstract class MachineBuilder {
         return this;
     }
 
-    public MachineBuilder setParameters(Map<String, Object> parameters) {
-        getParameters().putAll(parameters);
+    public MachineBuilder setMachineEnvironmentVariables(Map<String, String> machineEnvironmentVariables) {
+        getMachineEnvironmentVariables().putAll(machineEnvironmentVariables);
         return this;
     }
 
-    public MachineBuilder setParameter(String name, Object value) {
-        getParameters().put(name, value);
+    public MachineBuilder setMachineEnvironmentVariables(String name, String value) {
+        getMachineEnvironmentVariables().put(name, value);
+        return this;
+    }
+
+    public MachineBuilder setBuildOptions(Map<String, Object> parameters) {
+        getBuildOptions().putAll(parameters);
+        return this;
+    }
+
+    public MachineBuilder setBuildOption(String name, Object value) {
+        getBuildOptions().put(name, value);
         return this;
     }
 
@@ -78,18 +93,25 @@ public abstract class MachineBuilder {
         return recipe;
     }
 
-    protected Map<String, Object> getParameters() {
-        if (this.parameters == null) {
-            this.parameters = new HashMap<>();
-        }
-        return this.parameters;
-    }
-
     protected Set<File> getFiles() {
         if (files == null) {
             files = new LinkedHashSet<>();
         }
         return this.files;
+    }
+
+    protected Map<String, String> getMachineEnvironmentVariables() {
+        if (this.machineEnvironmentVariables == null) {
+            this.machineEnvironmentVariables = new HashMap<>();
+        }
+        return machineEnvironmentVariables;
+    }
+
+    protected Map<String, Object> getBuildOptions() {
+        if (buildOptions == null) {
+            buildOptions = new HashMap<>();
+        }
+        return buildOptions;
     }
 
     protected String getMachineId() {

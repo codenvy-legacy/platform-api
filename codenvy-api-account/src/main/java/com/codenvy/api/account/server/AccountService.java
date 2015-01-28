@@ -19,9 +19,9 @@ import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.shared.dto.AccountMetrics;
 import com.codenvy.api.account.shared.dto.AccountReference;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
+import com.codenvy.api.account.shared.dto.BillingInformation;
 import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
@@ -1102,12 +1102,34 @@ public class AccountService extends Service {
             @ApiResponse(code = 404, message = "Not found"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/{id}/metrics")
+    @Path("/{id}/resources")
     @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountMetrics getMetrics(@ApiParam(value = "Account ID", required = true)
-                                     @PathParam("id") String id) throws ServerException, NotFoundException {
-        return resourcesManager.getAccountMetrics(id);
+    public List<BillingInformation> getResources(@ApiParam(value = "Account ID", required = true)
+                                                 @PathParam("id") String id,
+                                                 @QueryParam("serviceId") String serviceId)
+            throws ServerException, NotFoundException, ConflictException {
+        Set<SubscriptionService> subscriptionServices = new HashSet<>();
+        if (serviceId == null) {
+            subscriptionServices.addAll(registry.getAll());
+        } else {
+            final SubscriptionService subscriptionService = registry.get(serviceId);
+            if (subscriptionService == null) {
+                throw new ConflictException("service with id not found");//TODO
+            }
+
+            subscriptionServices.add(subscriptionService);
+        }
+
+        List<BillingInformation> result = new ArrayList<>();
+        for (SubscriptionService subscriptionService : subscriptionServices) {
+            final BillingInformation billingInfo = subscriptionService.getBillingInfoOrNull(id);
+            if (billingInfo != null) {
+                result.add(billingInfo);
+            }
+        }
+
+        return result;
     }
 
     /**

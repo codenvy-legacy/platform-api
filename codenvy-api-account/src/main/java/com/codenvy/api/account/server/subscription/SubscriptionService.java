@@ -11,6 +11,7 @@
 package com.codenvy.api.account.server.subscription;
 
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.shared.dto.BillingInformation;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
@@ -90,6 +91,8 @@ public abstract class SubscriptionService {
      *         when some error occurs while processing {@code subscription}
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
+
+    public abstract BillingInformation getBillingInfoOrNull(String accountId);
 
     /**
      * @return service identifier

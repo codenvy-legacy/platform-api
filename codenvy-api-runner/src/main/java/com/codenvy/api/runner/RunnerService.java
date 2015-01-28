@@ -21,7 +21,7 @@ import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.dto.ResourcesDescriptor;
+import com.codenvy.api.runner.dto.MemoryDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
@@ -187,7 +187,7 @@ public class RunnerService extends Service {
 
     @ApiOperation(value = "Get available RAM resources",
                   notes = "Get RAM resources of a workspace: used and free RAM",
-                  response = ResourcesDescriptor.class,
+                  response = MemoryDescriptor.class,
                   position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
@@ -195,9 +195,9 @@ public class RunnerService extends Service {
     @GET
     @Path("/resources")
     @Produces(MediaType.APPLICATION_JSON)
-    public ResourcesDescriptor getResources(@ApiParam(value = "Workspace ID", required = true)
+    public MemoryDescriptor getResources(@ApiParam(value = "Workspace ID", required = true)
                                             @PathParam("ws-id") String workspace) throws Exception {
-        return DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+        return DtoFactory.getInstance().createDto(MemoryDescriptor.class)
                          .withTotalMemory(String.valueOf(runQueue.getTotalMemory(workspace, getServiceContext())))
                          .withUsedMemory(String.valueOf(runQueue.getUsedMemory(workspace)));
     }

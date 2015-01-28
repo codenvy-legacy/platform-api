@@ -18,18 +18,18 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  * @author Sergii Leschenko
  */
 @DTO
-public interface ResourcesDescriptor {
+public interface MemoryDescriptor {
     @ApiModelProperty(value = "Total RAM")
     String getTotalMemory();
 
     void setTotalMemory(String memory);
 
-    ResourcesDescriptor withTotalMemory(String memory);
+    MemoryDescriptor withTotalMemory(String memory);
 
     @ApiModelProperty(value = "RAM in use")
     String getUsedMemory();
 
     void setUsedMemory(String memory);
 
-    ResourcesDescriptor withUsedMemory(String memory);
+    MemoryDescriptor withUsedMemory(String memory);
 }

@@ -13,29 +13,23 @@ package com.codenvy.api.account.shared.dto;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
+import java.util.Map;
+
 /**
  * @author Sergii Leschenko
  */
 @DTO
-public interface WorkspaceMetrics {
+public interface WorkspaceResourcesDescriptor {
     @ApiModelProperty(value = "Workspace ID")
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
-    WorkspaceMetrics withWorkspaceId(String workspaceId);
+    WorkspaceResourcesDescriptor withWorkspaceId(String workspaceId);
 
-    @ApiModelProperty(value = "Number of consumed Mb/min during current billing period")
-    Long getUsedMemoryInCurrentBillingPeriod();
+    Map<String, String> getResources();
 
-    void setUsedMemoryInCurrentBillingPeriod(Long usedMemoryInCurrentBillingPeriod);
+    void setResources(Map<String, String> resources);
 
-    WorkspaceMetrics withUsedMemoryInCurrentBillingPeriod(Long usedMemoryInCurrentBillingPeriod);
-
-    @ApiModelProperty(value = "Memory megabytes which can be used in workspace at one time")
-    Integer getWorkspaceMemoryLimit();
-
-    void setWorkspaceMemoryLimit(Integer workspaceMemoryLimit);
-
-    WorkspaceMetrics withWorkspaceMemoryLimit(Integer workspaceMemoryLimit);
+    WorkspaceResourcesDescriptor withResources(Map<String, String> resources);
 }

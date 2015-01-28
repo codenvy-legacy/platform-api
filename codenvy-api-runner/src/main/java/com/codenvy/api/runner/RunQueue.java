@@ -35,7 +35,7 @@ import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.project.shared.dto.RunnerConfiguration;
 import com.codenvy.api.project.shared.dto.RunnersDescriptor;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
-import com.codenvy.api.runner.dto.ResourcesDescriptor;
+import com.codenvy.api.runner.dto.MemoryDescriptor;
 import com.codenvy.api.runner.dto.RunOptions;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerMetric;
@@ -1276,10 +1276,9 @@ public class RunQueue {
                         String workspaceId = event.getWorkspace();
                         bm.setChannel(String.format("workspace:resources:%s", workspaceId));
 
-                        final ResourcesDescriptor resourcesDescriptor =
-                                DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
-                                          .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
-                        bm.setBody(DtoFactory.getInstance().toJson(resourcesDescriptor));
+                        final MemoryDescriptor memoryDescriptor = DtoFactory.getInstance().createDto(MemoryDescriptor.class)
+                                                                            .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
+                        bm.setBody(DtoFactory.getInstance().toJson(memoryDescriptor));
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {
                         LOG.error(e.getMessage(), e);

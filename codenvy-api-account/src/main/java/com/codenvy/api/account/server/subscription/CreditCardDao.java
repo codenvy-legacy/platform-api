@@ -23,7 +23,7 @@ import java.util.List;
  */
 public interface CreditCardDao {
 
-    String getClientToken(String accountId) throws ServerException;
+    String getClientToken(String accountId) throws ServerException, ForbiddenException;
 
     String registerCard(String accountId, String nonce)  throws ServerException,ForbiddenException;
 

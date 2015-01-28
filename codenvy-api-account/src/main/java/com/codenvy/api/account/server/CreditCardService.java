@@ -10,9 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.account.server;
 
-import com.codenvy.api.account.server.dao.Account;
-import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.subscription.CreditCardDao;
+import com.codenvy.api.account.shared.dto.ClientToken;
 import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.account.shared.dto.Nonce;
 import com.codenvy.api.core.ForbiddenException;
@@ -20,6 +19,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
@@ -38,20 +38,17 @@ import javax.ws.rs.core.MediaType;
 import java.util.List;
 
 /**
+ * Credit cards operations service.
+ *
  * @author Max Shaposhnik (mshaposhnik@codenvy.com) on 1/28/15.
- * @version $Id: $
  */
 @Path("/creditcard")
 public class CreditCardService extends Service {
 
     private final CreditCardDao creditCardDao;
-    private final AccountDao    accountDao;
-
 
     @Inject
-    public CreditCardService(AccountDao accountDao,
-                             CreditCardDao creditCardDao) {
-        this.accountDao = accountDao;
+    public CreditCardService(CreditCardDao creditCardDao) {
         this.creditCardDao = creditCardDao;
     }
 
@@ -63,15 +60,12 @@ public class CreditCardService extends Service {
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("/{id}/token")
+    @Path("/{accountId}/token")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public String getClientToken(@ApiParam(value = "Account ID", required = true)
-                                 @PathParam("id") String accountId,
-                                 @ApiParam(value = "Client nonce", required = true)
-                                 @Required Nonce nonce)
+    public ClientToken getClientToken(@ApiParam(value = "Account ID", required = true)
+                                 @PathParam("accountId") String accountId)
             throws NotFoundException, ServerException, ForbiddenException {
-
-        return creditCardDao.clientToken(accountId);
+        return DtoFactory.getInstance().createDto(ClientToken.class).withToken(creditCardDao.getClientToken(accountId));
     }
 
 
@@ -83,20 +77,16 @@ public class CreditCardService extends Service {
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
-    @Path("/{id}/")
+    @Path("/{accountId}")
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void addCreditCardToAccount(@ApiParam(value = "Account ID", required = true)
-                                       @PathParam("id") String accountId,
+                                       @PathParam("accountId") String accountId,
                                        @ApiParam(value = "Client nonce", required = true)
                                        @Required Nonce nonce)
             throws NotFoundException, ServerException, ForbiddenException {
 
         creditCardDao.registerCard(accountId, nonce.getNonce());
-
-        final Account account = accountDao.getById(accountId);
-        account.getAttributes().put("codenvy:paid", "true");
-        accountDao.update(account);
     }
 
     @ApiOperation(value = "Get credit cards",
@@ -107,11 +97,11 @@ public class CreditCardService extends Service {
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/{id}/")
+    @Path("/{accountId}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public List<CreditCard> getCreditCardsOfAccount(@ApiParam(value = "Account ID", required = true)
-                                                    @PathParam("id") String accountId)
+                                                    @PathParam("accountId") String accountId)
             throws NotFoundException, ServerException, ForbiddenException {
 
         List<CreditCard> storedCards = creditCardDao.getCards(accountId);
@@ -130,15 +120,15 @@ public class CreditCardService extends Service {
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @DELETE
-    @Path("/{id}/")
+    @Path("/{accountId}/{cardNumber}")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public void removeCreditCardFromAccount(@ApiParam(value = "Account ID", required = true)
-                                            @PathParam("id") String accountId,
-                                            @Required CreditCard card) throws NotFoundException, ServerException,
+                                            @PathParam("accountId") String accountId,
+                                            @PathParam("cardNumber") String cardNumber) throws NotFoundException, ServerException,
                                                                               ForbiddenException {
 
         for (CreditCard storedCard : creditCardDao.getCards(accountId)) {
-            if (storedCard.getNumber().equals(card.getNumber())) {
+            if (storedCard.getNumber().equals(cardNumber)) {
                 creditCardDao.deleteCard(accountId, storedCard.getToken());
             }
         }
@@ -146,9 +136,7 @@ public class CreditCardService extends Service {
         // TODO charge if user has consumed paid resources -- это еще нужно ?
         // TODO send email -- а это ?
         if (creditCardDao.getCards(accountId).isEmpty()) {
-            final Account account = accountDao.getById(accountId);
-            account.getAttributes().remove("codenvy:paid");
-            accountDao.update(account);
+            //шо тут теперь ?
         }
     }
 

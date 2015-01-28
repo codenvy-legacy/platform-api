@@ -17,12 +17,13 @@ import com.codenvy.api.core.ServerException;
 import java.util.List;
 
 /**
+ * Credit card DAO.
  * @author Max Shaposhnik (mshaposhnik@codenvy.com) on 1/26/15.
- * @version $Id: $
+ *
  */
 public interface CreditCardDao {
 
-    String clientToken(String accountId) throws ServerException;
+    String getClientToken(String accountId) throws ServerException;
 
     String registerCard(String accountId, String nonce)  throws ServerException,ForbiddenException;
 

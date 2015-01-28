@@ -10,27 +10,23 @@
  *******************************************************************************/
 package com.codenvy.api.account.server.subscription;
 
-import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 
+import java.util.List;
+
 /**
- * Process payments.
- *
- * @author Alexander Garagatyi
+ * @author Max Shaposhnik (mshaposhnik@codenvy.com) on 1/26/15.
+ * @version $Id: $
  */
-public interface PaymentService {
-    /**
-     * Charge subscription.
-     *
-     * @param subscription
-     *         subscription for which the user pays
-     * @throws ServerException
-     *         if internal server error occurs
-     */
-    void charge(Subscription subscription) throws ConflictException, ServerException, ForbiddenException;
+public interface CreditCardDao {
 
-    void charge(String creditCardToken, double amount, String account, String paymentDescription) throws ServerException, ForbiddenException;
+    String clientToken(String accountId) throws ServerException;
 
+    String registerCard(String accountId, String nonce)  throws ServerException,ForbiddenException;
+
+    List<CreditCard> getCards(String accountId)  throws ServerException,ForbiddenException;
+
+    void deleteCard(String accountId, String token)  throws ServerException,ForbiddenException;
 }

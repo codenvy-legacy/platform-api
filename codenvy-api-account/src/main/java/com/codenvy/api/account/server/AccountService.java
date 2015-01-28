@@ -15,6 +15,7 @@ import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
+import com.codenvy.api.account.server.subscription.CreditCardDao;
 import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
@@ -27,6 +28,7 @@ import com.codenvy.api.account.shared.dto.NewAccount;
 import com.codenvy.api.account.shared.dto.NewMembership;
 import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
+import com.codenvy.api.account.shared.dto.Nonce;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
@@ -106,6 +108,7 @@ public class AccountService extends Service {
     private final PlanDao                     planDao;
     private final ResourcesManager            resourcesManager;
 
+
     @Inject
     public AccountService(AccountDao accountDao,
                           UserDao userDao,
@@ -142,9 +145,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Create a new account",
-                  notes = "Create a new account",
-                  response = Account.class,
-                  position = 1)
+            notes = "Create a new account",
+            response = Account.class,
+            position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -177,7 +180,8 @@ public class AccountService extends Service {
             throw new ConflictException(format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
         }
-        final String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
+        final String accountId =
+                NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         final Account account = new Account().withId(accountId)
                                              .withName(newAccount.getName())
                                              .withAttributes(newAccount.getAttributes());
@@ -972,63 +976,7 @@ public class AccountService extends Service {
 
     }
 
-    @ApiOperation(value = "Add credit card",
-                  notes = "Add credit card to account. Roles: account/owner, system/admin, system/manager.",
-                  position = 14)
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Created"),
-            @ApiResponse(code = 403, message = "This token is not assigned to provided account"),
-            @ApiResponse(code = 404, message = "Invalid credit card token"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @POST
-    @Path("/{id}/credit-card/{token}")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void addCreditCardToAccount(@ApiParam(value = "Account ID", required = true)
-                                       @PathParam("id") String accountId,
-                                       @ApiParam(value = "Credit card token", required = true)
-                                       @PathParam("token") String ccToken)
-            throws NotFoundException, ServerException, ForbiddenException {
-        // check that CC is present in payment system
-        CreditCard creditCard = paymentService.getCreditCard(ccToken);
 
-        // TODO commented for tests and demo. Uncomment when UD will be able to add CC for each user
-//        if (!accountId.equals(creditCard.getAccountId())) {
-//            throw new ForbiddenException("This token is not assigned to provided account");
-//        }
-
-        final Account account = accountDao.getById(accountId);
-        account.getAttributes().put("codenvy:creditCardToken", ccToken);
-        account.getAttributes().put("codenvy:paid", "true");
-        accountDao.update(account);
-    }
-
-    @ApiOperation(value = "Remove credit card",
-                  notes = "Remove credit card and make account free. Roles: account/owner, system/admin, system/manager.",
-                  position = 15)
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "Created"),
-            @ApiResponse(code = 403, message = "This token is not assigned to provided account"),
-            @ApiResponse(code = 404, message = "Invalid credit card token"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @DELETE
-    @Path("/{id}/credit-card/")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public void removeCreditCardFromAccount(@ApiParam(value = "Account ID", required = true)
-                                            @PathParam("id") String accountId) throws NotFoundException, ServerException,
-                                                                                      ForbiddenException {
-        final Account account = accountDao.getById(accountId);
-
-        String ccToken = account.getAttributes().remove("codenvy:creditCardToken");
-        if (ccToken == null) {
-            throw new NotFoundException("Credit card is not found for account " + accountId);
-        }
-
-        paymentService.removeCreditCard(ccToken);
-        // TODO charge if user has consumed paid resources
-        // TODO send email
-        account.getAttributes().remove("codenvy:paid");
-        accountDao.update(account);
-    }
 
     @ApiOperation(value = "Remove account",
                   notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",

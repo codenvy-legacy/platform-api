@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -23,12 +24,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class MachineBuilderFactoryRegistry {
     private final Map<String, MachineFactory> machineBuilderFactories;
 
-    public MachineBuilderFactoryRegistry() {
+    @Inject
+    public MachineBuilderFactoryRegistry(Set<MachineFactory> builderFactories) {
         machineBuilderFactories = new ConcurrentHashMap<>();
-    }
-
-    public void add(MachineFactory builderFactory) {
-        machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
+        for (MachineFactory builderFactory : builderFactories) {
+            machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
+        }
     }
 
     public MachineFactory get(String type) {

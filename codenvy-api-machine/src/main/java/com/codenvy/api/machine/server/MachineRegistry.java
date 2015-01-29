@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.server.dto.StoredMachine;
@@ -39,7 +40,7 @@ public class MachineRegistry {
         machineDao.add(persistMachine);
     }
 
-    public List<Machine> getMachines(String workspaceId, String project, String user) throws ServerException {
+    public List<Machine> getMachines(String workspaceId, String project, String user) throws ServerException, ForbiddenException {
         List<Machine> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {

@@ -137,9 +137,7 @@ public class MachineService {
                                                @QueryParam("project") String project,
                                                @QueryParam("user") String user,
                                                @Context SecurityContext context)
-            throws ServerException {
-
-
+            throws ServerException, ForbiddenException {
         final List<Machine> machines = machineRegistry.getMachines(workspaceId, project, user);
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         for (Machine machine : machines) {

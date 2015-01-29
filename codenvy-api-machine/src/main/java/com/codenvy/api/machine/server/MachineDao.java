@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.server.dto.StoredMachine;
@@ -26,5 +27,6 @@ public interface MachineDao {
 
     void remove(String machineId) throws NotFoundException, ServerException;
 
-    List<StoredMachine> findByUserWorkspaceProject(String userId, String wsId, String projectName) throws ServerException;
+    List<StoredMachine> findByUserWorkspaceProject(String userId, String wsId, String projectName)
+            throws ServerException, ForbiddenException;
 }

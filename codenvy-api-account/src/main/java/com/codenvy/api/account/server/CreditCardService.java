@@ -159,7 +159,7 @@ public class CreditCardService extends Service {
         final Link removeCard   = LinksHelper.createLink(HttpMethod.DELETE,
                                                          uriBuilder.clone()
                                                                    .path(getClass(), "removeCreditCardFromAccount")
-                                                                   .build(card.getToken())
+                                                                   .build(card.getAccountId(), card.getToken())
                                                                    .toString(),
                                                          null,
                                                          null,

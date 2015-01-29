@@ -91,7 +91,14 @@ public abstract class SubscriptionService {
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
 
+    /**
+     * Returns used resources, provided by subscription
+     *
+     * @param subscription
+     *         subscription that provides resources
+     */
     public abstract AccountResources getAccountResources(Subscription subscription) throws ServerException;
+
     /**
      * @return service identifier
      */

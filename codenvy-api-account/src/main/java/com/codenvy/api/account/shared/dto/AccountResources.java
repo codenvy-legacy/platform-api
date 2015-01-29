@@ -11,6 +11,7 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 
@@ -19,6 +20,7 @@ import java.util.List;
  */
 @DTO
 public interface AccountResources {
+    @ApiModelProperty(value = "Consumed resources during current billing period grouped by workspaces")
     List<WorkspaceResources> getUsed();
 
     void setUsed(List<WorkspaceResources> used);

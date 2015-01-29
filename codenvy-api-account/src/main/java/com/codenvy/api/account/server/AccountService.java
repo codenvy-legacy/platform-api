@@ -1091,13 +1091,13 @@ public class AccountService extends Service {
     }
 
     /**
-     * Returns metrics information of account
+     * Returns used resources, provided by subscriptions
      *
      * @param id
      *         account id
      */
-    @ApiOperation(value = "Get metrics information of account",
-                  notes = "Returns metrics information of account. Roles: account/owner, account/member, system/manager, system/admin.",
+    @ApiOperation(value = "Get used resources, provided by subscriptions",
+                  notes = "Returns used resources, provided by subscriptions. Roles: account/owner, account/member, system/manager, system/admin.",
                   position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
@@ -1117,7 +1117,7 @@ public class AccountService extends Service {
         } else {
             final SubscriptionService subscriptionService = registry.get(serviceId);
             if (subscriptionService == null) {
-                throw new ConflictException("service with id not found");//TODO
+                throw new ConflictException("Unknown serviceId is used");
             }
             subscriptionServices.add(subscriptionService);
         }
@@ -1372,15 +1372,11 @@ public class AccountService extends Service {
                          .withLinks(links);
     }
 
-    //TODO fix java docs
-
     /**
-     * Create {@link SubscriptionDescriptor} from {@link Subscription}.
-     * Set with roles should be used if account roles can't be resolved with {@link SecurityContext}
-     * (If there is no id of the account in the REST path.)
+     * Create {@link SubscriptionReference} from {@link Subscription}.
      *
      * @param subscription
-     *         subscription that should be converted to {@link SubscriptionDescriptor}
+     *         subscription that should be converted to {@link SubscriptionReference}
      */
     private SubscriptionReference toReference(Subscription subscription) {
         List<Link> links = new ArrayList<>(0);

@@ -11,6 +11,7 @@
 package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
 
 import java.util.List;
 
@@ -19,11 +20,13 @@ import java.util.List;
  */
 @DTO
 public interface SubscriptionResources extends AccountResources {
+    @ApiModelProperty(value = "Reference of subscription that provides resources")
     SubscriptionReference getSubscriptionReference();
 
     void setSubscriptionReference(SubscriptionReference subscriptionReference);
 
     SubscriptionResources withSubscriptionReference(SubscriptionReference subscriptionReference);
 
+    @ApiModelProperty(value = "Used resources grouped by workspaces")
     SubscriptionResources withUsed(List<WorkspaceResources> used);
 }

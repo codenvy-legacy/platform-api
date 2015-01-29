@@ -21,6 +21,8 @@ import java.util.List;
  */
 @DTO
 public interface SubscriptionReference {
+
+    @ApiModelProperty(value = "Service ID")
     String getServiceId();
 
     void setServiceId(String serviceId);
@@ -33,6 +35,7 @@ public interface SubscriptionReference {
 
     SubscriptionReference withSubscriptionId(String subscriptionId);
 
+    @ApiModelProperty(value = "Plan ID")
     String getPlanId();
 
     void setPlanId(String planId);

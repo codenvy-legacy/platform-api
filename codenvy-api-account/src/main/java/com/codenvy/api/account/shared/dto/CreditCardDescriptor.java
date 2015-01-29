@@ -22,12 +22,6 @@ import java.util.List;
  */
 @DTO
 public interface CreditCardDescriptor extends Hyperlinks {
-    String getToken();
-
-    void setToken(String token);
-
-    CreditCardDescriptor withToken(String token);
-
     String getNumber();
 
     void setNumber(String number);

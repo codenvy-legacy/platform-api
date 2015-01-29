@@ -10,35 +10,45 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import java.util.List;
 
 /**
  * @author Sergii Leschenko
  */
 @DTO
-public interface BillingInformation {
+public interface SubscriptionReference {
     String getServiceId();
 
     void setServiceId(String serviceId);
 
-    BillingInformation withServiceId(String serviceId);
+    SubscriptionReference withServiceId(String serviceId);
 
     String getSubscriptionId();
 
     void setSubscriptionId(String subscriptionId);
 
-    BillingInformation withSubscriptionId(String subscriptionId);
+    SubscriptionReference withSubscriptionId(String subscriptionId);
 
-    ProvidedResources getProvidedResources();
+    String getPlanId();
 
-    void setProvidedResources(ProvidedResources providedResources);
+    void setPlanId(String planId);
 
-    BillingInformation withProvidedResources(ProvidedResources providedResources);
+    SubscriptionReference withPlanId(String planId);
 
-    UsedResources getUsedResources();
+    @ApiModelProperty(value = "Description of the subscription")
+    String getDescription();
 
-    void setUsedResources(UsedResources usedResources);
+    void setDescription(String description);
 
-    BillingInformation withUsedResources(UsedResources usedResources);
+    SubscriptionReference withDescription(String description);
 
+    List<Link> getLinks();
+
+    void setLinks(List<Link> links);
+
+    SubscriptionReference withLinks(List<Link> links);
 }

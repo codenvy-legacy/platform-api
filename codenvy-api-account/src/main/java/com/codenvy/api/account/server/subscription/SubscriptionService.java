@@ -11,10 +11,9 @@
 package com.codenvy.api.account.server.subscription;
 
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.shared.dto.BillingInformation;
+import com.codenvy.api.account.shared.dto.AccountResources;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
 /**
@@ -92,8 +91,7 @@ public abstract class SubscriptionService {
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
 
-    public abstract BillingInformation getBillingInfoOrNull(String accountId);
-
+    public abstract AccountResources getAccountResources(Subscription subscription) throws ServerException;
     /**
      * @return service identifier
      */

@@ -12,16 +12,16 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.Map;
+import java.util.List;
 
 /**
  * @author Sergii Leschenko
  */
 @DTO
-public interface ProvidedResources {
-    Map<String, String> getForAccount();
+public interface AccountResources {
+    List<WorkspaceResources> getUsed();
 
-    void setForAccount(Map<String, String> forAccount);
+    void setUsed(List<WorkspaceResources> used);
 
-    ProvidedResources withForAccount(Map<String, String> byAccount);
+    AccountResources withUsed(List<WorkspaceResources> used);
 }

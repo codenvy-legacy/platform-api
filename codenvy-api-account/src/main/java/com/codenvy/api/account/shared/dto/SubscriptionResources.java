@@ -8,28 +8,22 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.runner.dto;
+package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
-import com.wordnik.swagger.annotations.ApiModelProperty;
+
+import java.util.List;
 
 /**
- *
  * @author Sergii Leschenko
  */
 @DTO
-public interface MemoryDescriptor {
-    @ApiModelProperty(value = "Total RAM")
-    String getTotalMemory();
+public interface SubscriptionResources extends AccountResources {
+    SubscriptionReference getSubscriptionReference();
 
-    void setTotalMemory(String memory);
+    void setSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    MemoryDescriptor withTotalMemory(String memory);
+    SubscriptionResources withSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    @ApiModelProperty(value = "RAM in use")
-    String getUsedMemory();
-
-    void setUsedMemory(String memory);
-
-    MemoryDescriptor withUsedMemory(String memory);
+    SubscriptionResources withUsed(List<WorkspaceResources> used);
 }

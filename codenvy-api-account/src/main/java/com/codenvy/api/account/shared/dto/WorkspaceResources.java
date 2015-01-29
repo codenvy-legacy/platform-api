@@ -12,23 +12,20 @@ package com.codenvy.api.account.shared.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-import java.util.Map;
-
 /**
  * @author Sergii Leschenko
  */
 @DTO
-public interface UsedResources {
-    Map<String, String> getByAccount();
+public interface WorkspaceResources {
+    String getWorkspaceId();
 
-    void setByAccount(Map<String, String> byAccount);
+    void setWorkspaceId(String workspaceId);
 
-    UsedResources withByAccount(Map<String, String> byAccount);
+    WorkspaceResources withWorkspaceId(String workspaceId);
 
-    List<WorkspaceResourcesDescriptor> getByWorkspaces();
+    Long getMemory();
 
-    void setByWorkspaces(List<WorkspaceResourcesDescriptor> byWorkspaces);
+    void setMemory(Long memory);
 
-    UsedResources withByWorkspaces(List<WorkspaceResourcesDescriptor> byWorkspaces);
+    WorkspaceResources withMemory(Long memory);
 }

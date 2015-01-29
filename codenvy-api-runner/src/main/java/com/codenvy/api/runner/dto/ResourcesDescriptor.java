@@ -8,28 +8,28 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.account.shared.dto;
+package com.codenvy.api.runner.dto;
 
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
 
-import java.util.Map;
-
 /**
+ *
  * @author Sergii Leschenko
  */
 @DTO
-public interface WorkspaceResourcesDescriptor {
-    @ApiModelProperty(value = "Workspace ID")
-    String getWorkspaceId();
+public interface ResourcesDescriptor {
+    @ApiModelProperty(value = "Total RAM")
+    String getTotalMemory();
 
-    void setWorkspaceId(String workspaceId);
+    void setTotalMemory(String memory);
 
-    WorkspaceResourcesDescriptor withWorkspaceId(String workspaceId);
+    ResourcesDescriptor withTotalMemory(String memory);
 
-    Map<String, String> getResources();
+    @ApiModelProperty(value = "RAM in use")
+    String getUsedMemory();
 
-    void setResources(Map<String, String> resources);
+    void setUsedMemory(String memory);
 
-    WorkspaceResourcesDescriptor withResources(Map<String, String> resources);
+    ResourcesDescriptor withUsedMemory(String memory);
 }

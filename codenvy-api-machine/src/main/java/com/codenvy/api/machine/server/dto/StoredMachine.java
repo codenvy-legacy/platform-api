@@ -12,6 +12,8 @@ package com.codenvy.api.machine.server.dto;
 
 import com.codenvy.dto.shared.DTO;
 
+import java.util.List;
+
 /**
  * Describes machine.
  *
@@ -31,11 +33,11 @@ public interface StoredMachine {
 
     StoredMachine withType(String type);
 
-    String getProject();
+    List<String> getProjects();
 
-    void setProject(String project);
+    void setProjects(List<String> projects);
 
-    StoredMachine withProject(String project);
+    StoredMachine withProjects(List<String> projects);
 
     String getWorkspaceId();
 

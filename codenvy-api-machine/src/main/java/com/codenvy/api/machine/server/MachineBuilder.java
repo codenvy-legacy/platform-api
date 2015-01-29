@@ -14,6 +14,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 
+import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -30,21 +31,26 @@ public abstract class MachineBuilder {
     private Set<File>           files;
     private Map<String, String> machineEnvironmentVariables;
     private Map<String, Object> buildOptions;
+    private LineConsumer        outputConsumer = LineConsumer.DEV_NULL;
 
     protected MachineBuilder(String machineId) {
         this.machineId = machineId;
     }
 
     /**
-     * Builds machine using supplied configuration.
-     *
-     * @throws ForbiddenException
-     *         if machine can't be built due to misconfiguration
-     * @throws ServerException
-     *         if internal error occurs
+     * Sets output consumer for machine output, including build machine output.
+     * Specified {@link com.codenvy.api.core.util.LineConsumer} should be passed to machine instance after successful build
      */
-    public Machine buildMachine() throws ServerException, ForbiddenException {
-        return buildMachine(LineConsumer.DEV_NULL);
+    public MachineBuilder setOutputConsumer(LineConsumer lineConsumer) throws ForbiddenException {
+        if (lineConsumer == null) {
+            throw new ForbiddenException("Output consumer can't be null");
+        }
+        outputConsumer = lineConsumer;
+        return this;
+    }
+
+    protected LineConsumer getOutputConsumer() {
+        return outputConsumer;
     }
 
     /**
@@ -55,14 +61,14 @@ public abstract class MachineBuilder {
      * @throws ServerException
      *         if internal error occurs
      */
-    public Machine buildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException {
+    public Machine buildMachine() throws ServerException, ForbiddenException {
         if (machineId == null) {
             throw new ForbiddenException("Machine id is required");
         }
-        return doBuildMachine(lineConsumer);
+        return doBuildMachine();
     }
 
-    protected abstract Machine doBuildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
+    protected abstract Machine doBuildMachine() throws ServerException, ForbiddenException;
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;

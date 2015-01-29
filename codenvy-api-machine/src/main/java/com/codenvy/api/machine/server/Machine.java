@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.dto.Snapshot;
 
 import java.util.List;
@@ -18,16 +20,37 @@ import java.util.List;
 /**
  * @author andrew00x
  */
-public interface Machine {
+public abstract class Machine {
+    private LineConsumer outputConsumer;
+
     public enum State {
         CREATING, ACTIVE, INACTIVE, DESTROYED
     }
 
+    protected Machine() {
+    }
+
+    protected Machine(LineConsumer outputConsumer) {
+        setOutputConsumer(outputConsumer);
+    }
+
+    public void setOutputConsumer(LineConsumer outputConsumer) {
+        if (outputConsumer == null) {
+            this.outputConsumer = LineConsumer.DEV_NULL;
+        } else {
+            this.outputConsumer = outputConsumer;
+        }
+    }
+
+    protected LineConsumer getOutputConsumer() {
+        return outputConsumer;
+    }
+
     /** Gets id of machine. */
-    String getId();
+    public abstract String getId();
 
     /** Gets state of machine. */
-    State getState();
+    public abstract State getState();
 
     /**
      * Starts machine.
@@ -35,7 +58,7 @@ public interface Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    void start() throws ServerException;
+    public abstract void start() throws ServerException;
 
     /**
      * Suspends machine.
@@ -43,7 +66,7 @@ public interface Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    void suspend() throws ServerException;
+    public abstract void suspend() throws ServerException;
 
     /**
      * Resumes machine.
@@ -51,7 +74,7 @@ public interface Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    void resume() throws ServerException;
+    public abstract void resume() throws ServerException;
 
     /**
      * Destroys machine.
@@ -59,16 +82,16 @@ public interface Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    void destroy() throws ServerException;
+    public abstract void destroy() throws ServerException;
 
     /** Saves the machine's current state and returns id of created snapshot. */
-    String takeSnapshot(String description) throws ServerException;
+    public abstract String takeSnapshot(String description) throws ServerException;
 
-    void removeSnapshot(String snapshotId) throws ServerException;
+    public abstract void removeSnapshot(String snapshotId) throws ServerException;
 
-    List<Snapshot> getSnapshots() throws ServerException;
+    public abstract List<Snapshot> getSnapshots() throws ServerException;
 
-    CommandProcess newCommandProcess(String command);
+    public abstract CommandProcess newCommandProcess(String command);
 
     /**
      * Get list of processes that are running in the machine.
@@ -77,5 +100,9 @@ public interface Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    List<CommandProcess> getRunningProcesses() throws ServerException;
+    public abstract List<CommandProcess> getRunningProcesses() throws ServerException;
+
+    public abstract void bind(String workspace, String project) throws ServerException, NotFoundException;
+
+    public abstract void unbind(String workspace, String project) throws ServerException, NotFoundException;
 }

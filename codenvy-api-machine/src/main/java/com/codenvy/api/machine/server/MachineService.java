@@ -17,9 +17,10 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.dto.Snapshot;
 import com.codenvy.api.machine.server.dto.StoredMachine;
-import com.codenvy.api.machine.shared.dto.ApplicationProcessDescriptor;
+import com.codenvy.api.machine.shared.dto.CommandProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -27,10 +28,10 @@ import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.annotation.Nullable;
 import javax.annotation.PreDestroy;
+import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
@@ -54,6 +55,8 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import static org.slf4j.LoggerFactory.getLogger;
+
 /**
  * Machine API
  *
@@ -62,6 +65,8 @@ import java.util.concurrent.Executors;
 @Singleton
 @Path("/machine")
 public class MachineService {
+    private static final Logger LOG = getLogger(MachineService.class);
+
     private final MachineRegistry machineRegistry;
 
     private final ExecutorService executorService;
@@ -76,47 +81,53 @@ public class MachineService {
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
 
-    // TODO add ability to check recipe before machine build execution to throw exception synchronously if recipe is not found or valid
-    // will help in situations when build fails before client will be able to subscribe to output of build
-
-    // TODO add ability to name machines
+    // TODO add ability to name machines or add description
 
     // TODO Save errors somewhere to send to client if client wasn't subscribed to build output
 
-    @Path("/{ws-id}")
     @PUT
     @Consumes(MediaType.TEXT_PLAIN)
     @Produces(MediaType.APPLICATION_JSON)
-    public MachineDescriptor createMachine(final InputStream recipeStream,
+    @RolesAllowed("user")
+    public MachineDescriptor createMachine(@QueryParam("workspace") final String workspace,
                                            @Nullable @QueryParam("type") String machineType,
-                                           @PathParam("ws-id") final String workspace,
-                                           @QueryParam("project") final String project, // TODO make it mandatory
-                                           @QueryParam("user") final String user,
-                                           @Context SecurityContext context)
+                                           @Nullable @QueryParam("outputChannel") String outputChannel,
+                                           final InputStream recipeStream)
             throws ServerException, NotFoundException, ForbiddenException {
+        if (workspace == null) {
+            throw new ForbiddenException("Workspace parameter is missing.");
+        }
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+
+        final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer(outputChannel);
+
         final MachineBuilder machineBuilder = machineFactories.get(machineType).newMachineBuilder()
-                                                              .setRecipe(new BaseMachineRecipe() {
-                                                                  @Override
-                                                                  public InputStream asStream() {
-                                                                      return recipeStream;
-                                                                  }
-                                                              });
-        final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer("machineLogs", machineBuilder.getMachineId());
+                                                                    .setRecipe(new BaseMachineRecipe() {
+                                                                        @Override
+                                                                        public InputStream asStream() {
+                                                                            return recipeStream;
+                                                                        }
+                                                                    })
+                                                                    .setOutputConsumer(websocketLineConsumer);
+
 
         executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final Machine machine = machineBuilder.buildMachine(websocketLineConsumer);
+                    machineBuilder.buildMachine();
 
                     machineRegistry.addMachine(DtoFactory.getInstance().createDto(StoredMachine.class)
                                                          .withId(machineBuilder.getMachineId())
-                                                         .withUserId(user)
-                                                         .withWorkspaceId(workspace)
-                                                         .withProject(project));
+                                                         .withUserId(userId)
+                                                         .withWorkspaceId(workspace));
 
                 } catch (ServerException | ForbiddenException e) {
-                    // TODO put to websocket
+                    try {
+                        websocketLineConsumer.writeLine(e.getLocalizedMessage());
+                    } catch (IOException e1) {
+                        LOG.error(e1.getLocalizedMessage(), e1);
+                    }
                 }
             }
         });
@@ -124,24 +135,23 @@ public class MachineService {
         return toDescriptor(machineBuilder.getMachineId(),
                             Machine.State.CREATING,
                             Collections.<Snapshot>emptyList(),
-                            user,
-                            workspace,
-                            project,
-                            context);
+                            userId,
+                            workspace);
     }
 
-    @Path("/{ws-id}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<MachineDescriptor> getMachines(@PathParam("ws-id") String workspaceId,
+    @RolesAllowed("user")
+    public List<MachineDescriptor> getMachines(@QueryParam("workspaceId") String workspaceId,
                                                @QueryParam("project") String project,
-                                               @QueryParam("user") String user,
                                                @Context SecurityContext context)
             throws ServerException, ForbiddenException {
-        final List<Machine> machines = machineRegistry.getMachines(workspaceId, project, user);
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+
+        final List<Machine> machines = machineRegistry.getMachines(workspaceId, project, userId);
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         for (Machine machine : machines) {
-            machinesDescriptors.add(toDescriptor(machine, user, workspaceId, project, context));
+            machinesDescriptors.add(toDescriptor(machine, userId, workspaceId));
         }
         return machinesDescriptors;
     }
@@ -191,9 +201,9 @@ public class MachineService {
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
-    public ApplicationProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId,
-                                                                @FormParam("command") final String command,
-                                                                @Context SecurityContext context)
+    public CommandProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId,
+                                                            @FormParam("command") final String command,
+                                                            @Context SecurityContext context)
             throws NotFoundException, ServerException {
         // returns channel id for process output listening
         final Machine machine = machineRegistry.getMachine(machineId);
@@ -211,21 +221,21 @@ public class MachineService {
         });
 
         // TODO how to read process output on client? Should we generate pid here?
-        return toDescriptor(42, context);
+        return toDescriptor(42);
     }
 
     @Path("/{machineId}/processes")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public List<ApplicationProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
-                                                           @Context SecurityContext context)
+    public List<CommandProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
+                                                       @Context SecurityContext context)
             throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
         final List<CommandProcess> processes = machine.getRunningProcesses();
-        final List<ApplicationProcessDescriptor> processesDescriptors = new LinkedList<>();
+        final List<CommandProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (CommandProcess process : processes) {
             // TODO how can user recognize process?
-            processesDescriptors.add(toDescriptor(process.getPid(), context));
+            processesDescriptors.add(toDescriptor(process.getPid()));
         }
         return processesDescriptors;
     }
@@ -250,13 +260,31 @@ public class MachineService {
         throw new NotFoundException(String.format("Process with id %s not found in machine %s.", processId, machineId));
     }
 
+    @Path("/{machineId}/bind/{workspaceId}/{project}")
+    @POST
+    public void bindProject(@PathParam("machineId") String machineId,
+                            @PathParam("workspaceId") String workspace,
+                            @PathParam("project") String project) throws NotFoundException, ServerException {
+        final Machine machine = machineRegistry.getMachine(machineId);
+
+        machine.bind(workspace, project);
+    }
+
+    @Path("/{machineId}/unbind/{workspaceId}/{project}")
+    @POST
+    public void unbindProject(@PathParam("machineId") String machineId,
+                              @PathParam("workspaceId") String workspace,
+                              @PathParam("project") String project) throws NotFoundException, ServerException {
+        final Machine machine = machineRegistry.getMachine(machineId);
+
+        machine.unbind(workspace, project);
+    }
+
     private MachineDescriptor toDescriptor(String machineId,
                                            Machine.State machineState,
                                            List<Snapshot> snapshots,
                                            String user,
-                                           String workspace,
-                                           String project,
-                                           SecurityContext context) throws ServerException {
+                                           String workspace) throws ServerException {
         List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
         for (Snapshot snapshot : snapshots) {
             snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
@@ -269,7 +297,6 @@ public class MachineService {
         return DtoFactory.getInstance().createDto(MachineDescriptor.class)
                          .withId(machineId)
                          .withUser(user)
-                         .withProject(project)
                          .withState(machineState)
                          .withWorkspaceId(workspace)
                          .withSnapshots(snapshotDescriptors)
@@ -279,15 +306,13 @@ public class MachineService {
 
     private MachineDescriptor toDescriptor(Machine machine,
                                            String user,
-                                           String workspace,
-                                           String project,
-                                           SecurityContext context) throws ServerException {
-        return toDescriptor(machine.getId(), machine.getState(), machine.getSnapshots(), user, workspace, project, context);
+                                           String workspace) throws ServerException {
+        return toDescriptor(machine.getId(), machine.getState(), machine.getSnapshots(), user, workspace);
 
     }
 
-    private ApplicationProcessDescriptor toDescriptor(int processId, SecurityContext context) throws ServerException {
-        return DtoFactory.getInstance().createDto(ApplicationProcessDescriptor.class)
+    private CommandProcessDescriptor toDescriptor(int processId) throws ServerException {
+        return DtoFactory.getInstance().createDto(CommandProcessDescriptor.class)
                 .withId(processId)
                         // TODO
                 .withLinks(null);
@@ -299,19 +324,17 @@ public class MachineService {
     }
 
     private static class WebsocketLineConsumer implements LineConsumer {
-        private static final Logger LOG = LoggerFactory.getLogger(WebsocketLineConsumer.class);
-        private final String channelPrefix;
-        private final String outputId;
+        private static final Logger LOG = getLogger(WebsocketLineConsumer.class);
+        private final String channel;
 
-        public WebsocketLineConsumer(String channelPrefix, String outputId) {
-            this.channelPrefix = channelPrefix;
-            this.outputId = outputId;
+        public WebsocketLineConsumer(String channel) {
+            this.channel = channel;
         }
 
         @Override
         public void writeLine(String line) throws IOException {
             final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-            bm.setChannel(channelPrefix + ":output:" + outputId);
+            bm.setChannel(channel);
             bm.setBody(JsonUtils.getJsonString(line));
             try {
                 WSConnectionContext.sendMessage(bm);

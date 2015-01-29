@@ -626,6 +626,7 @@ public class BuildQueue {
                             // Clone request and replace its id and timeout with 0.
                             successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
                         }
+                    } catch (NotFoundException ignored) {
                     } catch (Exception e) {
                         LOG.warn(e.getMessage(), e);
                     }

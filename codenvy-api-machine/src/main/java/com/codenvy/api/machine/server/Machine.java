@@ -23,14 +23,14 @@ public interface Machine {
         CREATING, ACTIVE, INACTIVE, DESTROYED
     }
 
-    /** Get id of machine */
+    /** Gets id of machine. */
     String getId();
 
-    /** Get state of machine */
+    /** Gets state of machine. */
     State getState();
 
     /**
-     * Start machine
+     * Starts machine.
      *
      * @throws ServerException
      *         if internal error occurs
@@ -38,7 +38,7 @@ public interface Machine {
     void start() throws ServerException;
 
     /**
-     * Suspend machine
+     * Suspends machine.
      *
      * @throws ServerException
      *         if internal error occurs
@@ -46,7 +46,7 @@ public interface Machine {
     void suspend() throws ServerException;
 
     /**
-     * Resume machine
+     * Resumes machine.
      *
      * @throws ServerException
      *         if internal error occurs
@@ -54,7 +54,7 @@ public interface Machine {
     void resume() throws ServerException;
 
     /**
-     * Destroy machine
+     * Destroys machine.
      *
      * @throws ServerException
      *         if internal error occurs
@@ -71,7 +71,7 @@ public interface Machine {
     CommandProcess newCommandProcess(String command);
 
     /**
-     * Get list of processes that are running in the machine
+     * Get list of processes that are running in the machine.
      *
      * @return list of running processes
      * @throws ServerException

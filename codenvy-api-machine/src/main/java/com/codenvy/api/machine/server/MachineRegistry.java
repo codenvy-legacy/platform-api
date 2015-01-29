@@ -15,6 +15,9 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.server.dto.StoredMachine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.util.LinkedList;
@@ -27,13 +30,15 @@ import java.util.List;
  */
 @Singleton
 public class MachineRegistry {
-    private final MachineDao                     machineDao;
-    private final MachineBuilderFactoryRegistry machineBuilderFactoryRegistry;
+    private static final Logger LOG = LoggerFactory.getLogger(MachineRegistry.class);
+
+    private final MachineDao             machineDao;
+    private final MachineFactoryRegistry machineFactoryRegistry;
 
     @Inject
-    public MachineRegistry(MachineDao machineDao, MachineBuilderFactoryRegistry machineBuilderFactoryRegistry) {
+    public MachineRegistry(MachineDao machineDao, MachineFactoryRegistry machineFactoryRegistry) {
         this.machineDao = machineDao;
-        this.machineBuilderFactoryRegistry = machineBuilderFactoryRegistry;
+        this.machineFactoryRegistry = machineFactoryRegistry;
     }
 
     public void addMachine(StoredMachine persistMachine) throws ServerException {
@@ -44,7 +49,12 @@ public class MachineRegistry {
         List<Machine> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {
-            result.add(machineBuilderFactoryRegistry.get(machine.getType()).getMachine(machine.getId()));
+            final MachineFactory machineFactory = machineFactoryRegistry.get(machine.getType());
+            if (machineFactory == null) {
+                LOG.error("Unknown machine type {}", machine.getType());
+            } else {
+                result.add(machineFactory.getMachine(machine.getId()));
+            }
         }
         return result;
     }
@@ -54,6 +64,10 @@ public class MachineRegistry {
         if (machine == null) {
             throw new NotFoundException(String.format("Machine %s not found", machineId));
         }
-        return machineBuilderFactoryRegistry.get(machine.getType()).getMachine(machineId);
+        final MachineFactory machineFactory = machineFactoryRegistry.get(machine.getType());
+        if (machineFactory == null) {
+            throw new ServerException(String.format("Unknown machine type %s", machine.getType()));
+        }
+        return machineFactory.getMachine(machineId);
     }
 }

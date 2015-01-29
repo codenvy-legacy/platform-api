@@ -10,10 +10,11 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server.dto;
 
-import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
 import com.codenvy.dto.shared.DTO;
 
 /**
+ * Describes machine's snapshot (saved state of machine).
+ *
  * @author Alexander Garagatyi
  */
 @DTO

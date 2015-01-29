@@ -16,6 +16,10 @@ import java.io.Reader;
 import java.net.URL;
 
 /**
+ * Base implementation of {@link MachineRecipe}. All implemented methods return {@code null}. Users of {@link MachineBuilder} may extend
+ * this class instead of implement {@link MachineRecipe} and implement just methods that have sense for particular implementation of Machine
+ * API.
+ *
  * @author andrew00x
  */
 public abstract class BaseMachineRecipe implements MachineRecipe {

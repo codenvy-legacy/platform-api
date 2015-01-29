@@ -12,10 +12,8 @@ package com.codenvy.api.machine.server.dto;
 
 import com.codenvy.dto.shared.DTO;
 
-import java.util.List;
-
 /**
- * Describe machine
+ * Describes machine.
  *
  * @author Alexander Garagatyi
  */
@@ -45,9 +43,9 @@ public interface StoredMachine {
 
     StoredMachine withWorkspaceId(String workspaceId);
 
-    String getUser();
+    String getUserId();
 
-    void setUser(String user);
+    void setUserId(String userId);
 
-    StoredMachine withUser(String user);
+    StoredMachine withUserId(String userId);
 }

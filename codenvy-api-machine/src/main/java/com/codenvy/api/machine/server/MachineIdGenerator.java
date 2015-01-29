@@ -10,24 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URL;
+import com.google.inject.ImplementedBy;
 
 /**
- * Recipe to create new machine.
- *
  * @author andrew00x
  */
-public interface MachineRecipe {
-    String asString();
-
-    Reader asReader();
-
-    URL asURL();
-
-    File asFile();
-
-    InputStream asStream();
+@ImplementedBy(DefaultMachineIdGenerator.class)
+public interface MachineIdGenerator {
+    String generateId();
 }

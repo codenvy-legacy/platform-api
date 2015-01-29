@@ -10,24 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-import java.io.File;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URL;
+import com.codenvy.commons.lang.NameGenerator;
 
 /**
- * Recipe to create new machine.
- *
  * @author andrew00x
  */
-public interface MachineRecipe {
-    String asString();
-
-    Reader asReader();
-
-    URL asURL();
-
-    File asFile();
-
-    InputStream asStream();
+public class DefaultMachineIdGenerator implements MachineIdGenerator {
+    @Override
+    public String generateId() {
+        return NameGenerator.generate("", 16);
+    }
 }

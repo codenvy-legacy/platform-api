@@ -36,20 +36,24 @@ public abstract class MachineBuilder {
     }
 
     /**
-     * Builds machine using supplied configuration
+     * Builds machine using supplied configuration.
      *
-     * @throws ForbiddenException if machine can't be built due to misconfiguration
-     * @throws ServerException if internal error occurs
+     * @throws ForbiddenException
+     *         if machine can't be built due to misconfiguration
+     * @throws ServerException
+     *         if internal error occurs
      */
     public Machine buildMachine() throws ServerException, ForbiddenException {
         return buildMachine(LineConsumer.DEV_NULL);
     }
 
     /**
-     * Builds machine using supplied configuration. Puts logs to given line consumer.
+     * Builds machine using supplied configuration. Puts build logs to given line consumer.
      *
-     * @throws ForbiddenException if machine can't be built due to misconfiguration
-     * @throws ServerException if internal error occurs
+     * @throws ForbiddenException
+     *         if machine can't be built due to misconfiguration
+     * @throws ServerException
+     *         if internal error occurs
      */
     public Machine buildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException {
         if (machineId == null) {
@@ -58,7 +62,7 @@ public abstract class MachineBuilder {
         return doBuildMachine(lineConsumer);
     }
 
-    public abstract Machine doBuildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
+    protected abstract Machine doBuildMachine(LineConsumer lineConsumer) throws ServerException, ForbiddenException;
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;

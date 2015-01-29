@@ -66,13 +66,13 @@ public class MachineService {
 
     private final ExecutorService executorService;
 
-    private final MachineBuilderFactoryRegistry machineBuilderFactoryRegistry;
+    private final MachineFactoryRegistry machineFactoryRegistry;
 
     @Inject
     public MachineService(MachineRegistry machineRegistry,
-                          MachineBuilderFactoryRegistry machineBuilderFactoryRegistry) {
+                          MachineFactoryRegistry machineFactoryRegistry) {
         this.machineRegistry = machineRegistry;
-        this.machineBuilderFactoryRegistry = machineBuilderFactoryRegistry;
+        this.machineFactoryRegistry = machineFactoryRegistry;
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
 
@@ -94,13 +94,13 @@ public class MachineService {
                                            @QueryParam("user") final String user,
                                            @Context SecurityContext context)
             throws ServerException, NotFoundException, ForbiddenException {
-        final MachineBuilder machineBuilder = machineBuilderFactoryRegistry.get(machineType).newMachineBuilder()
-                                                                           .setRecipe(new BaseMachineRecipe() {
-                                                                               @Override
-                                                                               public InputStream asStream() {
-                                                                                   return recipeStream;
-                                                                               }
-                                                                           });
+        final MachineBuilder machineBuilder = machineFactoryRegistry.get(machineType).newMachineBuilder()
+                                                                    .setRecipe(new BaseMachineRecipe() {
+                                                                        @Override
+                                                                        public InputStream asStream() {
+                                                                            return recipeStream;
+                                                                        }
+                                                                    });
         final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer("machineLogs", machineBuilder.getMachineId());
 
         executorService.execute(new Runnable() {
@@ -111,7 +111,7 @@ public class MachineService {
 
                     machineRegistry.addMachine(DtoFactory.getInstance().createDto(StoredMachine.class)
                                                          .withId(machineBuilder.getMachineId())
-                                                         .withUser(user)
+                                                         .withUserId(user)
                                                          .withWorkspaceId(workspace)
                                                          .withProject(project));
 

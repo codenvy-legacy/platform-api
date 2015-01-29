@@ -10,31 +10,27 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-import com.codenvy.commons.lang.NameGenerator;
-
 /**
- * Factory for builders of different types of machines
+ * Factory for machines and its builders of different types.
  *
  * @author Alexander Garagatyi
  */
 public abstract class MachineFactory {
-    private final String machineBuilderType;
+    private final MachineIdGenerator machineIdGenerator;
 
-    protected MachineFactory(String machineBuilderType) {
-        this.machineBuilderType = machineBuilderType;
+    protected MachineFactory(MachineIdGenerator machineIdGenerator) {
+        this.machineIdGenerator = machineIdGenerator;
     }
 
     /** Returns new machine builder. */
     public final MachineBuilder newMachineBuilder() {
-        return newMachineBuilder(NameGenerator.generate("", 16));
+        return newMachineBuilder(machineIdGenerator.generateId());
     }
 
     protected abstract MachineBuilder newMachineBuilder(String machineId);
 
     public abstract Machine getMachine(String machineId);
 
-    /** Returns type of machine builder that this factory produces. */
-    public String getMachineBuilderType() {
-        return machineBuilderType;
-    }
+    /** Returns type of machine or its builder that this factory produces. */
+    public abstract String getMachineBuilderType();
 }

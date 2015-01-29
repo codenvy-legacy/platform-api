@@ -13,12 +13,15 @@ package com.codenvy.api.account.server;
 import com.codenvy.api.account.server.subscription.CreditCardDao;
 import com.codenvy.api.account.shared.dto.ClientToken;
 import com.codenvy.api.account.shared.dto.CreditCard;
+import com.codenvy.api.account.shared.dto.CreditCardDescriptor;
 import com.codenvy.api.account.shared.dto.Nonce;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -30,11 +33,15 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.UriBuilder;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -100,15 +107,20 @@ public class CreditCardService extends Service {
     @Path("/{accountId}")
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    public List<CreditCard> getCreditCardsOfAccount(@ApiParam(value = "Account ID", required = true)
+    public List<CreditCardDescriptor> getCreditCardsOfAccount(@ApiParam(value = "Account ID", required = true)
                                                     @PathParam("accountId") String accountId)
             throws NotFoundException, ServerException, ForbiddenException {
-
+        List<CreditCardDescriptor> result = new ArrayList<>();
         List<CreditCard> storedCards = creditCardDao.getCards(accountId);
         for (CreditCard card : storedCards) {
-            card.setToken("");
+            result.add(DtoFactory.getInstance().createDto(CreditCardDescriptor.class).withAccountId(card.getAccountId())
+                                                                                     .withType(card.getType())
+                                                                                     .withNumber(card.getNumber())
+                                                                                     .withCardholder(card.getCardholder())
+                                                                                     .withExpiration(card.getExpiration())
+                                                                                     .withLinks(generateLinks(card)));
         }
-        return storedCards;
+        return result;
     }
 
 
@@ -130,6 +142,7 @@ public class CreditCardService extends Service {
         for (CreditCard storedCard : creditCardDao.getCards(accountId)) {
             if (storedCard.getNumber().equals(cardNumber)) {
                 creditCardDao.deleteCard(accountId, storedCard.getToken());
+                break;
             }
         }
 
@@ -140,4 +153,17 @@ public class CreditCardService extends Service {
         }
     }
 
+
+    private List<Link> generateLinks(CreditCard card) {
+        final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+        final Link removeCard   = LinksHelper.createLink(HttpMethod.DELETE,
+                                                         uriBuilder.clone()
+                                                                   .path(getClass(), "removeCreditCardFromAccount")
+                                                                   .build(card.getToken())
+                                                                   .toString(),
+                                                         null,
+                                                         null,
+                                                         Constants.LINK_REL_REMOVE_CARD);
+        return Arrays.asList(removeCard);
+    }
 }

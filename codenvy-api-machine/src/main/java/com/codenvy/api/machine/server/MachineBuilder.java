@@ -14,7 +14,6 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 
-import javax.annotation.Nonnull;
 import java.io.File;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -31,26 +30,11 @@ public abstract class MachineBuilder {
     private Set<File>           files;
     private Map<String, String> machineEnvironmentVariables;
     private Map<String, Object> buildOptions;
-    private LineConsumer        outputConsumer = LineConsumer.DEV_NULL;
+    private LineConsumer        outputConsumer;
 
     protected MachineBuilder(String machineId) {
         this.machineId = machineId;
-    }
-
-    /**
-     * Sets output consumer for machine output, including build machine output.
-     * Specified {@link com.codenvy.api.core.util.LineConsumer} should be passed to machine instance after successful build
-     */
-    public MachineBuilder setOutputConsumer(LineConsumer lineConsumer) throws ForbiddenException {
-        if (lineConsumer == null) {
-            throw new ForbiddenException("Output consumer can't be null");
-        }
-        outputConsumer = lineConsumer;
-        return this;
-    }
-
-    protected LineConsumer getOutputConsumer() {
-        return outputConsumer;
+        outputConsumer = LineConsumer.DEV_NULL;
     }
 
     /**
@@ -61,14 +45,27 @@ public abstract class MachineBuilder {
      * @throws ServerException
      *         if internal error occurs
      */
-    public Machine buildMachine() throws ServerException, ForbiddenException {
+    public Machine build() throws ServerException, ForbiddenException {
         if (machineId == null) {
             throw new ForbiddenException("Machine id is required");
         }
-        return doBuildMachine();
+        final Machine machine = doBuild();
+        machine.setOutputConsumer(outputConsumer);
+        return machine;
     }
 
-    protected abstract Machine doBuildMachine() throws ServerException, ForbiddenException;
+    protected abstract Machine doBuild() throws ServerException, ForbiddenException;
+
+    //
+
+    /** Sets output consumer for machine output, including build machine output. */
+    public MachineBuilder setOutputConsumer(LineConsumer outputConsumer) throws IllegalArgumentException {
+        if (outputConsumer == null) {
+            throw new IllegalArgumentException("Output consumer can't be null");
+        }
+        this.outputConsumer = outputConsumer;
+        return this;
+    }
 
     public MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;
@@ -98,6 +95,12 @@ public abstract class MachineBuilder {
     public MachineBuilder setBuildOption(String name, Object value) {
         getBuildOptions().put(name, value);
         return this;
+    }
+
+    //
+
+    protected LineConsumer getOutputConsumer() {
+        return outputConsumer;
     }
 
     protected MachineRecipe getRecipe() {

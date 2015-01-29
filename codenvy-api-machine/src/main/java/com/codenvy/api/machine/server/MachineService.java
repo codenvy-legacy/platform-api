@@ -115,7 +115,7 @@ public class MachineService {
             @Override
             public void run() {
                 try {
-                    machineBuilder.buildMachine();
+                    machineBuilder.build();
 
                     machineRegistry.addMachine(DtoFactory.getInstance().createDto(StoredMachine.class)
                                                          .withId(machineBuilder.getMachineId())

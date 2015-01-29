@@ -21,25 +21,24 @@ import java.util.List;
  * @author andrew00x
  */
 public abstract class Machine {
-    private LineConsumer outputConsumer;
-
     public enum State {
         CREATING, ACTIVE, INACTIVE, DESTROYED
     }
 
-    protected Machine() {
-    }
+    private final String id;
 
-    protected Machine(LineConsumer outputConsumer) {
-        setOutputConsumer(outputConsumer);
+    private LineConsumer outputConsumer;
+
+    protected Machine(String id) {
+        this.id = id;
+        outputConsumer = LineConsumer.DEV_NULL;
     }
 
     public void setOutputConsumer(LineConsumer outputConsumer) {
         if (outputConsumer == null) {
-            this.outputConsumer = LineConsumer.DEV_NULL;
-        } else {
-            this.outputConsumer = outputConsumer;
+            throw new IllegalArgumentException("Output consumer can't be null");
         }
+        this.outputConsumer = outputConsumer;
     }
 
     protected LineConsumer getOutputConsumer() {
@@ -47,7 +46,9 @@ public abstract class Machine {
     }
 
     /** Gets id of machine. */
-    public abstract String getId();
+    public final String getId() {
+        return id;
+    }
 
     /** Gets state of machine. */
     public abstract State getState();

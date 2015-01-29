@@ -20,13 +20,13 @@ import java.util.List;
  *
  * @author Alexander Garagatyi
  */
-public interface ApplicationProcessDescriptor extends Hyperlinks {
+public interface CommandProcessDescriptor extends Hyperlinks {
     int getId();
 
     void setId(String id);
 
-    ApplicationProcessDescriptor withId(int id);
+    CommandProcessDescriptor withId(int id);
 
     @Override
-    ApplicationProcessDescriptor withLinks(List<Link> links);
+    CommandProcessDescriptor withLinks(List<Link> links);
 }

@@ -22,6 +22,6 @@ public class MachineApiModule extends AbstractModule {
     @Override
     protected void configure() {
         Multibinder.newSetBinder(binder(), MachineFactory.class);
-        bind(MachineService.class).asEagerSingleton();
+        bind(MachineService.class);
     }
 }

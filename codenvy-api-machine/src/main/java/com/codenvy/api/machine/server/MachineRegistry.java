@@ -51,7 +51,7 @@ public class MachineRegistry {
         for (StoredMachine machine : machines) {
             final MachineFactory machineFactory = machineFactoryRegistry.get(machine.getType());
             if (machineFactory == null) {
-                LOG.error("Unknown machine type {}", machine.getType());
+                LOG.error("Unknown machine type {} of machine {}", machine.getType(), machine.getId());
             } else {
                 result.add(machineFactory.getMachine(machine.getId()));
             }

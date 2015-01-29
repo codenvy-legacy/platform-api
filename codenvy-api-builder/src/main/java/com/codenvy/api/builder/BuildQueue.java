@@ -631,7 +631,7 @@ public class BuildQueue {
                             successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
                         }
                     } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
+                        LOG.warn(e.getMessage(), e);
                     }
                 }
             });

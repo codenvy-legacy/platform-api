@@ -66,13 +66,13 @@ public class MachineService {
 
     private final ExecutorService executorService;
 
-    private final MachineFactoryRegistry machineFactoryRegistry;
+    private final MachineFactories machineFactories;
 
     @Inject
     public MachineService(MachineRegistry machineRegistry,
-                          MachineFactoryRegistry machineFactoryRegistry) {
+                          MachineFactories machineFactories) {
         this.machineRegistry = machineRegistry;
-        this.machineFactoryRegistry = machineFactoryRegistry;
+        this.machineFactories = machineFactories;
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
 
@@ -94,13 +94,13 @@ public class MachineService {
                                            @QueryParam("user") final String user,
                                            @Context SecurityContext context)
             throws ServerException, NotFoundException, ForbiddenException {
-        final MachineBuilder machineBuilder = machineFactoryRegistry.get(machineType).newMachineBuilder()
-                                                                    .setRecipe(new BaseMachineRecipe() {
-                                                                        @Override
-                                                                        public InputStream asStream() {
-                                                                            return recipeStream;
-                                                                        }
-                                                                    });
+        final MachineBuilder machineBuilder = machineFactories.get(machineType).newMachineBuilder()
+                                                              .setRecipe(new BaseMachineRecipe() {
+                                                                  @Override
+                                                                  public InputStream asStream() {
+                                                                      return recipeStream;
+                                                                  }
+                                                              });
         final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer("machineLogs", machineBuilder.getMachineId());
 
         executorService.execute(new Runnable() {

@@ -32,13 +32,13 @@ import java.util.List;
 public class MachineRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(MachineRegistry.class);
 
-    private final MachineDao             machineDao;
-    private final MachineFactoryRegistry machineFactoryRegistry;
+    private final MachineDao       machineDao;
+    private final MachineFactories machineFactories;
 
     @Inject
-    public MachineRegistry(MachineDao machineDao, MachineFactoryRegistry machineFactoryRegistry) {
+    public MachineRegistry(MachineDao machineDao, MachineFactories machineFactories) {
         this.machineDao = machineDao;
-        this.machineFactoryRegistry = machineFactoryRegistry;
+        this.machineFactories = machineFactories;
     }
 
     public void addMachine(StoredMachine persistMachine) throws ServerException {
@@ -49,7 +49,7 @@ public class MachineRegistry {
         List<Machine> result = new LinkedList<>();
         final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
         for (StoredMachine machine : machines) {
-            final MachineFactory machineFactory = machineFactoryRegistry.get(machine.getType());
+            final MachineFactory machineFactory = machineFactories.get(machine.getType());
             if (machineFactory == null) {
                 LOG.error("Unknown machine type {}", machine.getType());
             } else {
@@ -64,7 +64,7 @@ public class MachineRegistry {
         if (machine == null) {
             throw new NotFoundException(String.format("Machine %s not found", machineId));
         }
-        final MachineFactory machineFactory = machineFactoryRegistry.get(machine.getType());
+        final MachineFactory machineFactory = machineFactories.get(machine.getType());
         if (machineFactory == null) {
             throw new ServerException(String.format("Unknown machine type %s", machine.getType()));
         }

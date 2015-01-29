@@ -21,11 +21,11 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author andrew00x
  */
 @Singleton
-public class MachineFactoryRegistry {
+public class MachineFactories {
     private final Map<String, MachineFactory> machineBuilderFactories;
 
     @Inject
-    public MachineFactoryRegistry(Set<MachineFactory> builderFactories) {
+    public MachineFactories(Set<MachineFactory> builderFactories) {
         machineBuilderFactories = new ConcurrentHashMap<>();
         for (MachineFactory builderFactory : builderFactories) {
             machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
@@ -39,18 +39,7 @@ public class MachineFactoryRegistry {
         return machineBuilderFactories.get(type);
     }
 
-    public MachineFactory remove(String type) {
-        if (type == null) {
-            return null;
-        }
-        return machineBuilderFactories.remove(type);
-    }
-
     public Set<MachineFactory> getAll() {
         return new LinkedHashSet<>(machineBuilderFactories.values());
-    }
-
-    public void clear() {
-        machineBuilderFactories.clear();
     }
 }

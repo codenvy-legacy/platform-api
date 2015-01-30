@@ -13,7 +13,8 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.server.dto.MachineMetaInfo;
+import com.codenvy.api.machine.server.dto.MachineMetadata;
+import com.codenvy.commons.lang.NameGenerator;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,14 +36,12 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Machines {
     private static final Logger LOG = LoggerFactory.getLogger(Machines.class);
 
-    private final MachineMetaInfoDao machineMetaInfoDao;
-    private final MachineIdGenerator machineIdGenerator;
+    private final MachineMetadataDao          machineMetadataDao;
     private final Map<String, MachineFactory> machineFactories;
 
     @Inject
-    public Machines(MachineMetaInfoDao machineMetaInfoDao, Set<MachineFactory> machineFactories, MachineIdGenerator machineIdGenerator) {
-        this.machineMetaInfoDao = machineMetaInfoDao;
-        this.machineIdGenerator = machineIdGenerator;
+    public Machines(MachineMetadataDao machineMetadataDao, Set<MachineFactory> machineFactories) {
+        this.machineMetadataDao = machineMetadataDao;
         this.machineFactories = new ConcurrentHashMap<>();
         for (MachineFactory builderFactory : machineFactories) {
             this.machineFactories.put(builderFactory.getMachineType(), builderFactory);
@@ -51,17 +50,17 @@ public class Machines {
 
     public MachineBuilder newMachineOfType(String machineType) throws NotFoundException {
         return getMachineFactory(machineType).newMachineBuilder()
-                                             .setMachineId(machineIdGenerator.generateId())
+                                             .setMachineId(generateMachineId())
                                              .setMachineType(machineType)
-                                             .setMachineMetaInfoDao(machineMetaInfoDao);
+                                             .setMachineMetadataDao(machineMetadataDao);
     }
 
     public List<Machine> getMachines(String workspaceId, String project, String user) throws ServerException, ForbiddenException {
         List<Machine> result = new LinkedList<>();
-        for (MachineMetaInfo machineMetaInfo : machineMetaInfoDao.findByUserWorkspaceProject(workspaceId, project, user)) {
+        for (MachineMetadata machineMetadata : machineMetadataDao.findByUserWorkspaceProject(workspaceId, project, user)) {
             try {
-                final Machine machine = getMachineFactory(machineMetaInfo.getType()).getMachine(machineMetaInfo.getId());
-                machine.setMachineMetaInfoDao(machineMetaInfoDao);
+                final Machine machine = getMachineFactory(machineMetadata.getType()).getMachine(machineMetadata.getId());
+                machine.setMachineMetadataDao(machineMetadataDao);
                 result.add(machine);
             } catch (NotFoundException e) {
                 LOG.error(e.getMessage());
@@ -71,9 +70,9 @@ public class Machines {
     }
 
     public Machine getMachine(String machineId) throws NotFoundException, ServerException {
-        final MachineMetaInfo machineMetaInfo = machineMetaInfoDao.getById(machineId);
-        final Machine machine = getMachineFactory(machineMetaInfo.getType()).getMachine(machineId);
-        machine.setMachineMetaInfoDao(machineMetaInfoDao);
+        final MachineMetadata machineMetadata = machineMetadataDao.getById(machineId);
+        final Machine machine = getMachineFactory(machineMetadata.getType()).getMachine(machineId);
+        machine.setMachineMetadataDao(machineMetadataDao);
         return machine;
     }
 
@@ -83,5 +82,9 @@ public class Machines {
             throw new NotFoundException(String.format("Unknown machine type %s", machineType));
         }
         return machineFactory;
+    }
+
+    protected String generateMachineId() {
+        return NameGenerator.generate("", 16);
     }
 }

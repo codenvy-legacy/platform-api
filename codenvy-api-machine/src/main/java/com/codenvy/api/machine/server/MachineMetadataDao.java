@@ -13,22 +13,22 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.server.dto.MachineMetaInfo;
+import com.codenvy.api.machine.server.dto.MachineMetadata;
 
 import java.util.List;
 
 /**
  * @author Alexander Garagatyi
  */
-public interface MachineMetaInfoDao {
-    MachineMetaInfo getById(String machineId) throws NotFoundException, ServerException;
+public interface MachineMetadataDao {
+    MachineMetadata getById(String machineId) throws NotFoundException, ServerException;
 
-    void add(MachineMetaInfo machine) throws ServerException;
+    void add(MachineMetadata machine) throws ServerException;
 
     void remove(String machineId) throws NotFoundException, ServerException;
 
-    List<MachineMetaInfo> findByUserWorkspaceProject(String userId, String workspaceId, String project)
+    List<MachineMetadata> findByUserWorkspaceProject(String userId, String workspaceId, String project)
             throws ServerException, ForbiddenException;
 
-    void update(MachineMetaInfo machineMetaInfo) throws NotFoundException, ServerException;
+    void update(MachineMetadata machineMetadata) throws NotFoundException, ServerException;
 }

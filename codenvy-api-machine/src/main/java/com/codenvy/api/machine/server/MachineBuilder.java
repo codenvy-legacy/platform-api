@@ -13,7 +13,7 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.machine.server.dto.MachineMetaInfo;
+import com.codenvy.api.machine.server.dto.MachineMetadata;
 import com.codenvy.dto.server.DtoFactory;
 
 import java.io.File;
@@ -28,7 +28,7 @@ import java.util.Set;
 public abstract class MachineBuilder {
     private String              machineId;
     private String              machineType;
-    private MachineMetaInfoDao  machineMetaInfoDao;
+    private MachineMetadataDao  machineMetadataDao;
     private MachineRecipe       recipe;
     private Set<File>           files;
     private Map<String, String> machineEnvironmentVariables;
@@ -54,15 +54,15 @@ public abstract class MachineBuilder {
             throw new ForbiddenException("Workspace id is required");
         }
         final Machine machine = doBuild();
-        if (machineMetaInfoDao != null) {
+        if (machineMetadataDao != null) {
             final DtoFactory dtoFactory = DtoFactory.getInstance();
-            machineMetaInfoDao.add(dtoFactory.createDto(MachineMetaInfo.class)
+            machineMetadataDao.add(dtoFactory.createDto(MachineMetadata.class)
                                              .withId(machineId)
                                              .withCreatedBy(createdBy)
                                              .withWorkspaceId(workspaceId)
                                              .withDisplayName(displayName)
                                              .withType(machineType));
-            machine.setMachineMetaInfoDao(machineMetaInfoDao);
+            machine.setMachineMetadataDao(machineMetadataDao);
         }
         machine.setOutputConsumer(outputConsumer);
         return machine;
@@ -173,8 +173,8 @@ public abstract class MachineBuilder {
         return this;
     }
 
-    MachineBuilder setMachineMetaInfoDao(MachineMetaInfoDao machineMetaInfoDao) {
-        this.machineMetaInfoDao = machineMetaInfoDao;
+    MachineBuilder setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
+        this.machineMetadataDao = machineMetadataDao;
         return this;
     }
 }

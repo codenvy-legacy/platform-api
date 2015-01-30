@@ -13,7 +13,7 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.machine.server.dto.MachineMetaInfo;
+import com.codenvy.api.machine.server.dto.MachineMetadata;
 import com.codenvy.api.machine.server.dto.Snapshot;
 
 import java.util.List;
@@ -28,13 +28,12 @@ public abstract class Machine {
 
     private final String id;
 
-    private MachineMetaInfoDao machineMetaInfoDao;
-    private LineConsumer       outputConsumer;
-    private MachineMetaInfo    machineMetaInfo;
+    private MachineMetadataDao machineMetadataDao;
+    private MachineMetadata    machineMetadata;
+    private LineConsumer outputConsumer = LineConsumer.DEV_NULL;
 
     protected Machine(String id) {
         this.id = id;
-        outputConsumer = LineConsumer.DEV_NULL;
     }
 
     /** Gets id of machine. */
@@ -67,7 +66,18 @@ public abstract class Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract void destroy() throws ServerException;
+    public void destroy() throws ServerException {
+        doDestroy();
+        final MachineMetadataDao machineMetadataDao = getMachineMetadataDao();
+        if (machineMetadataDao != null) {
+            try {
+                machineMetadataDao.remove(id);
+            } catch (NotFoundException ignored) {
+            }
+        }
+    }
+
+    protected abstract void doDestroy()  throws ServerException;
 
     /** Saves the machine's current state and returns id of created snapshot. */
     public abstract String saveSnapshot(String description) throws ServerException;
@@ -94,35 +104,38 @@ public abstract class Machine {
     public abstract List<CommandProcess> getRunningProcesses() throws ServerException;
 
     public final String getDisplayName() throws ServerException {
-        return getMachineMetaInfo().getDisplayName();
+        return getMachineMetadata().getDisplayName();
     }
 
     public final void setDisplayName(String displayName) throws ServerException {
-        final MachineMetaInfo machineMetaInfo = getMachineMetaInfo();
-        machineMetaInfo.setDisplayName(displayName);
-        updateMachineMetaInfo(machineMetaInfo);
+        final MachineMetadata machineMetadata = getMachineMetadata();
+        machineMetadata.setDisplayName(displayName);
+        updateMachineMetaInfo(machineMetadata);
     }
 
     public final String getCreatedBy() throws ServerException {
-        return getMachineMetaInfo().getCreatedBy();
+        return getMachineMetadata().getCreatedBy();
     }
 
     public final String getWorkspaceId() throws ServerException {
-        return getMachineMetaInfo().getWorkspaceId();
+        return getMachineMetadata().getWorkspaceId();
     }
 
     public final String getType() throws ServerException {
-        return getMachineMetaInfo().getType();
+        return getMachineMetadata().getType();
     }
 
-    private MachineMetaInfo getMachineMetaInfo() throws ServerException {
-        if (machineMetaInfo != null) {
-            return machineMetaInfo;
+    private MachineMetadata getMachineMetadata() throws ServerException {
+        MachineMetadata machineMetadata = this.machineMetadata;
+        if (machineMetadata != null) {
+            return machineMetadata;
         } else {
-            if (machineMetaInfoDao != null) {
+            final MachineMetadataDao machineMetadataDao = getMachineMetadataDao();
+            if (machineMetadataDao != null) {
                 try {
-                    machineMetaInfo = machineMetaInfoDao.getById(id);
-                    return machineMetaInfo;
+                    machineMetadata = machineMetadataDao.getById(id);
+                    this.machineMetadata = machineMetadata;
+                    return machineMetadata;
                 } catch (NotFoundException e) {
                     throw new ServerException(String.format("Meta information for machine %s not found.", id));
                 }
@@ -131,10 +144,12 @@ public abstract class Machine {
         }
     }
 
-    private void updateMachineMetaInfo(MachineMetaInfo metaInfo) throws ServerException {
-        if (machineMetaInfoDao != null) {
+    private void updateMachineMetaInfo(MachineMetadata machineMetadata) throws ServerException {
+        final MachineMetadataDao machineMetadataDao = getMachineMetadataDao();
+        if (machineMetadataDao != null) {
             try {
-                machineMetaInfoDao.update(metaInfo);
+                machineMetadataDao.update(machineMetadata);
+                this.machineMetadata = machineMetadata;
             } catch (NotFoundException e) {
                 throw new ServerException(String.format("Meta information for machine %s not found.", id));
             }
@@ -153,11 +168,11 @@ public abstract class Machine {
         return outputConsumer;
     }
 
-    protected MachineMetaInfoDao getMachineMetaInfoDao() {
-        return machineMetaInfoDao;
+    protected MachineMetadataDao getMachineMetadataDao() {
+        return machineMetadataDao;
     }
 
-    void setMachineMetaInfoDao(MachineMetaInfoDao machineMetaInfoDao) {
-        this.machineMetaInfoDao = machineMetaInfoDao;
+    void setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
+        this.machineMetadataDao = machineMetadataDao;
     }
 }

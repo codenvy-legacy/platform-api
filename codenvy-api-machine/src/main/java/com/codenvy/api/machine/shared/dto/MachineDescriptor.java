@@ -48,11 +48,11 @@ public interface MachineDescriptor extends Hyperlinks {
 
     MachineDescriptor withWorkspaceId(String workspaceId);
 
-    String getUser();
+    String getCreatedBy();
 
-    void setUser(String user);
+    void setCreatedBy(String userId);
 
-    MachineDescriptor withUserId(String user);
+    MachineDescriptor withCreatedBy(String userId);
 
     String getDisplayName();
 

@@ -63,21 +63,14 @@ public class MachineService {
     private static final Logger LOG = getLogger(MachineService.class);
 
     private final ExecutorService executorService;
-
     private final Machines machines;
-
     private final MemberDao memberDao;
 
-    private final MachineMetaInfoDao machineMetaInfoDao;
-
     @Inject
-    public MachineService(Machines machines,
-                          MemberDao memberDao,
-                          MachineMetaInfoDao machineMetaInfoDao) {
+    public MachineService(Machines machines, MemberDao memberDao) {
         this.machines = machines;
         this.memberDao = memberDao;
-        this.machineMetaInfoDao = machineMetaInfoDao;
-        this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
+        this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineService-", true));
     }
 
     // TODO Save errors somewhere to send to client if client wasn't subscribed to build output
@@ -177,7 +170,7 @@ public class MachineService {
         for (Machine machine : existingMachines) {
             machinesDescriptors.add(toDescriptor(machine.getId(),
                                                  machine.getType(),
-                                                 userId,
+                                                 machine.getCreatedBy(),
                                                  workspaceId,
                                                  machine.getDisplayName(),
                                                  machine.getState(),
@@ -201,8 +194,6 @@ public class MachineService {
         }
 
         machine.destroy();
-
-        machineMetaInfoDao.remove(machineId);
     }
 
     @Path("/{machineId}/run")
@@ -338,7 +329,7 @@ public class MachineService {
 
     private MachineDescriptor toDescriptor(String id,
                                            String machineType,
-                                           String userId,
+                                           String machineCreator,
                                            String workspaceId,
                                            String displayName,
                                            Machine.State machineState,
@@ -357,7 +348,7 @@ public class MachineService {
         return DtoFactory.getInstance().createDto(MachineDescriptor.class)
                          .withId(id)
                          .withType(machineType)
-                         .withUserId(userId)
+                         .withCreatedBy(machineCreator)
                          .withState(machineState)
                          .withWorkspaceId(workspaceId)
                          .withDisplayName(displayName)

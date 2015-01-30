@@ -30,6 +30,7 @@ public abstract class Machine {
 
     private MachineMetaInfoDao machineMetaInfoDao;
     private LineConsumer       outputConsumer;
+    private MachineMetaInfo    machineMetaInfo;
 
     protected Machine(String id) {
         this.id = id;
@@ -103,7 +104,7 @@ public abstract class Machine {
     }
 
     public final String getCreatedBy() throws ServerException {
-        return getMachineMetaInfo().getUserId();
+        return getMachineMetaInfo().getCreatedBy();
     }
 
     public final String getWorkspaceId() throws ServerException {
@@ -115,14 +116,19 @@ public abstract class Machine {
     }
 
     private MachineMetaInfo getMachineMetaInfo() throws ServerException {
-        if (machineMetaInfoDao != null) {
-            try {
-                return machineMetaInfoDao.getById(id);
-            } catch (NotFoundException e) {
-                throw new ServerException(String.format("Meta information for machine %s not found.", id));
+        if (machineMetaInfo != null) {
+            return machineMetaInfo;
+        } else {
+            if (machineMetaInfoDao != null) {
+                try {
+                    machineMetaInfo = machineMetaInfoDao.getById(id);
+                    return machineMetaInfo;
+                } catch (NotFoundException e) {
+                    throw new ServerException(String.format("Meta information for machine %s not found.", id));
+                }
             }
+            throw new ServerException(String.format("Meta information for machine %s isn't available.", id));
         }
-        throw new ServerException(String.format("Meta information for machine %s isn't available.", id));
     }
 
     private void updateMachineMetaInfo(MachineMetaInfo metaInfo) throws ServerException {

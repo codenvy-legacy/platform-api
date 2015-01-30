@@ -45,11 +45,11 @@ public interface MachineMetaInfo {
 
     MachineMetaInfo withWorkspaceId(String workspaceId);
 
-    String getUserId();
+    String getCreatedBy();
 
-    void setUserId(String userId);
+    void setCreatedBy(String userId);
 
-    MachineMetaInfo withUserId(String userId);
+    MachineMetaInfo withCreatedBy(String userId);
 
     String getDisplayName();
 

@@ -58,7 +58,7 @@ public abstract class MachineBuilder {
             final DtoFactory dtoFactory = DtoFactory.getInstance();
             machineMetaInfoDao.add(dtoFactory.createDto(MachineMetaInfo.class)
                                              .withId(machineId)
-                                             .withUserId(createdBy)
+                                             .withCreatedBy(createdBy)
                                              .withWorkspaceId(workspaceId)
                                              .withDisplayName(displayName)
                                              .withType(machineType));

@@ -17,6 +17,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
 import com.codenvy.api.machine.server.dto.Snapshot;
+import com.codenvy.api.machine.shared.dto.Command;
 import com.codenvy.api.machine.shared.dto.CommandProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.CreateMachineRequest;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
@@ -35,7 +36,6 @@ import javax.inject.Inject;
 import javax.inject.Singleton;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
-import javax.ws.rs.FormParam;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
@@ -43,9 +43,7 @@ import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
 import java.util.LinkedList;
 import java.util.List;
@@ -152,10 +150,7 @@ public class MachineService {
         final Machine machine = machines.getMachine(machineId);
         final String machineCreator = machine.getCreatedBy();
 
-        final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        if (!userId.equals(machineCreator)) {
-            throw new ForbiddenException("Operation is not permitted");
-        }
+        checkCurrentUserPermissionsForMachine(machineCreator);
 
         return toDescriptor(machineId,
                             machine.getType(),
@@ -170,8 +165,7 @@ public class MachineService {
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public List<MachineDescriptor> getMachines(@QueryParam("workspaceId") String workspaceId,
-                                               @QueryParam("project") String project,
-                                               @Context SecurityContext context)
+                                               @QueryParam("project") String project)
             throws ServerException, ForbiddenException {
         requiredNotNull(workspaceId, "Workspace parameter");
 
@@ -200,10 +194,7 @@ public class MachineService {
     public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
         final Machine machine = machines.getMachine(machineId);
 
-        final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        if (!userId.equals(machine.getCreatedBy())) {
-            throw new ForbiddenException("Operation is not permitted");
-        }
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
         for (Snapshot snapshot : machine.getSnapshots()) {
             machine.removeSnapshot(snapshot.getId());
@@ -214,42 +205,45 @@ public class MachineService {
         machineMetaInfoDao.remove(machineId);
     }
 
-    // TODO add channels for process output
-
     @Path("/{machineId}/run")
     @PUT
-    @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
-    @Produces(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public CommandProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId,
-                                                            @FormParam("command") final String command)
-            throws NotFoundException, ServerException {
+    public void executeCommandInMachine(@PathParam("machineId") String machineId,
+                                                            final Command command)
+            throws NotFoundException, ServerException, ForbiddenException {
+        // TODO how to use command name?
+
         final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
         executorService.execute(new Runnable() {
             @Override
             public void run() {
-                final CommandProcess commandProcess = machine.newCommandProcess(command);
+                final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer(command.getOutputChannel());
+                final CommandProcess commandProcess = machine.newCommandProcess(command.getCommandLine());
                 try {
-                    commandProcess.start();
+                    commandProcess.start(websocketLineConsumer);
                 } catch (ConflictException | ServerException e) {
-                    // TODO put to websocket
+                    try {
+                        websocketLineConsumer.writeLine(e.getLocalizedMessage());
+                    } catch (IOException e1) {
+                        LOG.error(e.getLocalizedMessage(), e);
+                    }
                 }
             }
         });
-
-        // TODO how to read process output on client? Should we generate pid here?
-        return toDescriptor(42);
     }
 
     @Path("/{machineId}/processes")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<CommandProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
-                                                       @Context SecurityContext context)
-            throws NotFoundException, ServerException {
+    public List<CommandProcessDescriptor> getProcesses(@PathParam("machineId") String machineId)
+            throws NotFoundException, ServerException, ForbiddenException {
         final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+
         final List<CommandProcess> processes = machine.getRunningProcesses();
         final List<CommandProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (CommandProcess process : processes) {
@@ -266,6 +260,7 @@ public class MachineService {
                             @PathParam("processId") int processId)
             throws NotFoundException, ForbiddenException, ServerException {
         final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
             if (commandProcess.getPid() == processId) {
@@ -273,6 +268,7 @@ public class MachineService {
                     throw new ForbiddenException("Process finished already");
                 }
                 // TODO should we do that in separate thread?
+                // E.g. if soft kill won't stop the process request will be finished by timeout
                 commandProcess.kill();
                 return;
             }
@@ -285,8 +281,10 @@ public class MachineService {
     @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
                             @PathParam("workspaceId") String workspace,
-                            @PathParam("project") String project) throws NotFoundException, ServerException {
+                            @PathParam("project") String project) throws NotFoundException, ServerException, ForbiddenException {
         final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+        // TODO check user's permissions fot project
 
         machine.bind(workspace, project);
     }
@@ -296,8 +294,9 @@ public class MachineService {
     @RolesAllowed("user")
     public void unbindProject(@PathParam("machineId") String machineId,
                               @PathParam("workspaceId") String workspace,
-                              @PathParam("project") String project) throws NotFoundException, ServerException {
+                              @PathParam("project") String project) throws NotFoundException, ServerException, ForbiddenException {
         final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
         machine.unbind(workspace, project);
     }
@@ -315,6 +314,13 @@ public class MachineService {
     private void requiredNotNull(Object object, String subject) throws ForbiddenException {
         if (object == null) {
             throw new ForbiddenException(subject + " required");
+        }
+    }
+
+    private void checkCurrentUserPermissionsForMachine(String machineCreator) throws ForbiddenException {
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        if (!userId.equals(machineCreator)) {
+            throw new ForbiddenException("Operation is not permitted");
         }
     }
 

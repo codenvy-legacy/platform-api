@@ -32,5 +32,5 @@ public abstract class MachineFactory {
     public abstract Machine getMachine(String machineId);
 
     /** Returns type of machine or its builder that this factory produces. */
-    public abstract String getMachineBuilderType();
+    public abstract String getMachineType();
 }

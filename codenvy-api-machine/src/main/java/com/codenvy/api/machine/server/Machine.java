@@ -22,7 +22,7 @@ import java.util.List;
  */
 public abstract class Machine {
     public enum State {
-        CREATING, ACTIVE, INACTIVE, DESTROYED
+        CREATING, RUNNING, STOPPING, STOPPED, DESTROYED
     }
 
     private final String id;
@@ -62,20 +62,12 @@ public abstract class Machine {
     public abstract void start() throws ServerException;
 
     /**
-     * Suspends machine.
+     * Stops machine.
      *
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract void suspend() throws ServerException;
-
-    /**
-     * Resumes machine.
-     *
-     * @throws ServerException
-     *         if internal error occurs
-     */
-    public abstract void resume() throws ServerException;
+    public abstract void stop() throws ServerException;
 
     /**
      * Destroys machine.
@@ -86,11 +78,13 @@ public abstract class Machine {
     public abstract void destroy() throws ServerException;
 
     /** Saves the machine's current state and returns id of created snapshot. */
-    public abstract String takeSnapshot(String description) throws ServerException;
+    public abstract String saveSnapshot(String description) throws ServerException;
 
     public abstract void removeSnapshot(String snapshotId) throws ServerException;
 
     public abstract List<Snapshot> getSnapshots() throws ServerException;
+
+    public abstract void restoreToSnapshot(String snapshotId) throws ServerException;
 
     public abstract CommandProcess newCommandProcess(String command);
 
@@ -101,9 +95,9 @@ public abstract class Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract List<CommandProcess> getRunningProcesses() throws ServerException;
+    public abstract List<CommandProcess> getRunningProcesses() throws NotFoundException, ServerException;
 
-    public abstract void bind(String workspace, String project) throws ServerException, NotFoundException;
+    public abstract void bind(String workspaceId, String project) throws NotFoundException, ServerException;
 
-    public abstract void unbind(String workspace, String project) throws ServerException, NotFoundException;
+    public abstract void unbind(String workspaceId, String project) throws NotFoundException, ServerException;
 }

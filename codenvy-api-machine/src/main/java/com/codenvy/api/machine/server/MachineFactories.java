@@ -28,7 +28,7 @@ public class MachineFactories {
     public MachineFactories(Set<MachineFactory> builderFactories) {
         machineBuilderFactories = new ConcurrentHashMap<>();
         for (MachineFactory builderFactory : builderFactories) {
-            machineBuilderFactories.put(builderFactory.getMachineBuilderType(), builderFactory);
+            machineBuilderFactories.put(builderFactory.getMachineType(), builderFactory);
         }
     }
 

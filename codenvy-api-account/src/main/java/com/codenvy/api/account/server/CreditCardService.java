@@ -66,7 +66,7 @@ public class CreditCardService extends Service {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
-    @POST
+    @GET
     @Path("/{accountId}/token")
     @RolesAllowed({"account/owner", "system/admin", "system/manager"})
     public ClientToken getClientToken(@ApiParam(value = "Account ID", required = true)

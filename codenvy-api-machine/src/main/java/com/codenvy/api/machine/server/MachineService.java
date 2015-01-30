@@ -21,6 +21,7 @@ import com.codenvy.api.machine.shared.dto.Command;
 import com.codenvy.api.machine.shared.dto.CommandProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.CreateMachineRequest;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
+import com.codenvy.api.machine.shared.dto.NewSnapshot;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
@@ -45,6 +46,7 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -84,9 +86,7 @@ public class MachineService {
         requiredNotNull(createMachineRequest.getType(), "Machine type");
         requiredNotNull(createMachineRequest.getRecipe(), "Machine recipe");
         requiredNotNull(createMachineRequest.getWorkspace(), "Workspace parameter");
-
-        final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        checkPermissions(userId, createMachineRequest.getWorkspace());
+        checkCurrentUserPermissionsForWorkspace(createMachineRequest.getWorkspace());
 
         final LineConsumer lineConsumer;
         if (createMachineRequest.getOutputChannel() != null) {
@@ -94,6 +94,8 @@ public class MachineService {
         } else {
             lineConsumer = LineConsumer.DEV_NULL;
         }
+
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
 
         final MachineBuilder machineBuilder = machines.newMachineOfType(createMachineRequest.getType())
                                                       .setRecipe(new BaseMachineRecipe() {
@@ -161,9 +163,9 @@ public class MachineService {
                                                @QueryParam("project") String project)
             throws ServerException, ForbiddenException {
         requiredNotNull(workspaceId, "Workspace parameter");
+        checkCurrentUserPermissionsForWorkspace(workspaceId);
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        checkPermissions(userId, workspaceId);
 
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         final List<Machine> existingMachines = machines.getMachines(userId, workspaceId, project);
@@ -178,6 +180,18 @@ public class MachineService {
         }
 
         return machinesDescriptors;
+    }
+
+    @Path("/{machineId}/stop")
+    @POST
+    @RolesAllowed("user")
+    public void stopMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
+        final Machine machine = machines.getMachine(machineId);
+
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+
+        machine.saveSnapshot(new Date().toString());
+        machine.stop();
     }
 
     @Path("/{machineId}")
@@ -275,7 +289,7 @@ public class MachineService {
                             @PathParam("project") String project) throws NotFoundException, ServerException, ForbiddenException {
         final Machine machine = machines.getMachine(machineId);
         checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
-        // TODO check user's permissions fot project
+        // TODO check user's permissions for project
 
         machine.bind(workspace, project);
     }
@@ -290,6 +304,29 @@ public class MachineService {
         checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
         machine.unbind(workspace, project);
+    }
+
+    @Path("/{machineId}/snapshot")
+    @PUT
+    @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
+    public void saveSnapshot(@PathParam("machineId") String machineId,
+                             NewSnapshot newSnapshot) throws NotFoundException, ServerException, ForbiddenException {
+        final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+
+        machine.saveSnapshot(newSnapshot.getDescription());
+    }
+
+    @Path("/{machineId}/snapshot/{snapshotId}")
+    @DELETE
+    @RolesAllowed("user")
+    public void removeSnapshot(@PathParam("machineId") String machineId,
+                               @PathParam("snapshotId") String snapshotId) throws NotFoundException, ServerException, ForbiddenException {
+        final Machine machine = machines.getMachine(machineId);
+        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+
+        machine.removeSnapshot(snapshotId);
     }
 
     /**
@@ -315,7 +352,8 @@ public class MachineService {
         }
     }
 
-    private void checkPermissions(String userId, String workspaceId) throws ServerException, ForbiddenException {
+    private void checkCurrentUserPermissionsForWorkspace(String workspaceId) throws ServerException, ForbiddenException {
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
         final Member workspaceMember;
         try {
             workspaceMember = memberDao.getWorkspaceMember(workspaceId, userId);

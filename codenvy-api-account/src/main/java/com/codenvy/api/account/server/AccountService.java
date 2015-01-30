@@ -108,7 +108,6 @@ public class AccountService extends Service {
     private final PlanDao                     planDao;
     private final ResourcesManager            resourcesManager;
 
-
     @Inject
     public AccountService(AccountDao accountDao,
                           UserDao userDao,

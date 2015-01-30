@@ -145,9 +145,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Create a new account",
-            notes = "Create a new account",
-            response = Account.class,
-            position = 1)
+                  notes = "Create a new account",
+                  response = Account.class,
+                  position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -180,8 +180,7 @@ public class AccountService extends Service {
             throw new ConflictException(format("Account with name %s already exists", newAccount.getName()));
         } catch (NotFoundException ignored) {
         }
-        final String accountId =
-                NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
+        final String accountId = NameGenerator.generate(Account.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH);
         final Account account = new Account().withId(accountId)
                                              .withName(newAccount.getName())
                                              .withAttributes(newAccount.getAttributes());

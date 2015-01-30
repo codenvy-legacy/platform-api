@@ -15,21 +15,21 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.core.util.WebsocketLineConsumer;
+import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 import com.codenvy.api.machine.server.dto.Snapshot;
-import com.codenvy.api.machine.server.dto.StoredMachine;
 import com.codenvy.api.machine.shared.dto.CommandProcessDescriptor;
+import com.codenvy.api.machine.shared.dto.CreateMachineRequest;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.api.workspace.server.dao.Member;
+import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
 
-import org.everrest.core.impl.provider.json.JsonUtils;
-import org.everrest.websockets.WSConnectionContext;
-import org.everrest.websockets.message.ChannelBroadcastMessage;
 import org.slf4j.Logger;
 
-import javax.annotation.Nullable;
 import javax.annotation.PreDestroy;
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
@@ -48,8 +48,6 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.SecurityContext;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -73,43 +71,64 @@ public class MachineService {
 
     private final MachineFactories machineFactories;
 
+    private final MemberDao memberDao;
+
     @Inject
     public MachineService(MachineRegistry machineRegistry,
-                          MachineFactories machineFactories) {
+                          MachineFactories machineFactories,
+                          MemberDao memberDao) {
         this.machineRegistry = machineRegistry;
         this.machineFactories = machineFactories;
+        this.memberDao = memberDao;
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
-
-    // TODO add ability to name machines or add description
 
     // TODO Save errors somewhere to send to client if client wasn't subscribed to build output
 
     @PUT
-    @Consumes(MediaType.TEXT_PLAIN)
+    @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public MachineDescriptor createMachine(@QueryParam("workspace") final String workspace,
-                                           @Nullable @QueryParam("type") String machineType,
-                                           @Nullable @QueryParam("outputChannel") String outputChannel,
-                                           final InputStream recipeStream)
+    public MachineDescriptor createMachine(final CreateMachineRequest createMachineRequest)
             throws ServerException, NotFoundException, ForbiddenException {
-        if (workspace == null) {
-            throw new ForbiddenException("Workspace parameter is missing.");
+        if (createMachineRequest.getType() == null) {
+            throw new ForbiddenException("Machine type is missing");
         }
+        if (createMachineRequest.getReceipt() == null) {
+            throw new ForbiddenException("Machine recipe is missing");
+        }
+        if (createMachineRequest.getWorkspace() == null) {
+            throw new ForbiddenException("Workspace is missing");
+        }
+
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        final Member workspaceMember = memberDao.getWorkspaceMember(createMachineRequest.getWorkspace(), userId);
+        if (!workspaceMember.getRoles().contains("workspace/developer") && !workspaceMember.getRoles().contains("workspace/admin")) {
+            throw new ForbiddenException("You don't have access to create machine in specified workspace");
+        }
 
-        final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer(outputChannel);
+        final LineConsumer lineConsumer;
+        if (createMachineRequest.getOutputChannel() != null) {
+            lineConsumer = new WebsocketLineConsumer(createMachineRequest.getOutputChannel());
+        } else {
+            lineConsumer = LineConsumer.DEV_NULL;
+        }
 
-        final MachineBuilder machineBuilder = machineFactories.get(machineType).newMachineBuilder()
-                                                                    .setRecipe(new BaseMachineRecipe() {
-                                                                        @Override
-                                                                        public InputStream asStream() {
-                                                                            return recipeStream;
-                                                                        }
-                                                                    })
-                                                                    .setOutputConsumer(websocketLineConsumer);
+        final MachineBuilder machineBuilder = machineFactories.get(createMachineRequest.getType()).newMachineBuilder()
+                                                              .setRecipe(new BaseMachineRecipe() {
+                                                                  @Override
+                                                                  public String asString() {
+                                                                      return createMachineRequest.getReceipt();
+                                                                  }
+                                                              })
+                                                              .setOutputConsumer(lineConsumer);
 
+        final MachineMetaInfo machineMetaInfo = DtoFactory.getInstance().createDto(MachineMetaInfo.class)
+                                                      .withId(machineBuilder.getMachineId())
+                                                      .withUserId(userId)
+                                                      .withWorkspaceId(createMachineRequest.getWorkspace())
+                                                      .withDisplayName(createMachineRequest.getDisplayName())
+                                                      .withType(createMachineRequest.getType());
 
         executorService.execute(new Runnable() {
             @Override
@@ -117,14 +136,11 @@ public class MachineService {
                 try {
                     machineBuilder.build();
 
-                    machineRegistry.addMachine(DtoFactory.getInstance().createDto(StoredMachine.class)
-                                                         .withId(machineBuilder.getMachineId())
-                                                         .withUserId(userId)
-                                                         .withWorkspaceId(workspace));
+                    machineRegistry.addMachine(machineMetaInfo);
 
                 } catch (ServerException | ForbiddenException e) {
                     try {
-                        websocketLineConsumer.writeLine(e.getLocalizedMessage());
+                        lineConsumer.writeLine(e.getLocalizedMessage());
                     } catch (IOException e1) {
                         LOG.error(e1.getLocalizedMessage(), e1);
                     }
@@ -132,11 +148,12 @@ public class MachineService {
             }
         });
 
-        return toDescriptor(machineBuilder.getMachineId(),
+        return toDescriptor(machineMetaInfo.getId(),
+                            machineMetaInfo.getUserId(),
+                            machineMetaInfo.getWorkspaceId(),
+                            machineMetaInfo.getDisplayName(),
                             Machine.State.CREATING,
-                            Collections.<Snapshot>emptyList(),
-                            userId,
-                            workspace);
+                            null);
     }
 
     @GET
@@ -146,6 +163,10 @@ public class MachineService {
                                                @QueryParam("project") String project,
                                                @Context SecurityContext context)
             throws ServerException, ForbiddenException {
+        if (workspaceId == null) {
+            throw new ForbiddenException("Workspace parameter is missing");
+        }
+
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
 
         final List<Machine> machines = machineRegistry.getMachines(workspaceId, project, userId);
@@ -156,13 +177,10 @@ public class MachineService {
         return machinesDescriptors;
     }
 
-    //  TODO update image, e.g. remove bad slices
-
-    // TODO add method for image removing from registry
-
     @Path("/{machineId}")
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
     public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
 
@@ -171,26 +189,28 @@ public class MachineService {
 
     @Path("/{machineId}/suspend")
     @POST
+    @RolesAllowed("user")
     public void suspendMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
 
-        machine.suspend();
+//        machine.suspend();
     }
 
     @Path("/{machineId}/resume")
     @POST
     @Produces(MediaType.TEXT_PLAIN)
+    @RolesAllowed("user")
     public void resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
         final Machine machine = machineRegistry.getMachine(machineId);
 
         executorService.execute(new Runnable() {
             @Override
             public void run() {
-                try {
-                    machine.resume();
-                } catch (ServerException e) {
-                    // TODO put to websocket
-                }
+//                try {
+//                    machine.resume();
+//                } catch (ServerException e) {
+//                    TODO put to websocket
+//                }
             }
         });
     }
@@ -201,6 +221,7 @@ public class MachineService {
     @PUT
     @Consumes(MediaType.APPLICATION_FORM_URLENCODED)
     @Produces(MediaType.TEXT_PLAIN)
+    @RolesAllowed("user")
     public CommandProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId,
                                                             @FormParam("command") final String command,
                                                             @Context SecurityContext context)
@@ -227,6 +248,7 @@ public class MachineService {
     @Path("/{machineId}/processes")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
     public List<CommandProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
                                                        @Context SecurityContext context)
             throws NotFoundException, ServerException {
@@ -242,6 +264,7 @@ public class MachineService {
 
     @Path("/{machineId}/kill/{processId}")
     @DELETE
+    @RolesAllowed("user")
     public void killProcess(@PathParam("machineId") String machineId,
                             @PathParam("processId") int processId)
             throws NotFoundException, ForbiddenException, ServerException {
@@ -262,6 +285,7 @@ public class MachineService {
 
     @Path("/{machineId}/bind/{workspaceId}/{project}")
     @POST
+    @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
                             @PathParam("workspaceId") String workspace,
                             @PathParam("project") String project) throws NotFoundException, ServerException {
@@ -272,6 +296,7 @@ public class MachineService {
 
     @Path("/{machineId}/unbind/{workspaceId}/{project}")
     @POST
+    @RolesAllowed("user")
     public void unbindProject(@PathParam("machineId") String machineId,
                               @PathParam("workspaceId") String workspace,
                               @PathParam("project") String project) throws NotFoundException, ServerException {
@@ -280,25 +305,29 @@ public class MachineService {
         machine.unbind(workspace, project);
     }
 
-    private MachineDescriptor toDescriptor(String machineId,
+    private MachineDescriptor toDescriptor(String id,
+                                           String userId,
+                                           String workspaceId,
+                                           String displayName,
                                            Machine.State machineState,
-                                           List<Snapshot> snapshots,
-                                           String user,
-                                           String workspace) throws ServerException {
+                                           List<Snapshot> snapshots)
+            throws ServerException {
         List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
-        for (Snapshot snapshot : snapshots) {
-            snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
-                                              .withId(snapshot.getId())
-                                              .withDescription(snapshot.getDescription())
-                                              // TODO
-                                              .withLinks(null));
+        if (snapshots != null) {
+            for (Snapshot snapshot : snapshots) {
+                snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
+                                                  .withId(snapshot.getId())
+                                                  .withDescription(snapshot.getDescription())
+                                                  .withLinks(null)); // TODO
+            }
         }
 
         return DtoFactory.getInstance().createDto(MachineDescriptor.class)
-                         .withId(machineId)
-                         .withUser(user)
+                         .withId(id)
+                         .withUserId(userId)
                          .withState(machineState)
-                         .withWorkspaceId(workspace)
+                         .withWorkspaceId(workspaceId)
+                         .withDisplayName(displayName)
                          .withSnapshots(snapshotDescriptors)
                          // TODO
                          .withLinks(null);
@@ -307,7 +336,7 @@ public class MachineService {
     private MachineDescriptor toDescriptor(Machine machine,
                                            String user,
                                            String workspace) throws ServerException {
-        return toDescriptor(machine.getId(), machine.getState(), machine.getSnapshots(), user, workspace);
+        return toDescriptor(machine.getId(), user, workspace, machine.getDisplayName(), machine.getState(), machine.getSnapshots());
 
     }
 
@@ -321,31 +350,5 @@ public class MachineService {
     @PreDestroy
     private void cleanUp() {
         executorService.shutdownNow();
-    }
-
-    private static class WebsocketLineConsumer implements LineConsumer {
-        private static final Logger LOG = getLogger(WebsocketLineConsumer.class);
-        private final String channel;
-
-        public WebsocketLineConsumer(String channel) {
-            this.channel = channel;
-        }
-
-        @Override
-        public void writeLine(String line) throws IOException {
-            final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
-            bm.setChannel(channel);
-            bm.setBody(JsonUtils.getJsonString(line));
-            try {
-                WSConnectionContext.sendMessage(bm);
-            } catch (Exception e) {
-                LOG.error("A problem occurred while sending websocket message", e);
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-
-        }
     }
 }

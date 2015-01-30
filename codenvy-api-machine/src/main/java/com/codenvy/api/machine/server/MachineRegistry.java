@@ -13,7 +13,7 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.machine.server.dto.StoredMachine;
+import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -32,23 +32,23 @@ import java.util.List;
 public class MachineRegistry {
     private static final Logger LOG = LoggerFactory.getLogger(MachineRegistry.class);
 
-    private final MachineDao       machineDao;
-    private final MachineFactories machineFactories;
+    private final MachineMetaInfoDao machineMetaInfoDao;
+    private final MachineFactories   machineFactories;
 
     @Inject
-    public MachineRegistry(MachineDao machineDao, MachineFactories machineFactories) {
-        this.machineDao = machineDao;
+    public MachineRegistry(MachineMetaInfoDao machineMetaInfoDao, MachineFactories machineFactories) {
+        this.machineMetaInfoDao = machineMetaInfoDao;
         this.machineFactories = machineFactories;
     }
 
-    public void addMachine(StoredMachine persistMachine) throws ServerException {
-        machineDao.add(persistMachine);
+    public void addMachine(MachineMetaInfo persistMachine) throws ServerException {
+        machineMetaInfoDao.add(persistMachine);
     }
 
     public List<Machine> getMachines(String workspaceId, String project, String user) throws ServerException, ForbiddenException {
         List<Machine> result = new LinkedList<>();
-        final List<StoredMachine> machines = machineDao.findByUserWorkspaceProject(workspaceId, project, user);
-        for (StoredMachine machine : machines) {
+        final List<MachineMetaInfo> machines = machineMetaInfoDao.findByUserWorkspaceProject(workspaceId, project, user);
+        for (MachineMetaInfo machine : machines) {
             final MachineFactory machineFactory = machineFactories.get(machine.getType());
             if (machineFactory == null) {
                 LOG.error("Unknown machine type {} of machine {}", machine.getType(), machine.getId());
@@ -60,7 +60,7 @@ public class MachineRegistry {
     }
 
     public Machine getMachine(String machineId) throws NotFoundException, ServerException {
-        final StoredMachine machine = machineDao.getById(machineId);
+        final MachineMetaInfo machine = machineMetaInfoDao.getById(machineId);
         if (machine == null) {
             throw new NotFoundException(String.format("Machine %s not found", machineId));
         }

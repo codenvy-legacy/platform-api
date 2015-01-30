@@ -13,7 +13,11 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 import com.codenvy.api.machine.server.dto.Snapshot;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.List;
 
@@ -21,33 +25,21 @@ import java.util.List;
  * @author andrew00x
  */
 public abstract class Machine {
+    private static final Logger LOG = LoggerFactory.getLogger(Machine.class);
+
     public enum State {
         CREATING, RUNNING, STOPPING, STOPPED, DESTROYED
     }
 
-    private final String id;
+    private final String             id;
+    private final MachineMetaInfoDao machineMetaInfoDao;
 
     private LineConsumer outputConsumer;
 
-    protected Machine(String id) {
+    protected Machine(String id, MachineMetaInfoDao machineMetaInfoDao) {
         this.id = id;
+        this.machineMetaInfoDao = machineMetaInfoDao;
         outputConsumer = LineConsumer.DEV_NULL;
-    }
-
-    public void setOutputConsumer(LineConsumer outputConsumer) {
-        if (outputConsumer == null) {
-            throw new IllegalArgumentException("Output consumer can't be null");
-        }
-        this.outputConsumer = outputConsumer;
-    }
-
-    protected LineConsumer getOutputConsumer() {
-        return outputConsumer;
-    }
-
-    /** Gets id of machine. */
-    public final String getId() {
-        return id;
     }
 
     /** Gets state of machine. */
@@ -95,9 +87,45 @@ public abstract class Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract List<CommandProcess> getRunningProcesses() throws NotFoundException, ServerException;
+    public abstract List<CommandProcess> getRunningProcesses() throws ServerException;
 
     public abstract void bind(String workspaceId, String project) throws NotFoundException, ServerException;
-
+    
     public abstract void unbind(String workspaceId, String project) throws NotFoundException, ServerException;
+
+    public void setOutputConsumer(LineConsumer outputConsumer) {
+        if (outputConsumer == null) {
+            throw new IllegalArgumentException("Output consumer can't be null");
+        }
+        this.outputConsumer = outputConsumer;
+    }
+
+    protected LineConsumer getOutputConsumer() {
+        return outputConsumer;
+    }
+
+    /** Gets id of machine. */
+    public final String getId() {
+        return id;
+    }
+
+    public final String getDisplayName() throws ServerException {
+        try {
+            return machineMetaInfoDao.getById(id).getDisplayName();
+        } catch (NotFoundException e) {
+            LOG.error(e.getLocalizedMessage(), e);
+            throw new ServerException("Can't retrieve display name of machine");
+        }
+    }
+
+    public final void setDisplayName(String displayName) throws ServerException {
+        try {
+            final MachineMetaInfo machineInfo = machineMetaInfoDao.getById(id);
+
+            machineMetaInfoDao.update(machineInfo.withDisplayName(displayName));
+        } catch (NotFoundException e) {
+            LOG.error(e.getLocalizedMessage(), e);
+            throw new ServerException("Display name of machine failed");
+        }
+    }
 }

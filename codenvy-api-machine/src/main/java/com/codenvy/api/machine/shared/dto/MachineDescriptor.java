@@ -13,7 +13,6 @@ package com.codenvy.api.machine.shared.dto;
 import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.machine.server.Machine;
-import com.codenvy.api.machine.server.dto.Snapshot;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -31,11 +30,11 @@ public interface MachineDescriptor extends Hyperlinks {
 
     MachineDescriptor withId(String id);
 
-    String getProject();
+    List<String> getProjects();
 
-    void setProject(String project);
+    void setProjects(List<String> projects);
 
-    MachineDescriptor withProject(String project);
+    MachineDescriptor withProjects(List<String> projects);
 
     String getWorkspaceId();
 
@@ -47,7 +46,13 @@ public interface MachineDescriptor extends Hyperlinks {
 
     void setUser(String user);
 
-    MachineDescriptor withUser(String user);
+    MachineDescriptor withUserId(String user);
+
+    String getDisplayName();
+
+    void setDisplayName(String displayName);
+
+    MachineDescriptor withDisplayName(String displayName);
 
     List<SnapshotDescriptor> getSnapshots();
 

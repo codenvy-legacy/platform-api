@@ -25,6 +25,7 @@ import java.util.Set;
  */
 public abstract class MachineBuilder {
     private final String machineId;
+    private final MachineMetaInfoDao machineMetaInfoDao;
 
     private MachineRecipe       recipe;
     private Set<File>           files;
@@ -32,8 +33,9 @@ public abstract class MachineBuilder {
     private Map<String, Object> buildOptions;
     private LineConsumer        outputConsumer;
 
-    protected MachineBuilder(String machineId) {
+    protected MachineBuilder(String machineId, MachineMetaInfoDao machineMetaInfoDao) {
         this.machineId = machineId;
+        this.machineMetaInfoDao = machineMetaInfoDao;
         outputConsumer = LineConsumer.DEV_NULL;
     }
 
@@ -130,5 +132,9 @@ public abstract class MachineBuilder {
 
     protected String getMachineId() {
         return machineId;
+    }
+
+    protected MachineMetaInfoDao getMachineMetaInfoDao() {
+        return machineMetaInfoDao;
     }
 }

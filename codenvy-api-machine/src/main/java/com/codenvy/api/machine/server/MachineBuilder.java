@@ -13,6 +13,8 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.machine.server.dto.MachineMetaInfo;
+import com.codenvy.dto.server.DtoFactory;
 
 import java.io.File;
 import java.util.HashMap;
@@ -24,20 +26,17 @@ import java.util.Set;
  * @author andrew00x
  */
 public abstract class MachineBuilder {
-    private final String machineId;
-    private final MachineMetaInfoDao machineMetaInfoDao;
-
+    private String              machineId;
+    private String              machineType;
+    private MachineMetaInfoDao  machineMetaInfoDao;
     private MachineRecipe       recipe;
     private Set<File>           files;
     private Map<String, String> machineEnvironmentVariables;
     private Map<String, Object> buildOptions;
-    private LineConsumer        outputConsumer;
-
-    protected MachineBuilder(String machineId, MachineMetaInfoDao machineMetaInfoDao) {
-        this.machineId = machineId;
-        this.machineMetaInfoDao = machineMetaInfoDao;
-        outputConsumer = LineConsumer.DEV_NULL;
-    }
+    private String              workspaceId;
+    private String              displayName;
+    private String              createdBy;
+    private LineConsumer outputConsumer = LineConsumer.DEV_NULL;
 
     /**
      * Builds machine using supplied configuration. Puts build logs to given line consumer.
@@ -51,7 +50,20 @@ public abstract class MachineBuilder {
         if (machineId == null) {
             throw new ForbiddenException("Machine id is required");
         }
+        if (workspaceId == null) {
+            throw new ForbiddenException("Workspace id is required");
+        }
         final Machine machine = doBuild();
+        if (machineMetaInfoDao != null) {
+            final DtoFactory dtoFactory = DtoFactory.getInstance();
+            machineMetaInfoDao.add(dtoFactory.createDto(MachineMetaInfo.class)
+                                             .withId(machineId)
+                                             .withUserId(createdBy)
+                                             .withWorkspaceId(workspaceId)
+                                             .withDisplayName(displayName)
+                                             .withType(machineType));
+            machine.setMachineMetaInfoDao(machineMetaInfoDao);
+        }
         machine.setOutputConsumer(outputConsumer);
         return machine;
     }
@@ -59,6 +71,21 @@ public abstract class MachineBuilder {
     protected abstract Machine doBuild() throws ServerException, ForbiddenException;
 
     //
+
+    public MachineBuilder setWorkspaceId(String workspaceId) {
+        this.workspaceId = workspaceId;
+        return this;
+    }
+
+    public MachineBuilder setDisplayName(String displayName) {
+        this.displayName = displayName;
+        return this;
+    }
+
+    public MachineBuilder setCreatedBy(String createdBy) {
+        this.createdBy = createdBy;
+        return this;
+    }
 
     /** Sets output consumer for machine output, including build machine output. */
     public MachineBuilder setOutputConsumer(LineConsumer outputConsumer) throws IllegalArgumentException {
@@ -134,7 +161,20 @@ public abstract class MachineBuilder {
         return machineId;
     }
 
-    protected MachineMetaInfoDao getMachineMetaInfoDao() {
-        return machineMetaInfoDao;
+    //
+
+    MachineBuilder setMachineId(String machineId) {
+        this.machineId = machineId;
+        return this;
+    }
+
+    MachineBuilder setMachineType(String machineType) {
+        this.machineType = machineType;
+        return this;
+    }
+
+    MachineBuilder setMachineMetaInfoDao(MachineMetaInfoDao machineMetaInfoDao) {
+        this.machineMetaInfoDao = machineMetaInfoDao;
+        return this;
     }
 }

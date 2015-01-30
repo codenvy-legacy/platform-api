@@ -16,30 +16,29 @@ import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 import com.codenvy.api.machine.server.dto.Snapshot;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import java.util.List;
 
 /**
  * @author andrew00x
  */
 public abstract class Machine {
-    private static final Logger LOG = LoggerFactory.getLogger(Machine.class);
-
     public enum State {
         CREATING, RUNNING, STOPPING, STOPPED, DESTROYED
     }
 
-    private final String             id;
-    private final MachineMetaInfoDao machineMetaInfoDao;
+    private final String id;
 
-    private LineConsumer outputConsumer;
+    private MachineMetaInfoDao machineMetaInfoDao;
+    private LineConsumer       outputConsumer;
 
-    protected Machine(String id, MachineMetaInfoDao machineMetaInfoDao) {
+    protected Machine(String id) {
         this.id = id;
-        this.machineMetaInfoDao = machineMetaInfoDao;
         outputConsumer = LineConsumer.DEV_NULL;
+    }
+
+    /** Gets id of machine. */
+    public final String getId() {
+        return id;
     }
 
     /** Gets state of machine. */
@@ -78,6 +77,10 @@ public abstract class Machine {
 
     public abstract void restoreToSnapshot(String snapshotId) throws ServerException;
 
+    public abstract void bind(String workspaceId, String project) throws NotFoundException, ServerException;
+
+    public abstract void unbind(String workspaceId, String project) throws NotFoundException, ServerException;
+
     public abstract CommandProcess newCommandProcess(String command);
 
     /**
@@ -89,9 +92,37 @@ public abstract class Machine {
      */
     public abstract List<CommandProcess> getRunningProcesses() throws ServerException;
 
-    public abstract void bind(String workspaceId, String project) throws NotFoundException, ServerException;
-    
-    public abstract void unbind(String workspaceId, String project) throws NotFoundException, ServerException;
+    public final String getDisplayName() throws ServerException {
+        return getMachineMetaInfo().getDisplayName();
+    }
+
+    public final void setDisplayName(String displayName) throws ServerException {
+        final MachineMetaInfo machineMetaInfo = getMachineMetaInfo();
+        machineMetaInfo.setDisplayName(displayName);
+        updateMachineMetaInfo(machineMetaInfo);
+    }
+
+    private MachineMetaInfo getMachineMetaInfo() throws ServerException {
+        if (machineMetaInfoDao != null) {
+            try {
+                return machineMetaInfoDao.getById(id);
+            } catch (NotFoundException e) {
+                throw new ServerException(String.format("Meta information for machine %s not found.", id));
+            }
+        }
+        throw new ServerException(String.format("Meta information for machine %s isn't available.", id));
+    }
+
+    private void updateMachineMetaInfo(MachineMetaInfo metaInfo) throws ServerException {
+        if (machineMetaInfoDao != null) {
+            try {
+                machineMetaInfoDao.update(metaInfo);
+            } catch (NotFoundException e) {
+                throw new ServerException(String.format("Meta information for machine %s not found.", id));
+            }
+        }
+        throw new ServerException(String.format("Meta information for machine %s isn't available.", id));
+    }
 
     public void setOutputConsumer(LineConsumer outputConsumer) {
         if (outputConsumer == null) {
@@ -104,28 +135,11 @@ public abstract class Machine {
         return outputConsumer;
     }
 
-    /** Gets id of machine. */
-    public final String getId() {
-        return id;
+    protected MachineMetaInfoDao getMachineMetaInfoDao() {
+        return machineMetaInfoDao;
     }
 
-    public final String getDisplayName() throws ServerException {
-        try {
-            return machineMetaInfoDao.getById(id).getDisplayName();
-        } catch (NotFoundException e) {
-            LOG.error(e.getLocalizedMessage(), e);
-            throw new ServerException("Can't retrieve display name of machine");
-        }
-    }
-
-    public final void setDisplayName(String displayName) throws ServerException {
-        try {
-            final MachineMetaInfo machineInfo = machineMetaInfoDao.getById(id);
-
-            machineMetaInfoDao.update(machineInfo.withDisplayName(displayName));
-        } catch (NotFoundException e) {
-            LOG.error(e.getLocalizedMessage(), e);
-            throw new ServerException("Display name of machine failed");
-        }
+    void setMachineMetaInfoDao(MachineMetaInfoDao machineMetaInfoDao) {
+        this.machineMetaInfoDao = machineMetaInfoDao;
     }
 }

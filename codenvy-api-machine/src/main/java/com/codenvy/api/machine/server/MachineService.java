@@ -89,7 +89,7 @@ public class MachineService {
     public MachineDescriptor startMachine(final CreateMachineRequest createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
         requiredNotNull(createMachineRequest.getType(), "Machine type");
-        requiredNotNull(createMachineRequest.getReceipt(), "Machine recipe");
+        requiredNotNull(createMachineRequest.getRecipe(), "Machine recipe");
         requiredNotNull(createMachineRequest.getWorkspace(), "Workspace parameter");
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
@@ -106,7 +106,7 @@ public class MachineService {
                                                       .setRecipe(new BaseMachineRecipe() {
                                                           @Override
                                                           public String asString() {
-                                                              return createMachineRequest.getReceipt();
+                                                              return createMachineRequest.getRecipe();
                                                           }
                                                       })
                                                       .setCreatedBy(userId)

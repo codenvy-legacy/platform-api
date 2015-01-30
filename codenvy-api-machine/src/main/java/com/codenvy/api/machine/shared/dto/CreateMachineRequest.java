@@ -13,11 +13,11 @@ public interface CreateMachineRequest {
 
     CreateMachineRequest withType(String type);
 
-    String getReceipt();
+    String getRecipe();
 
-    void setReceipt(String receipt);
+    void setRecipe(String recipe);
 
-    CreateMachineRequest withReceipt(String receipt);
+    CreateMachineRequest withRecipe(String recipe);
 
     String getWorkspace();
 

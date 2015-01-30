@@ -24,6 +24,7 @@ import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
+import com.codenvy.api.account.shared.dto.AccountResources;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.BillingCycleType;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
@@ -32,6 +33,7 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionResources;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ConflictException;
@@ -76,13 +78,16 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyListOf;
+import static org.mockito.Matchers.anyObject;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.argThat;
 import static org.mockito.Matchers.eq;
@@ -1590,6 +1595,60 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
         assertEquals(response.getEntity().toString(), "Error");
         verify(resourcesManager).redistributeResources(eq(ACCOUNT_ID), anyListOf(UpdateResourcesDescriptor.class));
+    }
+
+    @Test
+    public void shouldBeAbleToGetAccountResources() throws Exception {
+        when(subscriptionService.getAccountResources((Subscription)anyObject()))
+                .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
+        when(serviceRegistry.getAll()).thenReturn(new HashSet<>(Arrays.asList(subscriptionService)));
+        when(accountDao.getActiveSubscriptions(anyString(), anyString()))
+                .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
+
+        ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/resources", null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        List<SubscriptionResources> result = (List<SubscriptionResources>)response.getEntity();
+
+        assertEquals(result.size(), 1);
+        assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
+        verify(accountDao).getActiveSubscriptions(anyString(), anyString());
+        verify(subscriptionService).getAccountResources((Subscription)anyObject());
+    }
+
+    @Test
+    public void shouldBeAbleToGetAccountResourcesByServiceId() throws Exception {
+        when(subscriptionService.getAccountResources((Subscription)anyObject()))
+                .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
+
+        when(serviceRegistry.get(anyString())).thenReturn(subscriptionService);
+
+        when(accountDao.getActiveSubscriptions(anyString(), anyString()))
+                .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
+
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/resources?serviceId=Saas", null, null);
+
+        assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
+
+        @SuppressWarnings("unchecked")
+        List<SubscriptionResources> result = (List<SubscriptionResources>)response.getEntity();
+
+        assertEquals(result.size(), 1);
+        assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
+        verify(accountDao).getActiveSubscriptions(anyString(), anyString());
+        verify(subscriptionService).getAccountResources((Subscription)anyObject());
+    }
+
+    @Test
+    public void shouldThrowExceptionWhenServiceWithRequiredIdNotFound() throws Exception {
+        ContainerResponse response =
+                makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources?serviceId=invalidId", null, null);
+
+        assertEquals(response.getStatus(), Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
+        assertEquals(response.getEntity().toString(), "Unknown serviceId is used");
     }
 
     protected void verifyLinksRel(List<Link> links, List<String> rels) {

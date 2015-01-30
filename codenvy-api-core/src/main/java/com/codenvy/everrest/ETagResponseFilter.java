@@ -138,8 +138,12 @@ public class ETagResponseFilter implements ResponseFilter {
             // unknown entity type, cannot perform hash
             return false;
         }
-        // add hash
-        hasher.putString(getJson(entity, entityType));
+        // add hash if all is OK
+        try {
+            hasher.putString(getJson(entity, entityType));
+        } catch (RuntimeException e) {
+            return false;
+        }
         return true;
     }
 

@@ -1276,9 +1276,8 @@ public class RunQueue {
                         String workspaceId = event.getWorkspace();
                         bm.setChannel(String.format("workspace:resources:%s", workspaceId));
 
-                        final ResourcesDescriptor resourcesDescriptor =
-                                DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
-                                          .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
+                        final ResourcesDescriptor resourcesDescriptor = DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                                                                            .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
                         bm.setBody(DtoFactory.getInstance().toJson(resourcesDescriptor));
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {

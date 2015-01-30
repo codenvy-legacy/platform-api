@@ -19,8 +19,8 @@ import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.shared.dto.AccountMetrics;
 import com.codenvy.api.account.shared.dto.AccountReference;
+import com.codenvy.api.account.shared.dto.AccountResources;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.CreditCard;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
@@ -30,6 +30,8 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
+import com.codenvy.api.account.shared.dto.SubscriptionReference;
+import com.codenvy.api.account.shared.dto.SubscriptionResources;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ApiException;
@@ -1089,25 +1091,51 @@ public class AccountService extends Service {
     }
 
     /**
-     * Returns metrics information of account
+     * Returns used resources, provided by subscriptions
      *
-     * @param id
+     * @param accountId
      *         account id
      */
-    @ApiOperation(value = "Get metrics information of account",
-                  notes = "Returns metrics information of account. Roles: account/owner, account/member, system/manager, system/admin.",
+    @ApiOperation(value = "Get used resources, provided by subscriptions",
+                  notes = "Returns used resources, provided by subscriptions. Roles: account/owner, account/member, system/manager, system/admin.",
                   position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not found"),
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
-    @Path("/{id}/metrics")
+    @Path("/{id}/resources")
     @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
-    public AccountMetrics getMetrics(@ApiParam(value = "Account ID", required = true)
-                                     @PathParam("id") String id) throws ServerException, NotFoundException {
-        return resourcesManager.getAccountMetrics(id);
+    public List<SubscriptionResources> getResources(@ApiParam(value = "Account ID", required = true)
+                                                    @PathParam("id") String accountId,
+                                                    @QueryParam("serviceId") String serviceId)
+            throws ServerException, NotFoundException, ConflictException {
+        Set<SubscriptionService> subscriptionServices = new HashSet<>();
+        if (serviceId == null) {
+            subscriptionServices.addAll(registry.getAll());
+        } else {
+            final SubscriptionService subscriptionService = registry.get(serviceId);
+            if (subscriptionService == null) {
+                throw new ConflictException("Unknown serviceId is used");
+            }
+            subscriptionServices.add(subscriptionService);
+        }
+
+        List<SubscriptionResources> result = new ArrayList<>();
+        for (SubscriptionService subscriptionService : subscriptionServices) {
+            List<Subscription> activeSubscriptions = accountDao.getActiveSubscriptions(accountId, subscriptionService.getServiceId());
+            if (!activeSubscriptions.isEmpty()) {
+                //For now account can have only one subscription for each service
+                Subscription subscription = activeSubscriptions.get(0);
+                AccountResources accountResources = subscriptionService.getAccountResources(subscription);
+                result.add(DtoFactory.getInstance().createDto(SubscriptionResources.class)
+                                     .withUsed(accountResources.getUsed())
+                                     .withSubscriptionReference(toReference(subscription)));
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -1342,6 +1370,35 @@ public class AccountService extends Service {
                          .withBillingCycle(subscription.getBillingCycle())
                          .withBillingCycleType(subscription.getBillingCycleType())
                          .withBillingContractTerm(subscription.getBillingContractTerm())
+                         .withLinks(links);
+    }
+
+    /**
+     * Create {@link SubscriptionReference} from {@link Subscription}.
+     *
+     * @param subscription
+     *         subscription that should be converted to {@link SubscriptionReference}
+     */
+    private SubscriptionReference toReference(Subscription subscription) {
+        List<Link> links = new ArrayList<>(0);
+        // community subscriptions should not use urls
+        if (!"sas-community".equals(subscription.getPlanId())) {
+            final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+            links.add(LinksHelper.createLink(HttpMethod.GET,
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getSubscriptionById")
+                                                       .build(subscription.getId())
+                                                       .toString(),
+                                             null,
+                                             MediaType.APPLICATION_JSON,
+                                             Constants.LINK_REL_GET_SUBSCRIPTION));
+        }
+
+        return DtoFactory.getInstance().createDto(SubscriptionReference.class)
+                         .withSubscriptionId(subscription.getId())
+                         .withServiceId(subscription.getServiceId())
+                         .withDescription(subscription.getDescription())
+                         .withPlanId(subscription.getPlanId())
                          .withLinks(links);
     }
 

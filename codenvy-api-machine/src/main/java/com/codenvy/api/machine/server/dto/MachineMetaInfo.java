@@ -20,34 +20,40 @@ import java.util.List;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface StoredMachine {
+public interface MachineMetaInfo {
     String getId();
 
     void setId(String id);
 
-    StoredMachine withId(String id);
+    MachineMetaInfo withId(String id);
 
     String getType();
 
     void setType(String type);
 
-    StoredMachine withType(String type);
+    MachineMetaInfo withType(String type);
 
     List<String> getProjects();
 
     void setProjects(List<String> projects);
 
-    StoredMachine withProjects(List<String> projects);
+    MachineMetaInfo withProjects(List<String> projects);
 
     String getWorkspaceId();
 
     void setWorkspaceId(String workspaceId);
 
-    StoredMachine withWorkspaceId(String workspaceId);
+    MachineMetaInfo withWorkspaceId(String workspaceId);
 
     String getUserId();
 
     void setUserId(String userId);
 
-    StoredMachine withUserId(String userId);
+    MachineMetaInfo withUserId(String userId);
+
+    String getDisplayName();
+
+    void setDisplayName(String displayName);
+
+    MachineMetaInfo withDisplayName(String displayName);
 }

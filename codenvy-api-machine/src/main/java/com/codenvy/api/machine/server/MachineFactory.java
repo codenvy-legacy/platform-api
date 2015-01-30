@@ -15,22 +15,11 @@ package com.codenvy.api.machine.server;
  *
  * @author Alexander Garagatyi
  */
-public abstract class MachineFactory {
-    private final MachineIdGenerator machineIdGenerator;
+public interface MachineFactory {
+    MachineBuilder newMachineBuilder();
 
-    protected MachineFactory(MachineIdGenerator machineIdGenerator) {
-        this.machineIdGenerator = machineIdGenerator;
-    }
-
-    /** Returns new machine builder. */
-    public final MachineBuilder newMachineBuilder() {
-        return newMachineBuilder(machineIdGenerator.generateId());
-    }
-
-    protected abstract MachineBuilder newMachineBuilder(String machineId);
-
-    public abstract Machine getMachine(String machineId);
+    Machine getMachine(String machineId);
 
     /** Returns type of machine or its builder that this factory produces. */
-    public abstract String getMachineBuilderType();
+    String getMachineType();
 }

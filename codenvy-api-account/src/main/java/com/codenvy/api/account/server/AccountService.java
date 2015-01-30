@@ -1093,7 +1093,7 @@ public class AccountService extends Service {
     /**
      * Returns used resources, provided by subscriptions
      *
-     * @param id
+     * @param accountId
      *         account id
      */
     @ApiOperation(value = "Get used resources, provided by subscriptions",
@@ -1108,7 +1108,7 @@ public class AccountService extends Service {
     @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionResources> getResources(@ApiParam(value = "Account ID", required = true)
-                                                    @PathParam("id") String id,
+                                                    @PathParam("id") String accountId,
                                                     @QueryParam("serviceId") String serviceId)
             throws ServerException, NotFoundException, ConflictException {
         Set<SubscriptionService> subscriptionServices = new HashSet<>();
@@ -1124,8 +1124,9 @@ public class AccountService extends Service {
 
         List<SubscriptionResources> result = new ArrayList<>();
         for (SubscriptionService subscriptionService : subscriptionServices) {
-            List<Subscription> activeSubscriptions = accountDao.getActiveSubscriptions(id, subscriptionService.getServiceId());
+            List<Subscription> activeSubscriptions = accountDao.getActiveSubscriptions(accountId, subscriptionService.getServiceId());
             if (!activeSubscriptions.isEmpty()) {
+                //For now account can have only one subscription for each service
                 Subscription subscription = activeSubscriptions.get(0);
                 AccountResources accountResources = subscriptionService.getAccountResources(subscription);
                 result.add(DtoFactory.getInstance().createDto(SubscriptionResources.class)

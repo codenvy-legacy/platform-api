@@ -27,6 +27,6 @@ public interface SubscriptionResources extends AccountResources {
 
     SubscriptionResources withSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    @ApiModelProperty(value = "Used resources grouped by workspaces")
+    @Override
     SubscriptionResources withUsed(List<WorkspaceResources> used);
 }

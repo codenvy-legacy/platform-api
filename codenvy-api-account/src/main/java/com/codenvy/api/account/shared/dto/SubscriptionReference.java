@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.shared.DTO;
 import com.wordnik.swagger.annotations.ApiModelProperty;
@@ -20,7 +21,7 @@ import java.util.List;
  * @author Sergii Leschenko
  */
 @DTO
-public interface SubscriptionReference {
+public interface SubscriptionReference extends Hyperlinks {
 
     @ApiModelProperty(value = "Service ID")
     String getServiceId();
@@ -49,9 +50,6 @@ public interface SubscriptionReference {
 
     SubscriptionReference withDescription(String description);
 
-    List<Link> getLinks();
-
-    void setLinks(List<Link> links);
-
+    @Override
     SubscriptionReference withLinks(List<Link> links);
 }

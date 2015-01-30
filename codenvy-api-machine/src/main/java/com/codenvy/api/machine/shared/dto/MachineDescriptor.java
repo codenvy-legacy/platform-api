@@ -30,6 +30,12 @@ public interface MachineDescriptor extends Hyperlinks {
 
     MachineDescriptor withId(String id);
 
+    String getType();
+
+    void setType(String type);
+
+    MachineDescriptor withType(String type);
+
     List<String> getProjects();
 
     void setProjects(List<String> projects);

@@ -13,7 +13,6 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 
 import org.slf4j.Logger;
@@ -73,9 +72,6 @@ public class Machines {
 
     public Machine getMachine(String machineId) throws NotFoundException, ServerException {
         final MachineMetaInfo machineMetaInfo = machineMetaInfoDao.getById(machineId);
-        if (machineMetaInfo == null) {
-            throw new NotFoundException(String.format("Machine %s not found", machineId));
-        }
         final Machine machine = getMachineFactory(machineMetaInfo.getType()).getMachine(machineId);
         machine.setMachineMetaInfoDao(machineMetaInfoDao);
         return machine;

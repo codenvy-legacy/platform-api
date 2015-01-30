@@ -16,7 +16,6 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
-import com.codenvy.api.machine.server.dto.MachineMetaInfo;
 import com.codenvy.api.machine.server.dto.Snapshot;
 import com.codenvy.api.machine.shared.dto.CommandProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.CreateMachineRequest;
@@ -65,21 +64,21 @@ import static org.slf4j.LoggerFactory.getLogger;
 public class MachineService {
     private static final Logger LOG = getLogger(MachineService.class);
 
-    private final MachineRegistry machineRegistry;
-
     private final ExecutorService executorService;
 
-    private final MachineFactories machineFactories;
+    private final Machines machines;
 
     private final MemberDao memberDao;
 
+    private final MachineMetaInfoDao machineMetaInfoDao;
+
     @Inject
-    public MachineService(MachineRegistry machineRegistry,
-                          MachineFactories machineFactories,
-                          MemberDao memberDao) {
-        this.machineRegistry = machineRegistry;
-        this.machineFactories = machineFactories;
+    public MachineService(Machines machines,
+                          MemberDao memberDao,
+                          MachineMetaInfoDao machineMetaInfoDao) {
+        this.machines = machines;
         this.memberDao = memberDao;
+        this.machineMetaInfoDao = machineMetaInfoDao;
         this.executorService = Executors.newCachedThreadPool(new NamedThreadFactory("MachineRegistry-", true));
     }
 
@@ -89,23 +88,14 @@ public class MachineService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public MachineDescriptor createMachine(final CreateMachineRequest createMachineRequest)
-            throws ServerException, NotFoundException, ForbiddenException {
-        if (createMachineRequest.getType() == null) {
-            throw new ForbiddenException("Machine type is missing");
-        }
-        if (createMachineRequest.getReceipt() == null) {
-            throw new ForbiddenException("Machine recipe is missing");
-        }
-        if (createMachineRequest.getWorkspace() == null) {
-            throw new ForbiddenException("Workspace is missing");
-        }
+    public MachineDescriptor startMachine(final CreateMachineRequest createMachineRequest)
+            throws ServerException, ForbiddenException, NotFoundException {
+        requiredNotNull(createMachineRequest.getType(), "Machine type");
+        requiredNotNull(createMachineRequest.getReceipt(), "Machine recipe");
+        requiredNotNull(createMachineRequest.getWorkspace(), "Workspace parameter");
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        final Member workspaceMember = memberDao.getWorkspaceMember(createMachineRequest.getWorkspace(), userId);
-        if (!workspaceMember.getRoles().contains("workspace/developer") && !workspaceMember.getRoles().contains("workspace/admin")) {
-            throw new ForbiddenException("You don't have access to create machine in specified workspace");
-        }
+        checkPermissions(userId, createMachineRequest.getWorkspace());
 
         final LineConsumer lineConsumer;
         if (createMachineRequest.getOutputChannel() != null) {
@@ -114,29 +104,25 @@ public class MachineService {
             lineConsumer = LineConsumer.DEV_NULL;
         }
 
-        final MachineBuilder machineBuilder = machineFactories.get(createMachineRequest.getType()).newMachineBuilder()
-                                                              .setRecipe(new BaseMachineRecipe() {
-                                                                  @Override
-                                                                  public String asString() {
-                                                                      return createMachineRequest.getReceipt();
-                                                                  }
-                                                              })
-                                                              .setOutputConsumer(lineConsumer);
-
-        final MachineMetaInfo machineMetaInfo = DtoFactory.getInstance().createDto(MachineMetaInfo.class)
-                                                      .withId(machineBuilder.getMachineId())
-                                                      .withUserId(userId)
-                                                      .withWorkspaceId(createMachineRequest.getWorkspace())
-                                                      .withDisplayName(createMachineRequest.getDisplayName())
-                                                      .withType(createMachineRequest.getType());
+        final MachineBuilder machineBuilder = machines.newMachineOfType(createMachineRequest.getType())
+                                                      .setRecipe(new BaseMachineRecipe() {
+                                                          @Override
+                                                          public String asString() {
+                                                              return createMachineRequest.getReceipt();
+                                                          }
+                                                      })
+                                                      .setCreatedBy(userId)
+                                                      .setDisplayName(createMachineRequest.getDisplayName())
+                                                      .setWorkspaceId(createMachineRequest.getWorkspace())
+                                                      .setOutputConsumer(lineConsumer);
 
         executorService.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    machineBuilder.build();
+                    final Machine machine = machineBuilder.build();
 
-                    machineRegistry.addMachine(machineMetaInfo);
+                    machine.start();
 
                 } catch (ServerException | ForbiddenException e) {
                     try {
@@ -148,12 +134,36 @@ public class MachineService {
             }
         });
 
-        return toDescriptor(machineMetaInfo.getId(),
-                            machineMetaInfo.getUserId(),
-                            machineMetaInfo.getWorkspaceId(),
-                            machineMetaInfo.getDisplayName(),
+        return toDescriptor(machineBuilder.getMachineId(),
+                            createMachineRequest.getType(),
+                            userId,
+                            createMachineRequest.getWorkspace(),
+                            createMachineRequest.getDisplayName(),
                             Machine.State.CREATING,
                             null);
+    }
+
+    @Path("/{machineId}")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
+    public MachineDescriptor getMachineById(@PathParam("machineId") String machineId)
+            throws ServerException, ForbiddenException, NotFoundException {
+        final Machine machine = machines.getMachine(machineId);
+        final String machineCreator = machine.getCreatedBy();
+
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        if (!userId.equals(machineCreator)) {
+            throw new ForbiddenException("Operation is not permitted");
+        }
+
+        return toDescriptor(machineId,
+                            machine.getType(),
+                            machineCreator,
+                            machine.getWorkspaceId(),
+                            machine.getDisplayName(),
+                            machine.getState(),
+                            machine.getSnapshots());
     }
 
     @GET
@@ -163,17 +173,23 @@ public class MachineService {
                                                @QueryParam("project") String project,
                                                @Context SecurityContext context)
             throws ServerException, ForbiddenException {
-        if (workspaceId == null) {
-            throw new ForbiddenException("Workspace parameter is missing");
-        }
+        requiredNotNull(workspaceId, "Workspace parameter");
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        checkPermissions(userId, workspaceId);
 
-        final List<Machine> machines = machineRegistry.getMachines(workspaceId, project, userId);
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
-        for (Machine machine : machines) {
-            machinesDescriptors.add(toDescriptor(machine, userId, workspaceId));
+        final List<Machine> existingMachines = machines.getMachines(userId, workspaceId, project);
+        for (Machine machine : existingMachines) {
+            machinesDescriptors.add(toDescriptor(machine.getId(),
+                                                 machine.getType(),
+                                                 userId,
+                                                 workspaceId,
+                                                 machine.getDisplayName(),
+                                                 machine.getState(),
+                                                 machine.getSnapshots()));
         }
+
         return machinesDescriptors;
     }
 
@@ -181,38 +197,21 @@ public class MachineService {
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
+    public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
+        final Machine machine = machines.getMachine(machineId);
+
+        final String userId = EnvironmentContext.getCurrent().getUser().getId();
+        if (!userId.equals(machine.getCreatedBy())) {
+            throw new ForbiddenException("Operation is not permitted");
+        }
+
+        for (Snapshot snapshot : machine.getSnapshots()) {
+            machine.removeSnapshot(snapshot.getId());
+        }
 
         machine.destroy();
-    }
 
-    @Path("/{machineId}/suspend")
-    @POST
-    @RolesAllowed("user")
-    public void suspendMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
-
-//        machine.suspend();
-    }
-
-    @Path("/{machineId}/resume")
-    @POST
-    @Produces(MediaType.TEXT_PLAIN)
-    @RolesAllowed("user")
-    public void resumeMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
-
-        executorService.execute(new Runnable() {
-            @Override
-            public void run() {
-//                try {
-//                    machine.resume();
-//                } catch (ServerException e) {
-//                    TODO put to websocket
-//                }
-            }
-        });
+        machineMetaInfoDao.remove(machineId);
     }
 
     // TODO add channels for process output
@@ -223,11 +222,9 @@ public class MachineService {
     @Produces(MediaType.TEXT_PLAIN)
     @RolesAllowed("user")
     public CommandProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId,
-                                                            @FormParam("command") final String command,
-                                                            @Context SecurityContext context)
+                                                            @FormParam("command") final String command)
             throws NotFoundException, ServerException {
-        // returns channel id for process output listening
-        final Machine machine = machineRegistry.getMachine(machineId);
+        final Machine machine = machines.getMachine(machineId);
 
         executorService.execute(new Runnable() {
             @Override
@@ -252,7 +249,7 @@ public class MachineService {
     public List<CommandProcessDescriptor> getProcesses(@PathParam("machineId") String machineId,
                                                        @Context SecurityContext context)
             throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
+        final Machine machine = machines.getMachine(machineId);
         final List<CommandProcess> processes = machine.getRunningProcesses();
         final List<CommandProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (CommandProcess process : processes) {
@@ -268,7 +265,7 @@ public class MachineService {
     public void killProcess(@PathParam("machineId") String machineId,
                             @PathParam("processId") int processId)
             throws NotFoundException, ForbiddenException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
+        final Machine machine = machines.getMachine(machineId);
 
         for (CommandProcess commandProcess : machine.getRunningProcesses()) {
             if (commandProcess.getPid() == processId) {
@@ -289,7 +286,7 @@ public class MachineService {
     public void bindProject(@PathParam("machineId") String machineId,
                             @PathParam("workspaceId") String workspace,
                             @PathParam("project") String project) throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
+        final Machine machine = machines.getMachine(machineId);
 
         machine.bind(workspace, project);
     }
@@ -300,12 +297,41 @@ public class MachineService {
     public void unbindProject(@PathParam("machineId") String machineId,
                               @PathParam("workspaceId") String workspace,
                               @PathParam("project") String project) throws NotFoundException, ServerException {
-        final Machine machine = machineRegistry.getMachine(machineId);
+        final Machine machine = machines.getMachine(machineId);
 
         machine.unbind(workspace, project);
     }
 
+    /**
+     * Checks object reference is not {@code null}
+     *
+     * @param object
+     *         object reference to check
+     * @param subject
+     *         used as subject of exception message "{subject} required"
+     * @throws ForbiddenException
+     *         when object reference is {@code null}
+     */
+    private void requiredNotNull(Object object, String subject) throws ForbiddenException {
+        if (object == null) {
+            throw new ForbiddenException(subject + " required");
+        }
+    }
+
+    private void checkPermissions(String userId, String workspaceId) throws ServerException, ForbiddenException {
+        final Member workspaceMember;
+        try {
+            workspaceMember = memberDao.getWorkspaceMember(workspaceId, userId);
+        } catch (NotFoundException e) {
+            throw new ForbiddenException("Operation is not permitted");
+        }
+        if (!workspaceMember.getRoles().contains("workspace/developer") && !workspaceMember.getRoles().contains("workspace/admin")) {
+            throw new ForbiddenException("Operation is not permitted");
+        }
+    }
+
     private MachineDescriptor toDescriptor(String id,
+                                           String machineType,
                                            String userId,
                                            String workspaceId,
                                            String displayName,
@@ -324,6 +350,7 @@ public class MachineService {
 
         return DtoFactory.getInstance().createDto(MachineDescriptor.class)
                          .withId(id)
+                         .withType(machineType)
                          .withUserId(userId)
                          .withState(machineState)
                          .withWorkspaceId(workspaceId)
@@ -333,12 +360,6 @@ public class MachineService {
                          .withLinks(null);
     }
 
-    private MachineDescriptor toDescriptor(Machine machine,
-                                           String user,
-                                           String workspace) throws ServerException {
-        return toDescriptor(machine.getId(), user, workspace, machine.getDisplayName(), machine.getState(), machine.getSnapshots());
-
-    }
 
     private CommandProcessDescriptor toDescriptor(int processId) throws ServerException {
         return DtoFactory.getInstance().createDto(CommandProcessDescriptor.class)

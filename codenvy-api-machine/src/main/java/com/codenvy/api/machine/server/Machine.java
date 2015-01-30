@@ -102,6 +102,18 @@ public abstract class Machine {
         updateMachineMetaInfo(machineMetaInfo);
     }
 
+    public final String getCreatedBy() throws ServerException {
+        return getMachineMetaInfo().getUserId();
+    }
+
+    public final String getWorkspaceId() throws ServerException {
+        return getMachineMetaInfo().getWorkspaceId();
+    }
+
+    public final String getType() throws ServerException {
+        return getMachineMetaInfo().getType();
+    }
+
     private MachineMetaInfo getMachineMetaInfo() throws ServerException {
         if (machineMetaInfoDao != null) {
             try {

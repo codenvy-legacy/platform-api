@@ -24,10 +24,10 @@ import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 @DTO
 public interface Workspace {
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "type")
-    Boolean getType();
+    String getType();
 
-    void setType(Boolean type);
+    void setType(String type);
 
-    Workspace withType(Boolean type);
+    Workspace withType(String type);
 }
 

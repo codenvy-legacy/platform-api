@@ -30,4 +30,10 @@ public interface Snapshot {
     void setDescription(String description);
 
     Snapshot withDescription(String description);
+
+    long getDate();
+
+    void setDate(long date);
+
+    Snapshot withDate(long date);
 }

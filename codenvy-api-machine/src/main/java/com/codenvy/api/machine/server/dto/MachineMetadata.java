@@ -15,7 +15,7 @@ import com.codenvy.dto.shared.DTO;
 import java.util.List;
 
 /**
- * Describes machine.
+ * Describes machine metadata.
  *
  * @author Alexander Garagatyi
  */

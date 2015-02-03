@@ -17,13 +17,6 @@ import com.codenvy.dto.shared.DTO;
  */
 @DTO
 public interface Command {
-
-    String getName();
-
-    void setName(String name);
-
-    Command withName(String name);
-
     String getCommandLine();
 
     void setCommandLine(String commandLine);

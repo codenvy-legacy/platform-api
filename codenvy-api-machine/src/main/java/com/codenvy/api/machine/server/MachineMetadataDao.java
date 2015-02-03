@@ -18,6 +18,8 @@ import com.codenvy.api.machine.server.dto.MachineMetadata;
 import java.util.List;
 
 /**
+ * DAO interface for CRUD operations with metadata of machines
+ *
  * @author Alexander Garagatyi
  */
 public interface MachineMetadataDao {

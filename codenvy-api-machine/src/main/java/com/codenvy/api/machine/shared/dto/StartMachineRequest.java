@@ -10,22 +10,19 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.dto;
 
-import com.codenvy.dto.shared.DTO;
-
 /**
  * @author Alexander Garagatyi
  */
-@DTO
-public interface ProjectBinding {
-    String getName();
+public interface StartMachineRequest {
+    String getSnapshot();
 
-    void setName(String name);
+    void setSnapshot(String snapshot);
 
-    ProjectBinding withName(String name);
+    StartMachineRequest withSnapshot(String snapshot);
 
-    String getWorkspace();
+    String getOutputChannel();
 
-    void setWorkspace(String workspace);
+    void setOutputChannel(String outputChannel);
 
-    ProjectBinding withWorkspace(String workspace);
+    StartMachineRequest withOutputChannel(String outputChannel);
 }

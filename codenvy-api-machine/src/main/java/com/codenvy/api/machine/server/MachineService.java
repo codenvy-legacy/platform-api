@@ -23,6 +23,7 @@ import com.codenvy.api.machine.shared.dto.CreateMachineRequest;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.NewSnapshot;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.api.machine.shared.dto.StartMachineRequest;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -46,7 +47,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
@@ -65,8 +65,8 @@ public class MachineService {
     private static final Logger LOG = getLogger(MachineService.class);
 
     private final ExecutorService executorService;
-    private final Machines machines;
-    private final MemberDao memberDao;
+    private final Machines        machines;
+    private final MemberDao       memberDao;
 
     @Inject
     public MachineService(Machines machines, MemberDao memberDao) {
@@ -81,13 +81,17 @@ public class MachineService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public MachineDescriptor startMachine(final CreateMachineRequest createMachineRequest)
+    public MachineDescriptor startMachineFromRecipe(final CreateMachineRequest createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
         requiredNotNull(createMachineRequest.getType(), "Machine type");
         requiredNotNull(createMachineRequest.getRecipe(), "Machine recipe");
         requiredNotNull(createMachineRequest.getWorkspace(), "Workspace parameter");
         checkCurrentUserPermissionsForWorkspace(createMachineRequest.getWorkspace());
 
+        // TODO
+        // client have to remember output channel
+        // what if we put logs to this channel at the beginning. When machine will have an id we starts logging to channel based on machine id
+        // and put administrative message with url of the new channel to old channel
         final LineConsumer lineConsumer;
         if (createMachineRequest.getOutputChannel() != null) {
             lineConsumer = new WebsocketLineConsumer(createMachineRequest.getOutputChannel());
@@ -133,6 +137,7 @@ public class MachineService {
                             createMachineRequest.getWorkspace(),
                             createMachineRequest.getDisplayName(),
                             Machine.State.CREATING,
+                            null,
                             null);
     }
 
@@ -153,6 +158,7 @@ public class MachineService {
                             machine.getWorkspaceId(),
                             machine.getDisplayName(),
                             machine.getState(),
+                            machine.getProjects(),
                             machine.getSnapshots());
     }
 
@@ -176,6 +182,7 @@ public class MachineService {
                                                  workspaceId,
                                                  machine.getDisplayName(),
                                                  machine.getState(),
+                                                 machine.getProjects(),
                                                  machine.getSnapshots()));
         }
 
@@ -190,8 +197,46 @@ public class MachineService {
 
         checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
-        machine.saveSnapshot(new Date().toString());
+        machine.saveSnapshot("latest");
         machine.stop();
+    }
+
+    @Path("/{machineId}/resume")
+    @POST
+    @Consumes(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
+    public void startMachineFromSnapshot(@PathParam("machineId") String machineId, final StartMachineRequest startMachineRequest)
+            throws ForbiddenException, NotFoundException, ServerException {
+        final Machine machine = machines.getMachine(machineId);
+        final String machineCreator = machine.getCreatedBy();
+
+        checkCurrentUserPermissionsForMachine(machineCreator);
+
+        // TODO
+        // client have to remember output channel
+        // what if we put logs to channel based on machine id or put log channel to links
+        final LineConsumer lineConsumer;
+        if (startMachineRequest.getOutputChannel() != null) {
+            lineConsumer = new WebsocketLineConsumer(startMachineRequest.getOutputChannel());
+        } else {
+            lineConsumer = LineConsumer.DEV_NULL;
+        }
+
+        executorService.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    machine.setOutputConsumer(lineConsumer);
+                    machine.restoreToSnapshot(startMachineRequest.getSnapshot() == null ? "latest" : startMachineRequest.getSnapshot());
+                } catch (ServerException e) {
+                    try {
+                        lineConsumer.writeLine(e.getLocalizedMessage());
+                    } catch (IOException e1) {
+                        LOG.error(e.getLocalizedMessage(), e);
+                    }
+                }
+            }
+        });
     }
 
     @Path("/{machineId}")
@@ -214,24 +259,27 @@ public class MachineService {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void executeCommandInMachine(@PathParam("machineId") String machineId,
-                                                            final Command command)
+    public void executeCommandInMachine(@PathParam("machineId") String machineId, final Command command)
             throws NotFoundException, ServerException, ForbiddenException {
-        // TODO how to use command name?
-
         final Machine machine = machines.getMachine(machineId);
         checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+
+        final LineConsumer lineConsumer;
+        if (command.getOutputChannel() != null) {
+            lineConsumer = new WebsocketLineConsumer(command.getOutputChannel());
+        } else {
+            lineConsumer = LineConsumer.DEV_NULL;
+        }
 
         executorService.execute(new Runnable() {
             @Override
             public void run() {
-                final WebsocketLineConsumer websocketLineConsumer = new WebsocketLineConsumer(command.getOutputChannel());
                 final CommandProcess commandProcess = machine.newCommandProcess(command.getCommandLine());
                 try {
-                    commandProcess.start(websocketLineConsumer);
+                    commandProcess.start(lineConsumer);
                 } catch (ConflictException | ServerException e) {
                     try {
-                        websocketLineConsumer.writeLine(e.getLocalizedMessage());
+                        lineConsumer.writeLine(e.getLocalizedMessage());
                     } catch (IOException e1) {
                         LOG.error(e.getLocalizedMessage(), e);
                     }
@@ -252,8 +300,7 @@ public class MachineService {
         final List<CommandProcess> processes = machine.getRunningProcesses();
         final List<CommandProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (CommandProcess process : processes) {
-            // TODO how can user recognize process?
-            processesDescriptors.add(toDescriptor(process.getPid()));
+            processesDescriptors.add(toDescriptor(process.getPid(), process.getCommandLine()));
         }
         return processesDescriptors;
     }
@@ -273,7 +320,7 @@ public class MachineService {
                     throw new ForbiddenException("Process finished already");
                 }
                 // TODO should we do that in separate thread?
-                // E.g. if soft kill won't stop the process request will be finished by timeout
+                // E.g. if soft kill won't stop the process, request will be finished by timeout
                 commandProcess.kill();
                 return;
             }
@@ -371,6 +418,7 @@ public class MachineService {
                                            String workspaceId,
                                            String displayName,
                                            Machine.State machineState,
+                                           List<String> projects,
                                            List<Snapshot> snapshots)
             throws ServerException {
         List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
@@ -378,6 +426,7 @@ public class MachineService {
             for (Snapshot snapshot : snapshots) {
                 snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
                                                   .withId(snapshot.getId())
+                                                  .withDate(snapshot.getDate())
                                                   .withDescription(snapshot.getDescription())
                                                   .withLinks(null)); // TODO
             }
@@ -391,14 +440,16 @@ public class MachineService {
                          .withWorkspaceId(workspaceId)
                          .withDisplayName(displayName)
                          .withSnapshots(snapshotDescriptors)
+                         .withProjects(projects)
                          // TODO
                          .withLinks(null);
     }
 
 
-    private CommandProcessDescriptor toDescriptor(int processId) throws ServerException {
+    private CommandProcessDescriptor toDescriptor(int processId, String commandLine) throws ServerException {
         return DtoFactory.getInstance().createDto(CommandProcessDescriptor.class)
                 .withId(processId)
+                .withCommandLine(commandLine)
                         // TODO
                 .withLinks(null);
     }

@@ -28,7 +28,8 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Storage for created machines
+ * Machines manager that allows get existing machines and
+ * create builder for creation of new machine
  *
  * @author Alexander Garagatyi
  */

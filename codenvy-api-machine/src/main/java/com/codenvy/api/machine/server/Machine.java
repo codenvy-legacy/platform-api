@@ -88,9 +88,25 @@ public abstract class Machine {
 
     public abstract void restoreToSnapshot(String snapshotId) throws ServerException;
 
-    public abstract void bind(String workspaceId, String project) throws NotFoundException, ServerException;
+    public final void bind(String workspaceId, String project) throws NotFoundException, ServerException {
+        doBind(workspaceId, project);
 
-    public abstract void unbind(String workspaceId, String project) throws NotFoundException, ServerException;
+        final MachineMetadata machineMetadata = getMachineMetadata();
+        machineMetadata.getProjects().add(project);
+        updateMachineMetaInfo(machineMetadata);
+    }
+
+    protected abstract void doBind(String workspaceId, String project) throws NotFoundException, ServerException;
+
+    public final void unbind(String workspaceId, String project) throws NotFoundException, ServerException {
+        doUnbind(workspaceId, project);
+
+        final MachineMetadata machineMetadata = getMachineMetadata();
+        machineMetadata.getProjects().remove(project);
+        updateMachineMetaInfo(machineMetadata);
+    }
+
+    protected abstract void doUnbind(String workspaceId, String project) throws NotFoundException, ServerException;
 
     public abstract CommandProcess newCommandProcess(String command);
 
@@ -123,6 +139,10 @@ public abstract class Machine {
 
     public final String getType() throws ServerException {
         return getMachineMetadata().getType();
+    }
+
+    public final List<String> getProjects() throws ServerException {
+        return getMachineMetadata().getProjects();
     }
 
     private MachineMetadata getMachineMetadata() throws ServerException {

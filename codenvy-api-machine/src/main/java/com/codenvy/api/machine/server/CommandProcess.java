@@ -31,6 +31,15 @@ public interface CommandProcess {
     int getPid() throws ServerException;
 
     /**
+     * Returns command with all its arguments
+     *
+     * @return command
+     * @throws ServerException
+     *         if internal error occurs
+     */
+    String getCommandLine() throws ServerException;
+
+    /**
      * Starts process in the background.
      *
      * @throws ConflictException

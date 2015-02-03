@@ -27,6 +27,12 @@ public interface CommandProcessDescriptor extends Hyperlinks {
 
     CommandProcessDescriptor withId(int id);
 
+    String getCommandLine();
+
+    void setCommandLine(String commandLine);
+
+    CommandProcessDescriptor withCommandLine(String commandLine);
+
     @Override
     CommandProcessDescriptor withLinks(List<Link> links);
 }

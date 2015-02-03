@@ -33,6 +33,12 @@ public interface SnapshotDescriptor extends Hyperlinks {
 
     SnapshotDescriptor withDescription(String description);
 
+    long getDate();
+
+    void setDate(long date);
+
+    SnapshotDescriptor withDate(long date);
+
     @Override
     SnapshotDescriptor withLinks(List<Link> links);
 }

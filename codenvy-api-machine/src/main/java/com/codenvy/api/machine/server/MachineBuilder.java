@@ -23,6 +23,8 @@ import java.util.Map;
 import java.util.Set;
 
 /**
+ * Base class for machine implementation builders.
+ *
  * @author andrew00x
  */
 public abstract class MachineBuilder {
@@ -39,7 +41,7 @@ public abstract class MachineBuilder {
     private LineConsumer outputConsumer = LineConsumer.DEV_NULL;
 
     /**
-     * Builds machine using supplied configuration. Puts build logs to given line consumer.
+     * Builds machine using supplied configuration.
      *
      * @throws ForbiddenException
      *         if machine can't be built due to misconfiguration

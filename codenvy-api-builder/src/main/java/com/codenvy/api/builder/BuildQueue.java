@@ -618,17 +618,20 @@ public class BuildQueue {
             eventService.subscribe(new EventSubscriber<BuilderEvent>() {
                 @Override
                 public void onEvent(BuilderEvent event) {
-                    final long id = event.getTaskId();
-                    try {
-                        final BuildQueueTask task = getTask(id);
-                        final BaseBuilderRequest request = task.getRequest();
-                        if (task.getDescriptor().getStatus() == BuildStatus.SUCCESSFUL) {
-                            // Clone request and replace its id and timeout with 0.
-                            successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
+                    if (event.getType() == BuilderEvent.EventType.DONE && !event.isReused()) {
+                        final long id = event.getTaskId();
+                        try {
+                            final BuildQueueTask task = getTask(id);
+                            final BaseBuilderRequest request = task.getRequest();
+                            if (task.getDescriptor().getStatus() == BuildStatus.SUCCESSFUL) {
+                                // Clone request and replace its id and timeout with 0.
+                                successfulBuilds
+                                        .put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
+                            }
+                        } catch (NotFoundException ignored) {
+                        } catch (Exception e) {
+                            LOG.warn(String.format("%s: %s", event, e.getMessage()));
                         }
-                    } catch (NotFoundException ignored) {
-                    } catch (Exception e) {
-                        LOG.warn(e.getMessage(), e);
                     }
                 }
             });

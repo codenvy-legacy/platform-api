@@ -16,5 +16,6 @@ import com.codenvy.api.machine.server.Machine;
  * @author andrew00x
  */
 public interface Image {
+    ImageId getId();
     Machine newMachine();
 }

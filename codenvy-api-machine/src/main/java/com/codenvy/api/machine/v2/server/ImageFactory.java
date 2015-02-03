@@ -14,5 +14,5 @@ package com.codenvy.api.machine.v2.server;
  * @author andrew00x
  */
 public interface ImageFactory {
-    Image getImage(ImageMetadata metadata);
+    Image getImage(ImageId id);
 }

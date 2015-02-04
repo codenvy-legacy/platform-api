@@ -1,4 +1,4 @@
-package com.codenvy.api.machine.v2.server.spi;
+package com.codenvy.api.machine.v2.server;
 
 /**
  * @author gazarenkov

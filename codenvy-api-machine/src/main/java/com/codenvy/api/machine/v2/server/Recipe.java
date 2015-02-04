@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
-import com.codenvy.api.machine.v2.server.spi.ImageId;
-
 /**
- * @author andrew00x
+ *
+ * Script to build Snapshot
+ *
+ * @author gazarenkov
  */
-public interface ImageImportFactory {
-    Image importImage(ImageId id);
+public interface Recipe {
+    String getType();
+    String getScript();
 }

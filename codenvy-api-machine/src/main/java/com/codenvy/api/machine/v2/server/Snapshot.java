@@ -15,5 +15,9 @@ import com.codenvy.api.machine.v2.server.spi.ImageId;
 /**
  * @author andrew00x
  */
-public interface ImageMetadata extends ImageId {
+public interface Snapshot {
+    ImageId getImageId();
+    String getCreatedBy();
+    long getCreationDate();
+    String getWorkspaceId();
 }

@@ -8,16 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
-
-import com.codenvy.api.machine.shared.model.Script;
-
-import java.util.Set;
+package com.codenvy.api.machine.v2.server.spi;
 
 /**
  * @author andrew00x
  */
-public interface ImageBuilderFactory {
-    ImageBuilder createBuilder(Script recipe);
-    Set<String> getSupportedRecipes();
+public interface ImageMetadata extends ImageId {
 }

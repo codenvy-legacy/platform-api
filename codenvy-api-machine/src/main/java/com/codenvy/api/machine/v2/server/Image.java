@@ -11,12 +11,12 @@
 package com.codenvy.api.machine.v2.server;
 
 import com.codenvy.api.machine.server.Machine;
-import com.codenvy.api.machine.v2.server.spi.ImageId;
+import com.codenvy.api.machine.v2.server.spi.ImageMetadata;
 
 /**
  * @author andrew00x
  */
 public interface Image {
-    ImageId getId();
+    ImageMetadata getMetadata();
     Machine createMachine();
 }

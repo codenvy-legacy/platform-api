@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.model;
 
-import com.codenvy.api.machine.v2.server.ImageMetadata;
+import com.codenvy.api.machine.v2.server.spi.ImageMetadata;
 
 import java.util.List;
 

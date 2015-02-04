@@ -13,6 +13,9 @@ package com.codenvy.api.machine.v2.server.spi;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.machine.shared.model.InvalidRecipeException;
 import com.codenvy.api.machine.v2.server.Image;
+import com.codenvy.api.machine.v2.server.InvalidImageException;
+import com.codenvy.api.machine.v2.server.Recipe;
+import com.codenvy.api.machine.v2.server.UnsupportedRecipeTypeException;
 
 import java.util.Set;
 
@@ -36,7 +39,7 @@ public interface ImageProvider {
      * Creates Snapshot from scratch
      * @param recipe
      * @return
-     * @throws UnsupportedRecipeTypeException
+     * @throws com.codenvy.api.machine.v2.server.UnsupportedRecipeTypeException
      * @throws InvalidRecipeException
      */
     Image createImage(Recipe recipe) throws UnsupportedRecipeTypeException, InvalidRecipeException;
@@ -46,10 +49,10 @@ public interface ImageProvider {
      * Imports image from identifiable storage using implementation specific ImageId
      * @param imageId
      * @return
-     * @throws InvalidImageException
+     * @throws com.codenvy.api.machine.v2.server.InvalidImageException
      * @throws NotFoundException
      */
-    Image importImage(ImageId imageId) throws InvalidImageException, NotFoundException;
+    Image createImage(ImageId imageId) throws InvalidImageException, NotFoundException;
 
 
 }

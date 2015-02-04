@@ -64,13 +64,13 @@ final class MachineManager {
         return null;
     }
 
-    void removeSnapshot(String snapshotId) {
+    void removeSnapshot(String snapshotId) throws NotFoundException {
     }
 
-    void destory(Machine machine) throws MachineException {
+    void destory(Machine machine) throws NotFoundException, MachineException {
     }
 
-    Snapshot destory(Machine machine, boolean saveSnapshot) throws MachineException {
+    Snapshot destory(Machine machine, boolean saveSnapshot) throws NotFoundException, MachineException {
         return null;
     }
 }

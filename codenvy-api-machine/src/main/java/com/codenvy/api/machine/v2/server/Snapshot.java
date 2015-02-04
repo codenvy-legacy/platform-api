@@ -20,16 +20,44 @@ import java.util.List;
  *
  * @author andrew00x
  */
-public interface Snapshot {
-    String getId();
+public class Snapshot {
+    private final String               id;
+    private final ImageKey             imageKey;
+    private final String               createdBy;
+    private final long                 creationDate;
+    private final String               workspaceId;
+    private final List<ProjectBinding> projects;
 
-    ImageKey getImageKey();
+    public Snapshot(String id, ImageKey imageKey, String createdBy, long creationDate, String workspaceId, List<ProjectBinding> projects) {
+        this.id = id;
+        this.imageKey = imageKey;
+        this.createdBy = createdBy;
+        this.creationDate = creationDate;
+        this.workspaceId = workspaceId;
+        this.projects = java.util.Collections.unmodifiableList(projects);
+    }
 
-    String getCreatedBy();
+    public String getId() {
+        return id;
+    }
 
-    long getCreationDate();
+    public ImageKey getImageKey() {
+        return imageKey;
+    }
 
-    String getWorkspaceId();
+    public String getCreatedBy() {
+        return createdBy;
+    }
 
-    List<ProjectBinding> getProjects();
+    public long getCreationDate() {
+        return creationDate;
+    }
+
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public List<ProjectBinding> getProjects() {
+        return projects;
+    }
 }

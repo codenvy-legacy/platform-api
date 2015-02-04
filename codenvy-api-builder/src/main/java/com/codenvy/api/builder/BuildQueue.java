@@ -34,11 +34,13 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.CollectionUtils;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
@@ -46,6 +48,7 @@ import com.codenvy.commons.lang.cache.SynchronizedCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.collect.Collections2;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
@@ -63,10 +66,13 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -422,6 +428,17 @@ public class BuildQueue {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
             request.setBuilder(builder);
+
+            Map<String, BuilderConfiguration> buildersConfigs = builders.getConfigs();
+
+            if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
+                if (CollectionUtils.isEmpty(request.getOptions())) {
+                    request.setOptions(buildersConfigs.get(builder).getOptions());
+                }
+                if (CollectionUtils.isEmpty(request.getTargets())) {
+                    request.setTargets(buildersConfigs.get(builder).getTargets());
+                }
+            }
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());

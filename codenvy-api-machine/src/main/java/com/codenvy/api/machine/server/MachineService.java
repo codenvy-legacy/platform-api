@@ -193,10 +193,13 @@ public class MachineService {
     @POST
     @RolesAllowed("user")
     public void stopMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
+        // TODO on machine start set if machine should be stopped with saving state or not
+        // on stop send flag save=true to force save behaviour
         final Machine machine = machines.getMachine(machineId);
 
         checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
 
+        // TODO Should we save inside stop method or explicitly?
         machine.saveSnapshot("latest");
         machine.stop();
     }

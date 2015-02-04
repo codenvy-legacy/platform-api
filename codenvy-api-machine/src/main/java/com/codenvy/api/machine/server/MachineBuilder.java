@@ -48,7 +48,7 @@ public abstract class MachineBuilder {
      * @throws ServerException
      *         if internal error occurs
      */
-    public Machine build() throws ServerException, ForbiddenException {
+    public final Machine build() throws ServerException, ForbiddenException {
         if (machineId == null) {
             throw new ForbiddenException("Machine id is required");
         }
@@ -74,23 +74,23 @@ public abstract class MachineBuilder {
 
     //
 
-    public MachineBuilder setWorkspaceId(String workspaceId) {
+    public final MachineBuilder setWorkspaceId(String workspaceId) {
         this.workspaceId = workspaceId;
         return this;
     }
 
-    public MachineBuilder setDisplayName(String displayName) {
+    public final MachineBuilder setDisplayName(String displayName) {
         this.displayName = displayName;
         return this;
     }
 
-    public MachineBuilder setCreatedBy(String createdBy) {
+    public final MachineBuilder setCreatedBy(String createdBy) {
         this.createdBy = createdBy;
         return this;
     }
 
     /** Sets output consumer for machine output, including build machine output. */
-    public MachineBuilder setOutputConsumer(LineConsumer outputConsumer) throws IllegalArgumentException {
+    public final MachineBuilder setOutputConsumer(LineConsumer outputConsumer) throws IllegalArgumentException {
         if (outputConsumer == null) {
             throw new IllegalArgumentException("Output consumer can't be null");
         }
@@ -98,84 +98,84 @@ public abstract class MachineBuilder {
         return this;
     }
 
-    public MachineBuilder setRecipe(MachineRecipe recipe) {
+    public final MachineBuilder setRecipe(MachineRecipe recipe) {
         this.recipe = recipe;
         return this;
     }
 
-    public MachineBuilder addFile(File file) {
+    public final MachineBuilder addFile(File file) {
         getFiles().add(file);
         return this;
     }
 
-    public MachineBuilder setMachineEnvironmentVariables(Map<String, String> machineEnvironmentVariables) {
+    public final MachineBuilder setMachineEnvironmentVariables(Map<String, String> machineEnvironmentVariables) {
         getMachineEnvironmentVariables().putAll(machineEnvironmentVariables);
         return this;
     }
 
-    public MachineBuilder setMachineEnvironmentVariables(String name, String value) {
+    public final MachineBuilder setMachineEnvironmentVariables(String name, String value) {
         getMachineEnvironmentVariables().put(name, value);
         return this;
     }
 
-    public MachineBuilder setBuildOptions(Map<String, Object> parameters) {
+    public final MachineBuilder setBuildOptions(Map<String, Object> parameters) {
         getBuildOptions().putAll(parameters);
         return this;
     }
 
-    public MachineBuilder setBuildOption(String name, Object value) {
+    public final MachineBuilder setBuildOption(String name, Object value) {
         getBuildOptions().put(name, value);
         return this;
     }
 
     //
 
-    protected LineConsumer getOutputConsumer() {
+    protected final LineConsumer getOutputConsumer() {
         return outputConsumer;
     }
 
-    protected MachineRecipe getRecipe() {
+    protected final MachineRecipe getRecipe() {
         return recipe;
     }
 
-    protected Set<File> getFiles() {
+    protected final Set<File> getFiles() {
         if (files == null) {
             files = new LinkedHashSet<>();
         }
         return this.files;
     }
 
-    protected Map<String, String> getMachineEnvironmentVariables() {
+    protected final Map<String, String> getMachineEnvironmentVariables() {
         if (this.machineEnvironmentVariables == null) {
             this.machineEnvironmentVariables = new HashMap<>();
         }
         return machineEnvironmentVariables;
     }
 
-    protected Map<String, Object> getBuildOptions() {
+    protected final Map<String, Object> getBuildOptions() {
         if (buildOptions == null) {
             buildOptions = new HashMap<>();
         }
         return buildOptions;
     }
 
-    protected String getMachineId() {
+    protected final String getMachineId() {
         return machineId;
     }
 
     //
 
-    MachineBuilder setMachineId(String machineId) {
+    final MachineBuilder setMachineId(String machineId) {
         this.machineId = machineId;
         return this;
     }
 
-    MachineBuilder setMachineType(String machineType) {
+    final MachineBuilder setMachineType(String machineType) {
         this.machineType = machineType;
         return this;
     }
 
-    MachineBuilder setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
+    final MachineBuilder setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
         this.machineMetadataDao = machineMetadataDao;
         return this;
     }

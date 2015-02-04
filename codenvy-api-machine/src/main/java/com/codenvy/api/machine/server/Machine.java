@@ -66,7 +66,7 @@ public abstract class Machine {
      * @throws ServerException
      *         if internal error occurs
      */
-    public void destroy() throws ServerException {
+    public final void destroy() throws ServerException {
         doDestroy();
         final MachineMetadataDao machineMetadataDao = getMachineMetadataDao();
         if (machineMetadataDao != null) {
@@ -177,7 +177,7 @@ public abstract class Machine {
         throw new ServerException(String.format("Meta information for machine %s isn't available.", id));
     }
 
-    public void setOutputConsumer(LineConsumer outputConsumer) {
+    public final void setOutputConsumer(LineConsumer outputConsumer) {
         if (outputConsumer == null) {
             throw new IllegalArgumentException("Output consumer can't be null");
         }
@@ -192,7 +192,7 @@ public abstract class Machine {
         return machineMetadataDao;
     }
 
-    void setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
+    final void setMachineMetadataDao(MachineMetadataDao machineMetadataDao) {
         this.machineMetadataDao = machineMetadataDao;
     }
 }

@@ -16,7 +16,7 @@ import java.io.Reader;
 import java.net.URL;
 
 /**
- * Recipe to create new machine.
+ * Script to create new machine.
  *
  * @author andrew00x
  */

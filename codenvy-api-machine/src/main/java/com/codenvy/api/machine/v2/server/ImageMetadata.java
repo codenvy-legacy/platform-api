@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
+import com.codenvy.api.machine.v2.server.spi.ImageId;
+
 /**
  * @author andrew00x
  */

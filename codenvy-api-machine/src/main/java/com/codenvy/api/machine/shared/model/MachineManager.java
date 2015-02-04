@@ -11,9 +11,15 @@
 package com.codenvy.api.machine.shared.model;
 
 import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.machine.server.MachineRecipe;
+import com.codenvy.api.machine.server.MachineBuilder;
+import com.codenvy.api.machine.server.MachineFactory;
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 /**
  *
@@ -21,7 +27,18 @@ import java.util.List;
  *
  * @author gazarenkov
  */
-public interface MachineManager {
+@Singleton
+public final class MachineManager {
+
+    private final Map<String, MachineFactory> factories = new HashMap<>();
+
+    @Inject
+    public MachineManager(Set<MachineFactory> factories) {
+        for(MachineFactory f : factories) {
+            this.factories.put(f.getMachineType(), f);
+        }
+    }
+
 
 
     /**
@@ -30,13 +47,20 @@ public interface MachineManager {
      * @throws InvalidRecipeException if recipe is not valid
      * @throws com.codenvy.api.machine.shared.model.MachineException - for any runtime exception during starting
      */
-    Machine start(MachineRecipe recipe) throws InvalidRecipeException, MachineException ;
+    Machine start(MachineBuilder builder) throws InvalidRecipeException, MachineException {
+
+
+        return null;
+
+    }
 
     /**
      * Stops machine
      * @param machine to stop
      */
-    void stop(Machine machine) throws MachineException;
+    void stop(Machine machine) throws MachineException {
+
+    }
 
     /**
      * Machine(s) the Project is bound to
@@ -45,7 +69,10 @@ public interface MachineManager {
      *                       false - if for only the parent project
      * @return list of machines or empty list
      */
-    List<Machine> getMachines(ProjectBinding project, boolean includeModules);
+    List<Machine> getMachines(ProjectBinding project, boolean includeModules) {
+
+        return null;
+    }
 
     /**
      * Machine by Id
@@ -60,7 +87,10 @@ public interface MachineManager {
      * @return stored Snapshot
      * @throws SnapshotException - if something went wrong during saving
      */
-    Snapshot save(Machine machine) throws SnapshotException;
+    Snapshot save(Machine machine) throws SnapshotException {
+
+        return null;
+    }
 
     /**
      * Starts machine with Snapshot
@@ -68,7 +98,10 @@ public interface MachineManager {
      * @return created Machine
      * @throws SnapshotException
      */
-    Machine start(Snapshot snapshot) throws SnapshotException;
+    Machine start(Snapshot snapshot) throws SnapshotException {
+
+        return null;
+    }
 
     /**
      * list of Snapshots by project
@@ -77,17 +110,22 @@ public interface MachineManager {
      *                       false - if for only for parent project
      * @return list of Snapshots
      */
-    List <Snapshot> getSnapshots(ProjectBinding project, boolean includeModules);
+    List <Snapshot> getSnapshots(ProjectBinding project, boolean includeModules) {
+
+        return null;
+    }
 
     /**
      * Snapshot by its ID
-     * @param snapshotId
+     * @param snapshot
      * @return the Snapshot
      * @throws NotFoundException if no such Snapshot found
      */
     //Snapshot getSnapshot(String snapshotId) throws NotFoundException;
 
-    void removeSnapshot(Snapshot snapshot);
+    void removeSnapshot(Snapshot snapshot) {
+
+    }
 
     /**
      * removes Snapshots by project
@@ -96,6 +134,9 @@ public interface MachineManager {
      *                       false - if for only for parent project
      * @throws SnapshotException
      */
-    void removeSnapshots(ProjectBinding project, boolean includeModules) throws SnapshotException;
+    void removeSnapshots(ProjectBinding project, boolean includeModules) throws SnapshotException {
+
+    }
+
 
 }

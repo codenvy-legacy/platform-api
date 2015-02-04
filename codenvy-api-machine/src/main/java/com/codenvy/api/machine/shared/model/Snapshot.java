@@ -10,9 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.model;
 
+import com.codenvy.api.machine.v2.server.ImageMetadata;
+
 import java.util.List;
 
 /**
+ *
+ * Reference to Image stored in the system
  * @author gazarenkov
  */
 public interface Snapshot {
@@ -24,4 +28,10 @@ public interface Snapshot {
     String getOwner();
 
     List<ProjectBinding> getProjects();
+
+    /**
+     * Implementation Specific
+     * @return
+     */
+    ImageMetadata getImageMetadata();
 }

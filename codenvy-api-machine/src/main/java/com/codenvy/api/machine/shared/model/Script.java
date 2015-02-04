@@ -8,16 +8,27 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
+package com.codenvy.api.machine.shared.model;
 
-import com.codenvy.api.machine.shared.model.Script;
-
-import java.util.Set;
+import com.codenvy.api.machine.server.MachineRecipe;
 
 /**
- * @author andrew00x
+ * @author gazarenkov
+ *
+ *
  */
-public interface ImageBuilderFactory {
-    ImageBuilder createBuilder(Script recipe);
-    Set<String> getSupportedRecipes();
+public interface Script {
+
+    /**
+     *
+     * @return
+     */
+    RecipeId getId();
+
+    /**
+     * Docker, ...
+     * @return
+     */
+    String getRecipeType();
+
 }

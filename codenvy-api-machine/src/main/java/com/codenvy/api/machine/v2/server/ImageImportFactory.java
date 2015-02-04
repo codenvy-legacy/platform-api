@@ -8,28 +8,13 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.model;
+package com.codenvy.api.machine.v2.server;
 
-import com.codenvy.api.machine.server.MachineRecipe;
+import com.codenvy.api.machine.v2.server.spi.ImageId;
 
 /**
- * @author gazarenkov
- *
- *
- *  TODO merge it to one class
+ * @author andrew00x
  */
-public interface Recipe extends MachineRecipe {
-
-    /**
-     *
-     * @return
-     */
-    RecipeId getId();
-
-    /**
-     * Docker, ...
-     * @return
-     */
-    String getType();
-
+public interface ImageImportFactory {
+    Image importImage(ImageId id);
 }

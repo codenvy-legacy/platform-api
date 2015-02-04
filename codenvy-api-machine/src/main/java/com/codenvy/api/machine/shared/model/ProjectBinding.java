@@ -18,5 +18,4 @@ public interface ProjectBinding {
 
     String getWorkspace();
 
-    //String getOwner();
 }

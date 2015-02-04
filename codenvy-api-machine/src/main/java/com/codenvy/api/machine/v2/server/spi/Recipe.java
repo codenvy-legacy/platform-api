@@ -8,17 +8,15 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
-
-import java.util.Map;
+package com.codenvy.api.machine.v2.server.spi;
 
 /**
- * @author andrew00x
+ *
+ * Script to build Snapshot
+ *
+ * @author gazarenkov
  */
-public interface ImageId { // Saved in DAO. Top level component finds it in DAO and uses to restore Image with ImageFactory
-    Map<String, String> getValues();
-
-    void setValues(Map<String, String> values);
-
-    ImageId withValues(Map<String, String> values);
+public interface Recipe {
+    String getType();
+    String getScript();
 }

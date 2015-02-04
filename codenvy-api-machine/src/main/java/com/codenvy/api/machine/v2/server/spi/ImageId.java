@@ -13,12 +13,17 @@ package com.codenvy.api.machine.v2.server.spi;
 import java.util.Map;
 
 /**
+ * Describes set of attributes that uniquely identifies in implementation specific way.
+ *
  * @author andrew00x
  */
-public interface ImageId { // Saved in DAO. Top level component finds it in DAO and uses to restore Snapshot with ImageImportFactory
+public interface ImageId {
     Map<String, String> getAttributes();
 
     void setAttributes(Map<String, String> attributes);
 
     ImageId withAttributes(Map<String, String> attributes);
+
+    /** Serializes this {@code ImageId} in JSON format. */
+    String toJson();
 }

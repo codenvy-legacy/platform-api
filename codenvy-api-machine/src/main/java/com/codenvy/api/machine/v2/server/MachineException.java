@@ -11,13 +11,26 @@
 package com.codenvy.api.machine.v2.server;
 
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  * @author gazarenkov
  */
 @SuppressWarnings("serial")
-public class InvalidImageException extends ServerException {
-    public InvalidImageException(String message) {
+public class MachineException extends ServerException {
+    public MachineException(String message) {
         super(message);
+    }
+
+    public MachineException(ServiceError serviceError) {
+        super(serviceError);
+    }
+
+    public MachineException(Throwable cause) {
+        super(cause);
+    }
+
+    public MachineException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

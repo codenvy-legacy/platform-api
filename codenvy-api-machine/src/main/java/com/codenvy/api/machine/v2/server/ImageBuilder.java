@@ -14,6 +14,7 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.shared.model.Script;
+import com.codenvy.api.machine.v2.server.spi.Image;
 
 import java.io.File;
 import java.util.Map;

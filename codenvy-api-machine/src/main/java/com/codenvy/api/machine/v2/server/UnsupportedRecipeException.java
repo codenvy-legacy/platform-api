@@ -16,8 +16,8 @@ import com.codenvy.api.core.ServerException;
  * @author gazarenkov
  */
 @SuppressWarnings("serial")
-public class InvalidImageException extends ServerException {
-    public InvalidImageException(String message) {
+public class UnsupportedRecipeException extends ServerException {
+    public UnsupportedRecipeException(String message) {
         super(message);
     }
 }

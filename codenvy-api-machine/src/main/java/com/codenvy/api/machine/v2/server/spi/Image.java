@@ -8,15 +8,15 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
+package com.codenvy.api.machine.v2.server.spi;
+
+import com.codenvy.api.machine.server.Machine;
 
 /**
- *
- * Script to build Snapshot
- *
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface Recipe {
-    String getType();
-    String getScript();
+public interface Image {
+    ImageMetadata getMetadata();
+
+    Machine createMachine();
 }

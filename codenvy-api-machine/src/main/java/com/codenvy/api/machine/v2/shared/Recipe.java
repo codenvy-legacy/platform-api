@@ -8,15 +8,27 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
-
-import com.codenvy.api.machine.server.Machine;
-import com.codenvy.api.machine.v2.server.spi.ImageMetadata;
+package com.codenvy.api.machine.v2.shared;
 
 /**
- * @author andrew00x
+ * Script to create new {@link com.codenvy.api.machine.v2.server.spi.Image}.
+ *
+ * @author gazarenkov
  */
-public interface Image {
-    ImageMetadata getMetadata();
-    Machine createMachine();
+public class Recipe {
+    private final String type;
+    private final String script;
+
+    public Recipe(String type, String script) {
+        this.type = type;
+        this.script = script;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getScript() {
+        return script;
+    }
 }

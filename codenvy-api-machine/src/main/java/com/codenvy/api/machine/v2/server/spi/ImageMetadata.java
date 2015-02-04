@@ -13,5 +13,5 @@ package com.codenvy.api.machine.v2.server.spi;
 /**
  * @author andrew00x
  */
-public interface ImageMetadata extends ImageId {
+public interface ImageMetadata extends ImageKey {
 }

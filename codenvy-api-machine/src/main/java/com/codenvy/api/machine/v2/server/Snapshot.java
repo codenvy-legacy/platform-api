@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
-import com.codenvy.api.machine.v2.server.spi.ImageId;
+import com.codenvy.api.machine.v2.server.spi.ImageKey;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
 
 import java.util.List;
@@ -23,7 +23,7 @@ import java.util.List;
 public interface Snapshot {
     String getId();
 
-    ImageId getImageId();
+    ImageKey getImageKey();
 
     String getCreatedBy();
 

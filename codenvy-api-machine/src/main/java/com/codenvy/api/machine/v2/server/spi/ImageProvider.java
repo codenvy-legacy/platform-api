@@ -54,15 +54,15 @@ public interface ImageProvider {
 
 
     /**
-     * Creates image using implementation specific {@link ImageId}.
+     * Creates image using implementation specific {@link ImageKey}.
      *
-     * @param imageId
-     *         implementation specific {@link ImageId}
+     * @param imageKey
+     *         implementation specific {@link ImageKey}
      * @return newly created image
      * @throws InvalidImageException
      *         if recipe is invalid
      * @throws NotFoundException
-     *         if image doesn't {@code imageId} exists
+     *         if image described by {@code imageKey} doesn't exists
      */
-    Image createImage(ImageId imageId) throws InvalidImageException, NotFoundException;
+    Image createImage(ImageKey imageKey) throws InvalidImageException, NotFoundException;
 }

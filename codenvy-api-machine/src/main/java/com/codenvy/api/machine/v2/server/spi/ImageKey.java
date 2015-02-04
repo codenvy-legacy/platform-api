@@ -13,17 +13,13 @@ package com.codenvy.api.machine.v2.server.spi;
 import java.util.Map;
 
 /**
- * Describes set of attributes that uniquely identifies in implementation specific way.
+ * Describes set of keys that uniquely identifies in implementation specific way.
  *
  * @author andrew00x
  */
-public interface ImageId {
-    Map<String, String> getAttributes();
+public interface ImageKey {
+    Map<String, String> getKeys();
 
-    void setAttributes(Map<String, String> attributes);
-
-    ImageId withAttributes(Map<String, String> attributes);
-
-    /** Serializes this {@code ImageId} in JSON format. */
+    /** Serializes this {@code ImageKey} in JSON format. */
     String toJson();
 }

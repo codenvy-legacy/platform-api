@@ -67,6 +67,20 @@ public class MachineManager {
         return null;
     }
 
+    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+    }
+
+    public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+    }
+
+    public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
+        return null;
+    }
+
+    public Machine getMachine(String machineId) throws NotFoundException {
+        return null;
+    }
+
     /**
      * Machine(s) the Project is bound to
      * @param owner
@@ -74,10 +88,6 @@ public class MachineManager {
      * @return list of machines or empty list
      */
     public List<Machine> getMachines(String owner, ProjectBinding project) throws ServerException {
-        return null;
-    }
-
-    public Machine getMachine(String machineId) throws NotFoundException {
         return null;
     }
 
@@ -102,6 +112,9 @@ public class MachineManager {
         return null;
     }
 
+    public void removeSnapshot(String snapshotId) throws NotFoundException {
+    }
+
     /**
      * removes Snapshots by project
      * @param project
@@ -111,8 +124,6 @@ public class MachineManager {
     public void removeSnapshots(ProjectBinding project, boolean includeModules) throws NotFoundException {
     }
 
-    public void removeSnapshot(String snapshotId) throws NotFoundException {
-    }
 
     public Process exec(Command command, LineConsumer commandOutput, String machineId) throws NotFoundException, MachineException {
         return null;
@@ -120,13 +131,13 @@ public class MachineManager {
 
     /**
      *
-     * @param machine
+     * @param machineId
      * @param saveSnapshot
      * @return Snapshot or null if not saved
      * @throws NotFoundException
      * @throws MachineException
      */
-    public Snapshot destory(Machine machine, boolean saveSnapshot) throws NotFoundException, MachineException {
+    public Snapshot destroy(String machineId, boolean saveSnapshot) throws NotFoundException, MachineException {
         return null;
     }
 }

@@ -419,26 +419,22 @@ public class BuildQueue {
 
     private void fillRequestFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         String builder = request.getBuilder();
+        final BuildersDescriptor builders = descriptor.getBuilders();
         if (builder == null) {
-            final BuildersDescriptor builders = descriptor.getBuilders();
             if (builders != null) {
                 builder = builders.getDefault();
+                //if builder not set in request we will use builder that set in ProjectDescriptor
+                request.setBuilder(builder);
+                //fill build configuration from ProjectDescriptor for default builder
+                fillBuildConfig(request, builder, builders.getConfigs());
             }
             if (builder == null) {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
-            request.setBuilder(builder);
 
-            Map<String, BuilderConfiguration> buildersConfigs = builders.getConfigs();
-
-            if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
-                if (CollectionUtils.isEmpty(request.getOptions())) {
-                    request.setOptions(buildersConfigs.get(builder).getOptions());
-                }
-                if (CollectionUtils.isEmpty(request.getTargets())) {
-                    request.setTargets(buildersConfigs.get(builder).getTargets());
-                }
-            }
+        } else if (builder == null) {
+            //fill build configuration from ProjectDescriptor for builder from request
+            fillBuildConfig(request, builder, builders.getConfigs());
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -447,6 +443,18 @@ public class BuildQueue {
             final String zipballLinkHref = zipballLink.getHref();
             final String token = getAuthenticationToken();
             request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
+        }
+    }
+
+    private void fillBuildConfig(BaseBuilderRequest request, String builder, Map<String, BuilderConfiguration> buildersConfigs) {
+        //here we going to check is ProjectDescriptor have some setting for giving builder form ProjectDescriptor
+        if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
+            if (CollectionUtils.isEmpty(request.getOptions())) {
+                request.setOptions(buildersConfigs.get(builder).getOptions());
+            }
+            if (CollectionUtils.isEmpty(request.getTargets())) {
+                request.setTargets(buildersConfigs.get(builder).getTargets());
+            }
         }
     }
 

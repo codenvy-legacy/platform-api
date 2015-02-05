@@ -14,10 +14,10 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.spi.ImageProvider;
-import com.codenvy.api.machine.v2.server.spi.Instance;
+import com.codenvy.api.machine.v2.shared.Process;
 import com.codenvy.api.machine.v2.shared.Command;
+import com.codenvy.api.machine.v2.shared.Machine;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
-import com.codenvy.api.machine.v2.server.spi.InstanceProcess;
 import com.codenvy.api.machine.v2.shared.RecipeId;
 
 import javax.inject.Inject;
@@ -49,10 +49,10 @@ public class MachineManager {
      * Creates and starts machine from scratch using recipe
      * @return newly created Machine
      * @throws InvalidRecipeException if recipe is not valid
-     * @throws InstanceException - for any runtime exception during starting
+     * @throws MachineException - for any runtime exception during starting
      * @throws com.codenvy.api.core.NotFoundException if recipe not found
      */
-    public Instance create(RecipeId recipeId) throws InvalidRecipeException, InstanceException, NotFoundException {
+    public Machine create(RecipeId recipeId) throws InvalidRecipeException, MachineException, NotFoundException {
         return null;
     }
 
@@ -60,10 +60,10 @@ public class MachineManager {
      * Restores and starts  machine from snapshot
      * @return newly created Machine
      * @throws com.codenvy.api.core.NotFoundException if snapshot not found
-     * @throws InstanceException - for any runtime exception during starting
+     * @throws MachineException - for any runtime exception during starting
      * @throws InvalidImageException - if Image pointed by snapshot is not valid
      */
-    public Instance create(String snapshotId) throws NotFoundException, InstanceException, InvalidImageException {
+    public Machine create(String snapshotId) throws NotFoundException, MachineException, InvalidImageException {
         return null;
     }
 
@@ -71,15 +71,13 @@ public class MachineManager {
      * Machine(s) the Project is bound to
      * @param owner
      * @param project
-     * @param includeModules - true if also needs all the Project's modules associated machines,
-     *                       false - if for only the parent project
      * @return list of machines or empty list
      */
-    public List<Instance> getMachines(String owner, ProjectBinding project) throws ServerException {
+    public List<Machine> getMachines(String owner, ProjectBinding project) throws ServerException {
         return null;
     }
 
-    public Instance getMachine(String machineId) throws NotFoundException {
+    public Machine getMachine(String machineId) throws NotFoundException {
         return null;
     }
 
@@ -88,7 +86,7 @@ public class MachineManager {
      * @param machine
      * @return stored Snapshot
      */
-    public Snapshot save(Instance machine) throws InstanceException {
+    public Snapshot save(Machine machine) throws MachineException {
         return null;
     }
 
@@ -116,23 +114,9 @@ public class MachineManager {
     public void removeSnapshot(String snapshotId) throws NotFoundException {
     }
 
-    public InstanceProcess exec(Command command, LineConsumer commandOutput, String machineId) throws NotFoundException, InstanceException {
+    public Process exec(Command command, LineConsumer commandOutput, String machineId) throws NotFoundException, MachineException {
         return null;
     }
-
-    public InstanceProcess exec(Command command, LineConsumer commandOutput, Instance machine) throws InstanceException {
-        return null;
-    }
-
-    /**
-     * TODO doe we need this one
-     * @param machine
-     * @throws NotFoundException
-     * @throws InstanceException
-     */
-    public void destory(Instance machine) throws NotFoundException, InstanceException {
-    }
-
 
     /**
      *
@@ -140,9 +124,9 @@ public class MachineManager {
      * @param saveSnapshot
      * @return Snapshot or null if not saved
      * @throws NotFoundException
-     * @throws InstanceException
+     * @throws MachineException
      */
-    public Snapshot destory(Instance machine, boolean saveSnapshot) throws NotFoundException, InstanceException {
+    public Snapshot destory(Machine machine, boolean saveSnapshot) throws NotFoundException, MachineException {
         return null;
     }
 }

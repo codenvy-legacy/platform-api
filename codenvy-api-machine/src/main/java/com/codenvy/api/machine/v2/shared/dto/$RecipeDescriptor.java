@@ -8,14 +8,24 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
+package com.codenvy.api.machine.v2.shared.dto;
+
+import com.codenvy.dto.shared.DTO;
 
 /**
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface ProjectBinding {
-    String getName();
+@DTO
+public interface $RecipeDescriptor {
+    String getType();
 
-    String getWorkspace();
+    void setType(String type);
 
+    $RecipeDescriptor withType(String type);
+
+    String getScript();
+
+    void setScript(String script);
+
+    $RecipeDescriptor withScript(String script);
 }

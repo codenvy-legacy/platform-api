@@ -80,6 +80,7 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
+                        <package>com.codenvy.api.machine.v2.shared.dto</package>
                         <package>com.codenvy.api.machine.shared.dto</package>
                         <package>com.codenvy.api.machine.server.dto</package>
                     </dtoPackages>

@@ -23,18 +23,18 @@ import java.util.List;
 public class Snapshot {
     private final String               id;
     private final ImageKey             imageKey;
-    private final String               createdBy;
+    private final String               owner;
     private final long                 creationDate;
-    private final String               workspaceId;
     private final List<ProjectBinding> projects;
+    private final String description;
 
-    public Snapshot(String id, ImageKey imageKey, String createdBy, long creationDate, String workspaceId, List<ProjectBinding> projects) {
+    public Snapshot(String id, ImageKey imageKey, String owner, long creationDate, List<ProjectBinding> projects, String description) {
         this.id = id;
         this.imageKey = imageKey;
-        this.createdBy = createdBy;
+        this.owner = owner;
         this.creationDate = creationDate;
-        this.workspaceId = workspaceId;
         this.projects = java.util.Collections.unmodifiableList(projects);
+        this.description = description;
     }
 
     public String getId() {
@@ -45,19 +45,19 @@ public class Snapshot {
         return imageKey;
     }
 
-    public String getCreatedBy() {
-        return createdBy;
+    public String getOwner() {
+        return owner;
     }
 
     public long getCreationDate() {
         return creationDate;
     }
 
-    public String getWorkspaceId() {
-        return workspaceId;
-    }
-
     public List<ProjectBinding> getProjects() {
         return projects;
+    }
+
+    public String getDescription() {
+        return description;
     }
 }

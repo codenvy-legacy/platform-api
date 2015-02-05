@@ -40,36 +40,98 @@ final class MachineManager {
         }
     }
 
-    Machine create(Recipe recipe) throws InvalidRecipeException, MachineException {
+
+    /**
+     * Creates and starts machine from scratch using recipe
+     * @return newly created Machine
+     * @throws InvalidRecipeException if recipe is not valid
+     * @throws MachineException - for any runtime exception during starting
+     * @throws com.codenvy.api.core.NotFoundException if recipe not found
+     */
+    public Machine create(RecipeId recipeId) throws InvalidRecipeException, MachineException, NotFoundException {
         return null;
     }
 
-    Machine create(String snapshotId) throws NotFoundException, MachineException {
+    /**
+     * Restores and starts  machine from snapshot
+     * @return newly created Machine
+     * @throws com.codenvy.api.core.NotFoundException if snapshot not found
+     * @throws MachineException - for any runtime exception during starting
+     * @throws InvalidImageException - if Image pointed by snapshot is not valid
+     */
+    public Machine create(String snapshotId) throws NotFoundException, MachineException, InvalidImageException {
         return null;
     }
 
-    List<Machine> getMachines(ProjectBinding project) {
+    /**
+     * Machine(s) the Project is bound to
+     * @param owner
+     * @param project
+     * @param includeModules - true if also needs all the Project's modules associated machines,
+     *                       false - if for only the parent project
+     * @return list of machines or empty list
+     */
+    public List<Machine> getMachines(String owner, ProjectBinding project) {
         return null;
     }
 
-    Machine getMachine(String machineId) throws NotFoundException {
+    public Machine getMachine(String machineId) throws NotFoundException {
         return null;
     }
 
-    Snapshot save(Machine machine) throws MachineException {
+    /**
+     * Saves machine to Snapshot storage
+     * @param machine
+     * @return stored Snapshot
+     * @throws SnapshotException - if something went wrong during saving
+     */
+    public Snapshot save(Machine machine) throws MachineException {
         return null;
     }
 
-    List<Snapshot> getSnapshots() {
+    /**
+     * list of Snapshots by project
+     * @param owner
+     * @param project
+     * @param includeModules - true if also needs all the Project's modules associated snapshots,
+     *                       false - if for only for parent project
+     * @return list of Snapshots
+     */
+    public List<Snapshot> getSnapshots(String owner, ProjectBinding project, boolean includeModules) {
         return null;
     }
 
-    void removeSnapshot(String snapshotId) throws NotFoundException {
+    /**
+     * removes Snapshots by project
+     * @param project
+     * @param includeModules - true if also needs all the Project's modules associated snapshots,
+     *                       false - if for only for parent project
+     */
+    void removeSnapshots(ProjectBinding project, boolean includeModules) throws NotFoundException {
+
     }
 
-    void destory(Machine machine) throws NotFoundException, MachineException {
+    public void removeSnapshot(String snapshotId) throws NotFoundException {
     }
 
+    /**
+     * TODO doe we need this one
+     * @param machine
+     * @throws NotFoundException
+     * @throws MachineException
+     */
+    public void destory(Machine machine) throws NotFoundException, MachineException {
+    }
+
+
+    /**
+     *
+     * @param machine
+     * @param saveSnapshot
+     * @return Snapshot or null if not saved
+     * @throws NotFoundException
+     * @throws MachineException
+     */
     Snapshot destory(Machine machine, boolean saveSnapshot) throws NotFoundException, MachineException {
         return null;
     }

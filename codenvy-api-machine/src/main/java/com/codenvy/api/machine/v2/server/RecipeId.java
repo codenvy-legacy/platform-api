@@ -8,30 +8,12 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.model;
-
-import com.codenvy.api.machine.v2.server.spi.ImageMetadata;
-
-import java.util.List;
+package com.codenvy.api.machine.v2.server;
 
 /**
- *
- * Reference to Image stored in the system
  * @author gazarenkov
  */
-public interface Snapshot {
+public interface RecipeId {
 
-    String getId();
-
-    String getDescription();
-
-    String getOwner();
-
-    List<ProjectBinding> getProjects();
-
-    /**
-     * Implementation Specific
-     * @return
-     */
-    ImageMetadata getImageMetadata();
+    // TODO same as EnvironmentID in Project - move it to common place
 }

@@ -8,10 +8,14 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.model;
+package com.codenvy.api.machine.v2.server;
 
 /**
  * @author gazarenkov
  */
-public class MachineException extends Exception {
+public interface ProjectBinding {
+    String getName();
+
+    String getWorkspace();
+
 }

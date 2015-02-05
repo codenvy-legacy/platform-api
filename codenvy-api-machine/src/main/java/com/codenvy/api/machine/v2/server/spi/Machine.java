@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server.spi;
 
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.MachineException;
 import com.codenvy.api.machine.v2.server.Snapshot;
 import com.codenvy.api.machine.v2.shared.Command;
@@ -45,7 +46,9 @@ public interface Machine {
 
     List<Process> getProcesses() throws MachineException;
 
-    Process newProcess(Command command) throws MachineException;
+    Process exec(Command command, LineConsumer output) throws MachineException;
+
+    void stop(Process process);
 
     // TODO
     //MachineConfig getConfig();

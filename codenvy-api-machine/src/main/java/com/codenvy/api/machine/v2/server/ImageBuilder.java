@@ -13,7 +13,6 @@ package com.codenvy.api.machine.v2.server;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.machine.shared.model.Script;
 import com.codenvy.api.machine.v2.server.spi.Image;
 
 import java.io.File;
@@ -24,7 +23,7 @@ import java.util.Set;
  * @author andrew00x
  */
 public abstract class ImageBuilder {
-    private final Script recipe;
+    private final Recipe recipe;
 
     private Set<File>           files;
     private Map<String, String> environmentVariables;
@@ -33,11 +32,11 @@ public abstract class ImageBuilder {
     private String              createdBy;
     private LineConsumer outputConsumer = LineConsumer.DEV_NULL;
 
-    protected ImageBuilder(Script recipe) {
+    protected ImageBuilder(Recipe recipe) {
         this.recipe = recipe;
     }
 
-    public Script getRecipe() {
+    public Recipe getRecipe() {
         return recipe;
     }
 

@@ -11,7 +11,7 @@
 package com.codenvy.api.machine.v2.shared;
 
 /**
- * Script to create new {@link com.codenvy.api.machine.v2.server.spi.Image}.
+ * Recipe to create new {@link com.codenvy.api.machine.v2.server.spi.Image}.
  *
  * @author gazarenkov
  */

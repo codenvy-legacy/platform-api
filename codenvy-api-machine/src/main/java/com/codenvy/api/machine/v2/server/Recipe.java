@@ -8,10 +8,33 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.model;
+package com.codenvy.api.machine.v2.server;
+
+import com.codenvy.api.machine.v2.server.RecipeId;
 
 /**
  * @author gazarenkov
+ *
+ *
  */
-public class SnapshotException extends Exception {
+public interface Recipe {
+
+    /**
+     *
+     * @return
+     */
+    RecipeId getId();
+
+    /**
+     * Dockerfile, ...
+     * @return
+     */
+    String getType();
+
+    /**
+     * Script
+     * @return
+     */
+    String getScript();
+
 }

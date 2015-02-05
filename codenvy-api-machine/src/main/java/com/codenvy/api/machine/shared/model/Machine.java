@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.model;
 
+import com.codenvy.api.machine.v2.server.ProjectBinding;
+
 import java.util.List;
 
 /**

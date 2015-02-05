@@ -10,9 +10,12 @@
  *******************************************************************************/
 package com.codenvy.api.account.shared.dto;
 
+import com.codenvy.dto.shared.DTO;
+
 /**
  * @author Sergii Kabashniuk
  */
+@DTO
 public interface MemoryChargeDetails {
     String getWorkspaceId();
 

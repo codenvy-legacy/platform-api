@@ -76,5 +76,11 @@ public interface Receipt {
 
     Receipt withCharges(List<Charge> charges);
 
+    List<MemoryChargeDetails> getMemoryChargeDetails();
+
+    void setMemoryChargeDetails(List<MemoryChargeDetails> memoryChargeDetails);
+
+    Receipt withMemoryChargeDetails(List<MemoryChargeDetails> memoryChargeDetails);
+
 
 }

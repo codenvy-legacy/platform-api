@@ -13,6 +13,8 @@ package com.codenvy.api.project.shared.dto;
 import com.codenvy.api.core.factory.FactoryParameter;
 import com.codenvy.dto.shared.DTO;
 
+import java.util.Map;
+
 import static com.codenvy.api.core.factory.FactoryParameter.Obligation.OPTIONAL;
 /**
  * @author andrew00x
@@ -27,4 +29,13 @@ public interface BuildersDescriptor {
     void setDefault(String _default);
 
     BuildersDescriptor withDefault(String _default);
+
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "configs")
+    /** Gets all available runner configurations. */
+    Map<String, BuilderConfiguration> getConfigs();
+
+    /** Sets new runner configurations. */
+    void setConfigs(Map<String, BuilderConfiguration> configs);
+
+    BuildersDescriptor withConfigs(Map<String, BuilderConfiguration> configs);
 }

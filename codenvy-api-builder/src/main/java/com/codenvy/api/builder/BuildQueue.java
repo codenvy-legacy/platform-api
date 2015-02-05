@@ -14,7 +14,6 @@ import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
@@ -34,11 +33,13 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.CollectionUtils;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
@@ -63,10 +64,13 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -413,15 +417,22 @@ public class BuildQueue {
 
     private void fillRequestFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         String builder = request.getBuilder();
+        final BuildersDescriptor builders = descriptor.getBuilders();
         if (builder == null) {
-            final BuildersDescriptor builders = descriptor.getBuilders();
             if (builders != null) {
                 builder = builders.getDefault();
+                //if builder not set in request we will use builder that set in ProjectDescriptor
+                request.setBuilder(builder);
+                //fill build configuration from ProjectDescriptor for default builder
+                fillBuildConfig(request, builder, builders.getConfigs());
             }
             if (builder == null) {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
-            request.setBuilder(builder);
+
+        } else if (builder == null) {
+            //fill build configuration from ProjectDescriptor for builder from request
+            fillBuildConfig(request, builder, builders.getConfigs());
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -430,6 +441,18 @@ public class BuildQueue {
             final String zipballLinkHref = zipballLink.getHref();
             final String token = getAuthenticationToken();
             request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
+        }
+    }
+
+    private void fillBuildConfig(BaseBuilderRequest request, String builder, Map<String, BuilderConfiguration> buildersConfigs) {
+        //here we going to check is ProjectDescriptor have some setting for giving builder form ProjectDescriptor
+        if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
+            if (CollectionUtils.isEmpty(request.getOptions())) {
+                request.setOptions(buildersConfigs.get(builder).getOptions());
+            }
+            if (CollectionUtils.isEmpty(request.getTargets())) {
+                request.setTargets(buildersConfigs.get(builder).getTargets());
+            }
         }
     }
 

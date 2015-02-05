@@ -15,6 +15,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.api.project.shared.dto.AttributeDescriptor;
+import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -104,7 +105,14 @@ public class DtoConverter {
     }
 
     public static Builders fromDto(BuildersDescriptor dto) {
-        return new Builders(dto.getDefault());
+        final Builders builders = new Builders(dto.getDefault());
+        for (Map.Entry<String, BuilderConfiguration> e : dto.getConfigs().entrySet()) {
+            final BuilderConfiguration config = e.getValue();
+            if (config != null) {
+                builders.getConfigs().put(e.getKey(), new Builders.Config(config.getOptions(), config.getTargets()));
+            }
+        }
+        return builders;
     }
 
     /*================================ Methods for conversion to DTO. ===============================*/
@@ -308,7 +316,20 @@ public class DtoConverter {
     }
 
     private static BuildersDescriptor toDto(DtoFactory dtoFactory, Builders builders) {
-        return dtoFactory.createDto(BuildersDescriptor.class).withDefault(builders.getDefault());
+        BuildersDescriptor dto = dtoFactory.createDto(BuildersDescriptor.class).withDefault(builders.getDefault());
+        final Map<String, Builders.Config> configs = builders.getConfigs();
+        Map<String, BuilderConfiguration> configsDto = new LinkedHashMap<>(configs.size());
+        for (Map.Entry<String, Builders.Config> e : configs.entrySet()) {
+            final Builders.Config config = e.getValue();
+            if (config != null) {
+                configsDto.put(e.getKey(), dtoFactory.createDto(BuilderConfiguration.class)
+                                                     .withOptions(config.getOptions())
+                                                     .withTargets(config.getTargets())
+                              );
+            }
+        }
+        dto.withConfigs(configsDto);
+        return dto;
     }
 
     public static RunnersDescriptor toDto(Runners runners) {

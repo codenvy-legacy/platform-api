@@ -132,12 +132,9 @@ public class MachineManager {
     /**
      *
      * @param machineId
-     * @param saveSnapshot
-     * @return Snapshot or null if not saved
      * @throws NotFoundException
      * @throws MachineException
      */
-    public Snapshot destroy(String machineId, boolean saveSnapshot) throws NotFoundException, MachineException {
-        return null;
+    public void destroy(String machineId) throws NotFoundException, MachineException {
     }
 }

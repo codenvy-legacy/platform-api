@@ -8,12 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server;
+package com.codenvy.api.machine.v2.server.spi;
 
 /**
- * @author gazarenkov
+ * @author andrew00x
  */
-public interface RecipeId {
-
-    // TODO same as EnvironmentID in Project - move it to common place
+public interface InstanceMetadata {
 }

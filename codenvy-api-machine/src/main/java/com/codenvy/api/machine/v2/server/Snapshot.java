@@ -16,7 +16,7 @@ import com.codenvy.api.machine.v2.shared.ProjectBinding;
 import java.util.List;
 
 /**
- * Saved state of {@link com.codenvy.api.machine.v2.server.spi.Machine}.
+ * Saved state of {@link com.codenvy.api.machine.v2.server.spi.Instance}.
  *
  * @author andrew00x
  */

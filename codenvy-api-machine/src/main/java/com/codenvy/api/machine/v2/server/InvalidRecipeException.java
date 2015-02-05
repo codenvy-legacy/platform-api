@@ -10,8 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
+import com.codenvy.api.core.ServerException;
+
 /**
  * @author gazarenkov
  */
-public class InvalidRecipeException extends Exception {
+@SuppressWarnings("serial")
+public class InvalidRecipeException extends ServerException {
+    public InvalidRecipeException(String message) {
+        super(message);
+    }
 }

@@ -13,8 +13,25 @@ package com.codenvy.api.machine.v2.shared;
 /**
  * @author gazarenkov
  */
-public interface ProjectBinding {
-    String getWorkspaceId();
-
-    String getPath();
+public class RecipeId {
+//    public enum Scope {
+//        system("system"),
+//        project("project");
+//
+//        private Scope(String value) {
+//            this.value = value;
+//        }
+//
+//        private final String value;
+//
+//        static Scope fromValue(String value) {
+//            String v = value.toLowerCase();
+//            for (Scope e : Scope.values()) {
+//                if (e.value.equals(v)) {
+//                    return e;
+//                }
+//            }
+//            throw new IllegalArgumentException(value);
+//        }
+//    }
 }

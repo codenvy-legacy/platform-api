@@ -8,22 +8,10 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server.spi;
-
-import java.util.Map;
+package com.codenvy.api.machine.v2.shared;
 
 /**
- * Describes set of keys that uniquely identifies in implementation specific way.
- *
  * @author andrew00x
  */
-public interface ImageKey {
-    Map<String, String> getFields();
-
-    boolean equals(Object o);
-
-    int hashCode();
-
-    /** Serializes this {@code ImageKey} in JSON format. */
-    String toJson();
+public interface Process {
 }

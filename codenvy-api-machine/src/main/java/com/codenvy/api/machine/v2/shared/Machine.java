@@ -8,14 +8,18 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.model;
+package com.codenvy.api.machine.v2.shared;
 
 /**
  * @author gazarenkov
  */
-public interface Command {
+public interface Machine {
+    String getId();
 
-    String getName();
-
-    String getCommandLine();
+    /**
+     * Gets identifier of user who launched this machine.
+     *
+     * @return identifier of user who launched this machine
+     */
+    String getOwner();
 }

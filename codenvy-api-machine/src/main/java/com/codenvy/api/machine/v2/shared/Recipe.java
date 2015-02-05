@@ -15,20 +15,10 @@ package com.codenvy.api.machine.v2.shared;
  *
  * @author gazarenkov
  */
-public class Recipe {
-    private final String type;
-    private final String script;
+public interface Recipe {
+    RecipeId getId();
 
-    public Recipe(String type, String script) {
-        this.type = type;
-        this.script = script;
-    }
+    String getType();
 
-    public String getType() {
-        return type;
-    }
-
-    public String getScript() {
-        return script;
-    }
+    String getScript();
 }

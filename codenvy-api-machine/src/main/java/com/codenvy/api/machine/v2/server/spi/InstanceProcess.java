@@ -20,7 +20,7 @@ import com.codenvy.api.core.util.LineConsumer;
  * @author andrew00x
  * @author Alexander Garagatyi
  */
-public interface Process {
+public interface InstanceProcess {
     /**
      * Returns pid of the process. Returns {@code 0} if process isn't started yet.
      *

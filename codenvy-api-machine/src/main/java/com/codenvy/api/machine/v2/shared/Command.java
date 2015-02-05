@@ -13,28 +13,8 @@ package com.codenvy.api.machine.v2.shared;
 /**
  * @author gazarenkov
  */
-public class Command {
-    private final String name;
-    private final String commandLine;
+public interface Command {
+    String getName();
 
-    public Command(String name, String commandLine) {
-        this.name = name;
-        this.commandLine = commandLine;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getCommandLine() {
-        return commandLine;
-    }
-
-    @Override
-    public String toString() {
-        return "Command{" +
-               "name='" + name + '\'' +
-               ", commandLine='" + commandLine + '\'' +
-               '}';
-    }
+    String getCommandLine();
 }

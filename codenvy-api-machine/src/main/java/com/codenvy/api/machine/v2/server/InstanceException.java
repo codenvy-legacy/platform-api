@@ -10,31 +10,27 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
-import com.codenvy.api.machine.v2.server.RecipeId;
+import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  * @author gazarenkov
- *
- *
  */
-public interface Recipe {
+@SuppressWarnings("serial")
+public class InstanceException extends ServerException {
+    public InstanceException(String message) {
+        super(message);
+    }
 
-    /**
-     *
-     * @return
-     */
-    RecipeId getId();
+    public InstanceException(ServiceError serviceError) {
+        super(serviceError);
+    }
 
-    /**
-     * Dockerfile, ...
-     * @return
-     */
-    String getType();
+    public InstanceException(Throwable cause) {
+        super(cause);
+    }
 
-    /**
-     * Script
-     * @return
-     */
-    String getScript();
-
+    public InstanceException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

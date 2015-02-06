@@ -446,7 +446,7 @@ public abstract class Builder {
                             @Override
                             public void cancelled(Cancellable cancellable) {
                                 try {
-                                    logger.writeLine("[ERROR] Your build has been shutdown due to timeout. Upgrade to get more build time.");
+                                    logger.writeLine("[ERROR] Your build has been shutdown due to timeout.");
                                 } catch (IOException e) {
                                     LOG.error(e.getMessage(), e);
                                 }

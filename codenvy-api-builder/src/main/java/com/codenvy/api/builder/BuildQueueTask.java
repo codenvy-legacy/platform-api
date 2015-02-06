@@ -33,7 +33,7 @@ import java.util.concurrent.Future;
 /**
  * @author andrew00x
  */
-public final class BuildQueueTask implements Cancellable {
+public class BuildQueueTask implements Cancellable {
     private final Long               id;
     private final long               created;
     private final long               waitingTimeout;

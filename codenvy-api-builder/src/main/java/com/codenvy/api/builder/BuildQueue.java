@@ -14,7 +14,6 @@ import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
@@ -300,7 +299,7 @@ public class BuildQueue {
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(wsId)
                                                              .withProject(project)
-                                                             .withUserName(user == null ? "" : user.getName());
+                                                             .withUserId(user == null ? "" : user.getId());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -383,7 +382,7 @@ public class BuildQueue {
                                                                        .withType(type)
                                                                        .withWorkspace(wsId)
                                                                        .withProject(project)
-                                                                       .withUserName(user == null ? "" : user.getName());
+                                                                       .withUserId(user == null ? "" : user.getName());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -529,7 +528,7 @@ public class BuildQueue {
     /**
      * Return tasks of this queue.
      */
-    protected List<BuildQueueTask> getTasks() {
+    public List<BuildQueueTask> getTasks() {
         return new ArrayList<>(tasks.values());
     }
 
@@ -904,7 +903,7 @@ public class BuildQueue {
                             timeout = request.getTimeout() * 1000; // to ms
                         }
                         final String projectTypeId = request.getProjectDescriptor().getType();
-                        final String user = request.getUserName();
+                        final String user = request.getUserId();
 
                         switch (event.getType()) {
                             case BEGIN:

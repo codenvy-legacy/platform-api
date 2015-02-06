@@ -18,7 +18,7 @@ import java.util.List;
 /**
  * @author andrew00x
  */
-public interface SnapshotDao {
+public interface SnapshotStorage {
     Snapshot getSnapshot(String snapshotId) throws NotFoundException;
 
     void saveSnapshot(Snapshot snapshot);

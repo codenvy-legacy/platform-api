@@ -51,14 +51,14 @@ import java.util.concurrent.Executors;
 public class MachineManager {
     // TODO: run machine creation process asynchronously (in separate threads)
 
-    private final SnapshotDao                snapshotDao;
+    private final SnapshotStorage            snapshotStorage;
     private final Map<String, ImageProvider> imageProviders;
     private final Map<String, Machine>       machines;
     private final ExecutorService            executor;
 
     @Inject
-    public MachineManager(SnapshotDao snapshotDao, Set<ImageProvider> imageProviders) {
-        this.snapshotDao = snapshotDao;
+    public MachineManager(SnapshotStorage snapshotStorage, Set<ImageProvider> imageProviders) {
+        this.snapshotStorage = snapshotStorage;
         this.imageProviders = new HashMap<>();
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
@@ -115,7 +115,7 @@ public class MachineManager {
      */
     public Machine create(String snapshotId, LineConsumer creationLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
-        final Snapshot snapshot = snapshotDao.getSnapshot(snapshotId);
+        final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
         final ImageProvider imageProvider = imageProviders.get(imageType);
         if (imageProvider == null) {
@@ -203,7 +203,7 @@ public class MachineManager {
         final Snapshot snapshot =
                 new Snapshot(generateSnapshotId(), machine.getType(), imageKey, getCurrentUserId(), System.currentTimeMillis(),
                              new ArrayList<>(machine.getProjectBindings()), description);
-        snapshotDao.saveSnapshot(snapshot);
+        snapshotStorage.saveSnapshot(snapshot);
         return snapshot;
     }
 
@@ -221,11 +221,11 @@ public class MachineManager {
      * @return list of Snapshots
      */
     public List<Snapshot> getSnapshots(String owner, ProjectBinding project) {
-        return snapshotDao.findSnapshots(owner, project);
+        return snapshotStorage.findSnapshots(owner, project);
     }
 
     public void removeSnapshot(String snapshotId) throws NotFoundException {
-        snapshotDao.removeSnapshot(snapshotId);
+        snapshotStorage.removeSnapshot(snapshotId);
     }
 
     /**
@@ -235,9 +235,9 @@ public class MachineManager {
      *         project binding
      */
     public void removeSnapshots(ProjectBinding project) {
-        for (Snapshot snapshot : snapshotDao.findSnapshots(null, project)) {
+        for (Snapshot snapshot : snapshotStorage.findSnapshots(null, project)) {
             try {
-                snapshotDao.removeSnapshot(snapshot.getId());
+                snapshotStorage.removeSnapshot(snapshot.getId());
             } catch (NotFoundException ignored) {
                 // This is not expected since we just get list of snapshots from DAO.
             }

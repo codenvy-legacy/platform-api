@@ -22,12 +22,12 @@ import java.util.List;
 public interface Instance {
 
     public enum State {
-        CREATING, RUNNIING, DESTROYING
+        CREATING, RUNNING, DESTROYING
     }
 
     InstanceMetadata getMetadata() throws InstanceException;
 
-    State getState() throws InstanceException;
+    State getState();
 
     List<InstanceProcess> getProcesses() throws InstanceException;
 

@@ -16,6 +16,8 @@ package com.codenvy.api.machine.v2.shared;
 public interface Machine {
     String getId();
 
+    String getType();
+
     /**
      * Gets identifier of user who launched this machine.
      *

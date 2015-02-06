@@ -13,6 +13,7 @@ package com.codenvy.api.machine.v2.server;
 import com.codenvy.api.machine.v2.server.spi.ImageKey;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
 
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -22,23 +23,30 @@ import java.util.List;
  */
 public class Snapshot {
     private final String               id;
+    private final String               type;
     private final ImageKey             imageKey;
     private final String               owner;
     private final long                 creationDate;
     private final List<ProjectBinding> projects;
-    private final String description;
+    private final String               description;
 
-    public Snapshot(String id, ImageKey imageKey, String owner, long creationDate, List<ProjectBinding> projects, String description) {
+    public Snapshot(String id, String type, ImageKey imageKey, String owner, long creationDate, List<ProjectBinding> projects,
+                    String description) {
         this.id = id;
+        this.type = type;
         this.imageKey = imageKey;
         this.owner = owner;
         this.creationDate = creationDate;
-        this.projects = java.util.Collections.unmodifiableList(projects);
+        this.projects = Collections.unmodifiableList(projects);
         this.description = description;
     }
 
     public String getId() {
         return id;
+    }
+
+    public String getImageType() {
+        return type;
     }
 
     public ImageKey getImageKey() {

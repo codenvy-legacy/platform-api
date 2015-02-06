@@ -11,8 +11,8 @@
 package com.codenvy.api.machine.v2.server.spi;
 
 import com.codenvy.api.core.ConflictException;
-import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
+import com.codenvy.api.machine.v2.server.InstanceException;
 
 /**
  * Represents process in the machine created by command.
@@ -25,31 +25,31 @@ public interface InstanceProcess {
      * Returns pid of the process. Returns {@code 0} if process isn't started yet.
      *
      * @return pid of the process
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      */
-    int getPid() throws ServerException;
+    int getPid() throws InstanceException;
 
     /**
      * Returns command with all its arguments
      *
      * @return command
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      */
-    String getCommandLine() throws ServerException;
+    String getCommandLine() throws InstanceException;
 
     /**
      * Starts process in the background.
      *
      * @throws com.codenvy.api.core.ConflictException
      *         if process is started already
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      * @see #start()
      * @see #isAlive()
      */
-    void start() throws ConflictException, ServerException;
+    void start() throws ConflictException, InstanceException;
 
     /**
      * Starts process.
@@ -59,25 +59,25 @@ public interface InstanceProcess {
      *         specified then this method is blocked until process is running.
      * @throws com.codenvy.api.core.ConflictException
      *         if process is started already
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      */
-    void start(LineConsumer output) throws ConflictException, ServerException;
+    void start(LineConsumer output) throws ConflictException, InstanceException;
 
     /**
      * Checks is process is running or not.
      *
      * @return {@code true} if process running and {@code false} otherwise
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      */
-    boolean isAlive() throws ServerException;
+    boolean isAlive() throws InstanceException;
 
     /**
      * Kills this process.
      *
-     * @throws com.codenvy.api.core.ServerException
+     * @throws InstanceException
      *         if internal error occurs
      */
-    void kill() throws ServerException;
+    void kill() throws InstanceException;
 }

@@ -8,13 +8,22 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.v2.server.spi;
+package com.codenvy.api.machine.v2.server;
+
+import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.machine.v2.shared.ProjectBinding;
+
+import java.util.List;
 
 /**
  * @author andrew00x
  */
-public interface Image {
-    ImageMetadata getMetadata();
+public interface SnapshotDao {
+    Snapshot getSnapshot(String snapshotId) throws NotFoundException;
 
-    Instance createInstance();
+    void saveSnapshot(Snapshot snapshot);
+
+    List<Snapshot> findSnapshots(String owner, ProjectBinding project);
+
+    void removeSnapshot(String snapshotId) throws NotFoundException;
 }

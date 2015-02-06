@@ -26,6 +26,10 @@ public interface $MachineDescriptor extends Machine, Hyperlinks {
 
     $MachineDescriptor withId(String id);
 
+    void setType(String type);
+
+    $MachineDescriptor withType(String type);
+
     void setOwner(String owner);
 
     $MachineDescriptor withOwner(String owner);

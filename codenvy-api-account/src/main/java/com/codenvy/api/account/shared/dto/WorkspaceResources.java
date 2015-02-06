@@ -23,9 +23,9 @@ public interface WorkspaceResources {
 
     WorkspaceResources withWorkspaceId(String workspaceId);
 
-    Long getMemory();
+    Double getMemory();
 
-    void setMemory(Long memory);
+    void setMemory(Double memory);
 
-    WorkspaceResources withMemory(Long memory);
+    WorkspaceResources withMemory(Double memory);
 }

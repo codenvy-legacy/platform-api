@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
@@ -24,10 +25,8 @@ import com.codenvy.api.machine.v2.shared.Process;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
 import com.codenvy.api.machine.v2.shared.Recipe;
 import com.codenvy.api.machine.v2.shared.RecipeId;
-import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
-import com.codenvy.commons.user.User;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -38,9 +37,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 
 /**
  * Facade for Machine level operations.
@@ -49,8 +50,6 @@ import java.util.concurrent.Executors;
  */
 @Singleton
 public class MachineManager {
-    // TODO: run machine creation process asynchronously (in separate threads)
-
     private final SnapshotStorage            snapshotStorage;
     private final Map<String, ImageProvider> imageProviders;
     private final Map<String, Machine>       machines;
@@ -72,7 +71,11 @@ public class MachineManager {
      *
      * @param recipeId
      *         id of recipe
-     * @return newly created Machine
+     * @param owner
+     *         owner for new machine
+     * @param creationLogsOutput
+     *         output for image creation logs
+     * @return Future for Machine creation process
      * @throws NotFoundException
      *         if recipe not found
      * @throws UnsupportedRecipeException
@@ -82,17 +85,22 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(RecipeId recipeId, LineConsumer creationLogsOutput)
+    public Future<Machine> create(final RecipeId recipeId, final String owner, final LineConsumer creationLogsOutput)
             throws NotFoundException, UnsupportedRecipeException, InvalidRecipeException, MachineException {
         final Recipe recipe = getRecipe(recipeId);
         final String recipeType = recipe.getType();
-        for (ImageProvider imageProvider : imageProviders.values()) {
+        for (final ImageProvider imageProvider : imageProviders.values()) {
             if (imageProvider.getRecipeTypes().contains(recipeType)) {
-                final Image image = imageProvider.createImage(recipe);
-                final Instance instance = image.createInstance();
-                final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), getCurrentUserId(), instance);
-                machines.put(machine.getId(), machine);
-                return machine;
+                return executor.submit(new Callable<Machine>() {
+                    @Override
+                    public Machine call() throws Exception {
+                        final Image image = imageProvider.createImage(recipe, creationLogsOutput);
+                        final Instance instance = image.createInstance();
+                        final Machine machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner, instance);
+                        machines.put(machine.getId(), machine);
+                        return machine;
+                    }
+                });
             }
         }
         throw new UnsupportedRecipeException(String.format("Recipe of type '%s' is not supported", recipeType));
@@ -105,7 +113,13 @@ public class MachineManager {
     /**
      * Restores and starts machine from snapshot.
      *
-     * @return newly created Machine
+     * @param snapshotId
+     *         id of snapshot
+     * @param owner
+     *         owner for new machine
+     * @param creationLogsOutput
+     *         output for image creation logs
+     * @return Future for Machine creation process
      * @throws NotFoundException
      *         if snapshot not found
      * @throws InvalidImageException
@@ -113,7 +127,7 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(String snapshotId, LineConsumer creationLogsOutput)
+    public Future<Machine> create(final String snapshotId, final String owner, final LineConsumer creationLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
         final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
@@ -122,11 +136,16 @@ public class MachineManager {
             throw new InvalidImageException(
                     String.format("Unable start machine from image '%s', unsupported image type '%s'", snapshotId, imageType));
         }
-        final Image image = imageProvider.createImage(snapshot.getImageKey());
-        final Instance instance = image.createInstance();
-        final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), getCurrentUserId(), instance);
-        machines.put(machine.getId(), machine);
-        return machine;
+        return executor.submit(new Callable<Machine>() {
+            @Override
+            public Machine call() throws Exception {
+                final Image image = imageProvider.createImage(snapshot.getImageKey(), creationLogsOutput);
+                final Instance instance = image.createInstance();
+                final Machine machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner, instance);
+                machines.put(machine.getId(), machine);
+                return machine;
+            }
+        });
     }
 
     private String generateMachineId() {
@@ -187,24 +206,32 @@ public class MachineManager {
      *
      * @param machineId
      *         id of machine for saving
+     * @param owner
+     *         owner for new snapshot
      * @param description
      *         optional description that should help to understand purpose of new snapshot in future
-     * @return stored Snapshot
+     * @return Future for Snapshot creation process
      */
-    public Snapshot save(String machineId, String description) throws NotFoundException, MachineException {
+    public Future<Snapshot> save(final String machineId, final String owner, final String description)
+            throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
-        final Instance instance = machine.getInstance();
-        final ImageKey imageKey;
-        try {
-            imageKey = instance.saveToImage();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
-        final Snapshot snapshot =
-                new Snapshot(generateSnapshotId(), machine.getType(), imageKey, getCurrentUserId(), System.currentTimeMillis(),
-                             new ArrayList<>(machine.getProjectBindings()), description);
-        snapshotStorage.saveSnapshot(snapshot);
-        return snapshot;
+        return executor.submit(new Callable<Snapshot>() {
+            @Override
+            public Snapshot call() throws Exception {
+                final Instance instance = machine.getInstance();
+                final List<ProjectBinding> projectBindings = new ArrayList<>(machine.getProjectBindings());
+                final ImageKey imageKey;
+                try {
+                    imageKey = instance.saveToImage();
+                } catch (InstanceException e) {
+                    throw new MachineException(e.getServiceError());
+                }
+                final Snapshot snapshot = new Snapshot(generateSnapshotId(), machine.getType(), imageKey, owner, System.currentTimeMillis(),
+                                                       projectBindings, description);
+                snapshotStorage.saveSnapshot(snapshot);
+                return snapshot;
+            }
+        });
     }
 
     private String generateSnapshotId() {
@@ -234,8 +261,8 @@ public class MachineManager {
      * @param project
      *         project binding
      */
-    public void removeSnapshots(ProjectBinding project) {
-        for (Snapshot snapshot : snapshotStorage.findSnapshots(null, project)) {
+    public void removeSnapshots(String owner, ProjectBinding project) {
+        for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, project)) {
             try {
                 snapshotStorage.removeSnapshot(snapshot.getId());
             } catch (NotFoundException ignored) {
@@ -244,16 +271,13 @@ public class MachineManager {
         }
     }
 
-    public Process exec(String machineId, final Command command, final LineConsumer commandOutput) throws NotFoundException, MachineException {
+    public Process exec(final String machineId, final Command command, final LineConsumer commandOutput)
+            throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
         final Instance instance = machine.getInstance();
-        final Instance.State state = instance.getState();
-        if (state != Instance.State.RUNNING) {
-            throw new MachineException(String.format("Unable execute command on machine that is in '%s' state", state));
-        }
         final InstanceProcess instanceProcess;
         try {
-            instanceProcess = instance.createProcess(command.getCommandLine(), commandOutput);
+            instanceProcess = instance.createProcess(command.getCommandLine());
         } catch (InstanceException e) {
             throw new MachineException(e.getServiceError());
         }
@@ -262,7 +286,7 @@ public class MachineManager {
             public void run() {
                 try {
                     instanceProcess.start(commandOutput);
-                } catch (Exception e) {
+                } catch (ConflictException | InstanceException e) {
                     try {
                         commandOutput.writeLine(e.getMessage());
                     } catch (IOException ignored) {
@@ -282,13 +306,5 @@ public class MachineManager {
             throw new MachineException(e.getServiceError());
         }
         machines.remove(machineId);
-    }
-
-    private String getCurrentUserId() {
-        final User user = EnvironmentContext.getCurrent().getUser();
-        if (user != null) {
-            return user.getId();
-        }
-        return null;
     }
 }

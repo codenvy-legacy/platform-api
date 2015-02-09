@@ -11,12 +11,8 @@
 package com.codenvy.api.machine.v2.shared;
 
 /**
- * @author andrew00x
- */
-public interface Process {
-    int getPid();
-
-    String getCommandLine();
-
-    boolean isAlive();
+* @author andrew00x
+*/
+public enum MachineState {
+    CREATING, RUNNING, DESTROYING, FAILED
 }

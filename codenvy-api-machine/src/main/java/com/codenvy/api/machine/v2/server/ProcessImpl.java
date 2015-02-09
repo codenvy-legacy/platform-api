@@ -23,28 +23,19 @@ public class ProcessImpl implements Process {
         this.instanceProcess = instanceProcess;
     }
 
-    public int getPid() throws MachineException {
-        try {
-            return instanceProcess.getPid();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+    @Override
+    public int getPid() {
+        return instanceProcess.getPid();
     }
 
-    public String getCommandLine() throws MachineException {
-        try {
-            return instanceProcess.getCommandLine();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+    @Override
+    public String getCommandLine() {
+        return instanceProcess.getCommandLine();
     }
 
-    public boolean isAlive() throws MachineException {
-        try {
-            return instanceProcess.isAlive();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+    @Override
+    public boolean isAlive() {
+        return instanceProcess.isAlive();
     }
 
     public void kill() throws MachineException {

@@ -25,19 +25,15 @@ public interface InstanceProcess {
      * Returns pid of the process. Returns {@code 0} if process isn't started yet.
      *
      * @return pid of the process
-     * @throws InstanceException
-     *         if internal error occurs
      */
-    int getPid() throws InstanceException;
+    int getPid();
 
     /**
      * Returns command with all its arguments
      *
      * @return command
-     * @throws InstanceException
-     *         if internal error occurs
      */
-    String getCommandLine() throws InstanceException;
+    String getCommandLine();
 
     /**
      * Starts process in the background.
@@ -68,10 +64,8 @@ public interface InstanceProcess {
      * Checks is process is running or not.
      *
      * @return {@code true} if process running and {@code false} otherwise
-     * @throws InstanceException
-     *         if internal error occurs
      */
-    boolean isAlive() throws InstanceException;
+    boolean isAlive();
 
     /**
      * Kills this process.

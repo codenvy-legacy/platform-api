@@ -11,6 +11,7 @@
 package com.codenvy.api.machine.v2.server.spi;
 
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.InvalidImageException;
 import com.codenvy.api.machine.v2.server.InvalidRecipeException;
 import com.codenvy.api.machine.v2.server.UnsupportedRecipeException;
@@ -44,13 +45,15 @@ public interface ImageProvider {
      *
      * @param recipe
      *         image creation {@link Recipe}
+     * @param creationLogsOutput
+     *         output for image creation logs
      * @return newly created {@link Image}
      * @throws UnsupportedRecipeException
      *         if specified {@code recipe} is not supported
      * @throws InvalidRecipeException
      *         if {@code recipe} is invalid
      */
-    Image createImage(Recipe recipe) throws UnsupportedRecipeException, InvalidRecipeException;
+    Image createImage(Recipe recipe, LineConsumer creationLogsOutput) throws UnsupportedRecipeException, InvalidRecipeException;
 
 
     /**
@@ -58,11 +61,13 @@ public interface ImageProvider {
      *
      * @param imageKey
      *         implementation specific {@link ImageKey}
+     * @param creationLogsOutput
+     *         output for image creation logs
      * @return newly created image
      * @throws InvalidImageException
      *         if recipe is invalid
      * @throws NotFoundException
      *         if image described by {@code imageKey} doesn't exists
      */
-    Image createImage(ImageKey imageKey) throws InvalidImageException, NotFoundException;
+    Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws InvalidImageException, NotFoundException;
 }

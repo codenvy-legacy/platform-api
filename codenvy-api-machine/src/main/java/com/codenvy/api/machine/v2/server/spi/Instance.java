@@ -10,7 +10,6 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server.spi;
 
-import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.InstanceException;
 
 import java.io.File;
@@ -21,17 +20,11 @@ import java.util.List;
  */
 public interface Instance {
 
-    public enum State {
-        CREATING, RUNNING, DESTROYING
-    }
-
     InstanceMetadata getMetadata() throws InstanceException;
-
-    State getState();
 
     List<InstanceProcess> getProcesses() throws InstanceException;
 
-    InstanceProcess createProcess(String commandLine, LineConsumer output) throws InstanceException;
+    InstanceProcess createProcess(String commandLine) throws InstanceException;
 
     void mount(File dir) throws InstanceException;
 

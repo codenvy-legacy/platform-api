@@ -113,9 +113,9 @@ public interface BaseBuilderRequest {
 
     void setProjectUrl(String url);
 
-    String getUserName();
+    String getUserId();
 
-    BaseBuilderRequest withUserName(String userName);
+    BaseBuilderRequest withUserId(String userId);
 
-    void setUserName(String userName);
+    void setUserId(String userId);
 }

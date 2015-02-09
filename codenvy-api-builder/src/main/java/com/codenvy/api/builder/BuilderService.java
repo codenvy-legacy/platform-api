@@ -144,7 +144,7 @@ public class BuilderService extends Service {
                 final BaseBuilderRequest request = task.getRequest();
                 if (request.getWorkspace().equals(workspace)
                     && request.getProject().equals(project)
-                    && request.getUserName().equals(userName)) {
+                    && request.getUserId().equals(userName)) {
                     try {
                         builds.add(task.getDescriptor());
                     } catch (NotFoundException e) {

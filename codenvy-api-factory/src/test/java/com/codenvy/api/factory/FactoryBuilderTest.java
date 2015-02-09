@@ -178,7 +178,7 @@ public class FactoryBuilderTest {
                                                 .withLogo("logo")
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withType(true));
+                                .withType("named"));
         factoryBuilder.checkValid(actual, ENCODED);
 
         verify(sourceProjectParametersValidator).validate(any(ImportSourceDescriptor.class), eq(FactoryParameter.Version.V2_0));
@@ -226,7 +226,7 @@ public class FactoryBuilderTest {
                                                                                               .withReplace("replace")
                                                                                               .withReplacemode("mode"))))))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withType(true));
+                                .withType("named"));
 
         factoryBuilder.checkValid(actual, NONENCODED);
 
@@ -274,7 +274,7 @@ public class FactoryBuilderTest {
                                                 .withLogo("logo")
                                                 .withStyle("style")))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withType(true))
+                                .withType("named"))
               .withIde(dto.createDto(Ide.class)
                           .withOnAppClosed(
                                   dto.createDto(OnAppClosed.class)
@@ -341,7 +341,7 @@ public class FactoryBuilderTest {
                                .withValidSince(123l)
                                .withValidUntil(123l))
               .withWorkspace(dto.createDto(Workspace.class)
-                                .withType(true))
+                                .withType("named"))
               .withIde(dto.createDto(Ide.class)
                           .withOnAppClosed(
                                   dto.createDto(OnAppClosed.class)
@@ -641,7 +641,7 @@ public class FactoryBuilderTest {
                                                                                                 .withReplace("replace")
                                                                                                 .withReplacemode("mode"))))))
                 .withWorkspace(dto.createDto(Workspace.class)
-                                  .withType(true));
+                                  .withType("named"));
 
 
         StringBuilder sb = new StringBuilder("?");
@@ -656,7 +656,7 @@ public class FactoryBuilderTest {
         sb.append("creator.accountId=accountId").append("&");
         sb.append("creator.email=email").append("&");
         sb.append("creator.name=name").append("&");
-        sb.append("workspace.type=true").append("&");
+        sb.append("workspace.type=named").append("&");
         sb.append("source.project.type=git").append("&");
         sb.append("source.project.location=location").append("&");
         sb.append("source.project.parameters.keepVcs=true").append("&");
@@ -731,7 +731,7 @@ public class FactoryBuilderTest {
                                  .withValidSince(123l)
                                  .withValidUntil(123l))
                 .withWorkspace(dto.createDto(Workspace.class)
-                                  .withType(true))
+                                  .withType("named"))
                 .withIde(dto.createDto(Ide.class)
                             .withOnAppClosed(
                                     dto.createDto(OnAppClosed.class)
@@ -769,7 +769,7 @@ public class FactoryBuilderTest {
         sb.append("creator.accountId=accountId").append("&");
         sb.append("creator.email=email").append("&");
         sb.append("creator.name=name").append("&");
-        sb.append("workspace.type=true").append("&");
+        sb.append("workspace.type=named").append("&");
         sb.append("source.project.type=git").append("&");
         sb.append("source.project.location=location").append("&");
         sb.append("source.project.parameters.keepVcs=true").append("&");

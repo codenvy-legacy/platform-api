@@ -156,19 +156,19 @@ public class FactoryBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=true' requires 'policies.requireAuthentication=true'.")
+          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=named' requires 'policies.requireAuthentication=true'.")
     public void shouldNotValidateIfWorkspaceTypeEqualsTrueButRequireAuthenticationAbsent() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType(true));
+                                           .withType("named"));
 
         validator.validateWorkspace(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
-          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=true' requires 'policies.requireAuthentication=true'.")
+          expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=named' requires 'policies.requireAuthentication=true'.")
     public void shouldNotValidateIfWorkspaceTypeEqualsTrueButRequireAuthenticationEqualsFalse() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType(true))
+                                           .withType("named"))
                          .withPolicies(dto.createDto(Policies.class)
                                           .withRequireAuthentication(false));
 
@@ -178,7 +178,7 @@ public class FactoryBaseValidatorTest {
     @Test
     public void shouldValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsTrue() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType(true))
+                                           .withType("named"))
                          .withPolicies(dto.createDto(Policies.class)
                                           .withRequireAuthentication(true));
 

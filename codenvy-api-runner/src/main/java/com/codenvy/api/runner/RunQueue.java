@@ -14,7 +14,6 @@ import com.codenvy.api.builder.BuildStatus;
 import com.codenvy.api.builder.BuilderService;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -1379,8 +1378,9 @@ public class RunQueue {
                     final String analyticsID = task.getCreationTime() + "-" + id;
                     final String project = extractProjectName(event.getProject());
                     final String workspace = request.getWorkspace();
+                    final long time = System.currentTimeMillis();
                     final int memorySize = request.getMemorySize();
-                    final long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                    final long waitingTime = time - task.getCreationTime();
                     final long lifetime;
                     if (request.getLifetime() == Integer.MAX_VALUE) {
                         lifetime = -1;
@@ -1391,22 +1391,9 @@ public class RunQueue {
                     final boolean debug = request.isInDebugMode();
                     final String user = request.getUserId();
                     switch (event.getType()) {
-                        case PREPARATION_STARTED:
-                            final String preparationStartLineFormat =
-                                    debug
-                                    ? "EVENT#debug-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
-                                    : "EVENT#run-preparation-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
-                            LOG.info(preparationStartLineFormat,
-                                     workspace,
-                                     user,
-                                     project,
-                                     projectTypeId,
-                                     analyticsID,
-                                     memorySize,
-                                     lifetime);
-                            break;
                         case STARTED:
-                            LOG.info("EVENT#run-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
+                            LOG.info("EVENT#run-queue-waiting-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{} WAITING-TIME#{}#",
+                                     time,
                                      workspace,
                                      user,
                                      project,
@@ -1414,9 +1401,10 @@ public class RunQueue {
                                      analyticsID,
                                      waitingTime);
                             final String startLineFormat =
-                                    debug ? "EVENT#debug-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
-                                          : "EVENT#run-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                                    debug ? "EVENT#debug-started# WS#{}# TIME#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-started# WS#{}# TIME#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
                             LOG.info(startLineFormat,
+                                     time,
                                      workspace,
                                      user,
                                      project,
@@ -1426,31 +1414,23 @@ public class RunQueue {
                                      lifetime);
                             break;
                         case STOPPED:
-                            long usageTime;
-                            try {
-                                final ApplicationProcessDescriptor descriptor = task.getDescriptor();
-                                usageTime = descriptor.getStopTime() - descriptor.getStartTime();
-                            } catch (ApiException e) {
-                                usageTime = 0;
-                            }
-                            final int stoppedByUser = lifetime == -1 || lifetime > usageTime ? 1 : 0;
                             final String stopLineFormat =
                                     debug
-                                    ? "EVENT#debug-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#"
-                                    : "EVENT#run-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}# USAGE-TIME#{}# STOPPED-BY-USER#{}#";
+                                    ? "EVENT#debug-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                    : "EVENT#run-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
                             LOG.info(stopLineFormat,
+                                     time,
                                      workspace,
                                      user,
                                      project,
                                      projectTypeId,
                                      analyticsID,
                                      memorySize,
-                                     lifetime,
-                                     usageTime,
-                                     stoppedByUser);
+                                     lifetime);
                             break;
                         case RUN_TASK_ADDED_IN_QUEUE:
-                            LOG.info("EVENT#run-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                            LOG.info("EVENT#run-queue-waiting-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                     time,
                                      workspace,
                                      user,
                                      project,
@@ -1458,7 +1438,8 @@ public class RunQueue {
                                      analyticsID);
                             break;
                         case RUN_TASK_QUEUE_TIME_EXCEEDED:
-                            LOG.info("EVENT#run-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                            LOG.info("EVENT#run-queue-terminated# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                     time,
                                      workspace,
                                      user,
                                      project,

@@ -28,10 +28,9 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
     @Inject
     public FactoryAcceptValidatorImpl(AccountDao accountDao,
                                       UserDao userDao,
-                                      UserProfileDao profileDao,
-                                      @Named("onpremises.enabled") boolean onPremises) {
+                                      UserProfileDao profileDao) {
 
-        super(accountDao, userDao, profileDao, onPremises);
+        super(accountDao, userDao, profileDao);
     }
 
     @Override
@@ -41,7 +40,6 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateProjectName(factory);
         }
         validateWorkspace(factory);
-        validateTrackedFactoryAndParams(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
     }

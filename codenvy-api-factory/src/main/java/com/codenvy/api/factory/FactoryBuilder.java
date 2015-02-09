@@ -87,13 +87,10 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     private final SourceProjectParametersValidator sourceProjectParametersValidator;
-    private final boolean                          onPremises;
 
     @Inject
-    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator,
-                          @Named("onpremises.enabled") boolean onPremises) {
+    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator) {
         this.sourceProjectParametersValidator = sourceProjectParametersValidator;
-        this.onPremises = onPremises;
     }
 
     /**
@@ -293,11 +290,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     // check that field satisfies format rules
                     if (!FactoryFormat.BOTH.equals(factoryParameter.format()) && !factoryParameter.format().equals(sourceFormat)) {
                         throw new ConflictException(format(PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
-                    }
-
-                    // check tracked-only fields
-                    if (null == accountId && factoryParameter.trackedOnly() && !onPremises) {
-                        throw new ConflictException(format(PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 
                     // use recursion if parameter is DTO object

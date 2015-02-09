@@ -56,7 +56,7 @@ import static java.lang.String.format;
 public abstract class FactoryBaseValidator {
     private static final Pattern PROJECT_NAME_VALIDATOR = Pattern.compile("^[\\\\\\w\\\\\\d]+[\\\\\\w\\\\\\d_.-]*$");
 
-    private final boolean onPremises;
+
 
     private final AccountDao     accountDao;
     private final UserDao        userDao;
@@ -64,12 +64,10 @@ public abstract class FactoryBaseValidator {
 
     public FactoryBaseValidator(AccountDao accountDao,
                                 UserDao userDao,
-                                UserProfileDao profileDao,
-                                boolean onPremises) {
+                                UserProfileDao profileDao) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.profileDao = profileDao;
-        this.onPremises = onPremises;
     }
 
     /**
@@ -168,74 +166,6 @@ public abstract class FactoryBaseValidator {
             }
         } catch (NotFoundException | ServerException e) {
             throw new ConflictException("You are not authorized to use this accountId.");
-        }
-    }
-
-    protected void validateTrackedFactoryAndParams(Factory factory) throws ApiException {
-        if (onPremises) {
-            return;
-        }
-
-        // validate tracked parameters
-        String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
-
-        if (accountId != null) {
-            try {
-                List<Subscription> subscriptions = accountDao.getActiveSubscriptions(accountId, "Factory");
-                boolean isTracked = false;
-                for (Subscription one : subscriptions) {
-                    if ("Tracked".equalsIgnoreCase(one.getProperties().get("Package"))) {
-                        isTracked = true;
-                        break;
-                    }
-                }
-                if (!isTracked) {
-                    throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
-                }
-            } catch (NotFoundException | ServerException | NumberFormatException e) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
-            }
-        }
-
-        final Policies policies = factory.getPolicies();
-        if (policies != null && accountId == null) {
-            Long validSince = policies.getValidSince();
-            Long validUntil = policies.getValidUntil();
-
-            if (validSince != null && validSince > 0) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validSince"));
-            }
-
-            if (validUntil != null && validUntil > 0) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.validUntil"));
-            }
-
-            if (policies.getRefererHostname() != null && !policies.getRefererHostname().isEmpty()) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "policies.refererHostname"));
-            }
-        }
-
-        if ("2.0".equals(factory.getV())) {
-            WelcomePage welcomePage = null;
-            if (factory.getActions() != null) {
-                welcomePage = factory.getActions().getWelcome();
-            }
-
-            if (null != welcomePage && null == accountId) {
-                throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null, "actions.welcome"));
-            }
-        } else {//Version 2.1
-            if (factory.getIde() != null) {
-                if (factory.getIde().getOnAppLoaded() != null && factory.getIde().getOnAppLoaded().getActions() != null) {
-                    List<Action> onLoadedActions = factory.getIde().getOnAppLoaded().getActions();
-                    for (Action onLoadedAction : onLoadedActions) {
-                        if ("openWelcomePage".equals(onLoadedAction.getId()) && null == accountId) {
-                            throw new ConflictException(format(PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE, null,
-                                                               "ide.onAppLoaded.actions.[%index%].id=openWelcomePage"));
-                        }
-                    }
-                }
-            }
         }
     }
 

@@ -21,8 +21,7 @@ public class TestFactoryBaseValidator extends FactoryBaseValidator {
 
     public TestFactoryBaseValidator(AccountDao accountDao,
                                     UserDao userDao,
-                                    UserProfileDao profileDao,
-                                    boolean onPremises) {
-        super(accountDao, userDao, profileDao, onPremises);
+                                    UserProfileDao profileDao) {
+        super(accountDao, userDao, profileDao);
     }
 }

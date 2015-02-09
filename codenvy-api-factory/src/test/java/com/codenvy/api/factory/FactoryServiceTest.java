@@ -106,7 +106,7 @@ public class FactoryServiceTest {
     @BeforeMethod
     public void setUp() throws Exception {
         dto = DtoFactory.getInstance();
-        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator(), false));
+        factoryBuilder = spy(new FactoryBuilder(new SourceProjectParametersValidator()));
         factoryService = new FactoryService("https://codenvy.com/api",
                                             factoryStore,
                                             createValidator,

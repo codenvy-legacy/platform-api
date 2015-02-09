@@ -21,6 +21,7 @@ import com.codenvy.api.machine.v2.server.spi.Instance;
 import com.codenvy.api.machine.v2.server.spi.InstanceProcess;
 import com.codenvy.api.machine.v2.shared.Command;
 import com.codenvy.api.machine.v2.shared.Machine;
+import com.codenvy.api.machine.v2.shared.MachineState;
 import com.codenvy.api.machine.v2.shared.Process;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
 import com.codenvy.api.machine.v2.shared.Recipe;
@@ -75,7 +76,7 @@ public class MachineManager {
      *         owner for new machine
      * @param creationLogsOutput
      *         output for image creation logs
-     * @return Future for Machine creation process
+     * @return new Machine
      * @throws NotFoundException
      *         if recipe not found
      * @throws UnsupportedRecipeException
@@ -85,20 +86,27 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Future<Machine> create(final RecipeId recipeId, final String owner, final LineConsumer creationLogsOutput)
+    public Machine create(final RecipeId recipeId, final String owner, final LineConsumer creationLogsOutput)
             throws NotFoundException, UnsupportedRecipeException, InvalidRecipeException, MachineException {
         final Recipe recipe = getRecipe(recipeId);
         final String recipeType = recipe.getType();
         for (final ImageProvider imageProvider : imageProviders.values()) {
             if (imageProvider.getRecipeTypes().contains(recipeType)) {
-                return executor.submit(new Callable<Machine>() {
+                final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner);
+                machine.setState(MachineState.CREATING);
+                machines.put(machine.getId(), machine);
+                executor.execute(new Runnable() {
                     @Override
-                    public Machine call() throws Exception {
-                        final Image image = imageProvider.createImage(recipe, creationLogsOutput);
-                        final Instance instance = image.createInstance();
-                        final Machine machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner, instance);
-                        machines.put(machine.getId(), machine);
-                        return machine;
+                    public void run() {
+                        try {
+                            final Image image = imageProvider.createImage(recipe, creationLogsOutput);
+                            final Instance instance = image.createInstance();
+                            machine.setInstance(instance);
+                            machine.setState(MachineState.RUNNING);
+                        } catch (Exception error) {
+                            machine.setError(error);
+                            machine.setState(MachineState.FAILED);
+                        }
                     }
                 });
             }
@@ -119,7 +127,7 @@ public class MachineManager {
      *         owner for new machine
      * @param creationLogsOutput
      *         output for image creation logs
-     * @return Future for Machine creation process
+     * @return new Machine
      * @throws NotFoundException
      *         if snapshot not found
      * @throws InvalidImageException
@@ -127,7 +135,7 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Future<Machine> create(final String snapshotId, final String owner, final LineConsumer creationLogsOutput)
+    public Machine create(final String snapshotId, final String owner, final LineConsumer creationLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
         final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
@@ -136,16 +144,24 @@ public class MachineManager {
             throw new InvalidImageException(
                     String.format("Unable start machine from image '%s', unsupported image type '%s'", snapshotId, imageType));
         }
-        return executor.submit(new Callable<Machine>() {
+        final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner);
+        machine.setState(MachineState.CREATING);
+        machines.put(machine.getId(), machine);
+        executor.execute(new Runnable() {
             @Override
-            public Machine call() throws Exception {
-                final Image image = imageProvider.createImage(snapshot.getImageKey(), creationLogsOutput);
-                final Instance instance = image.createInstance();
-                final Machine machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner, instance);
-                machines.put(machine.getId(), machine);
-                return machine;
+            public void run() {
+                try {
+                    final Image image = imageProvider.createImage(snapshot.getImageKey(), creationLogsOutput);
+                    final Instance instance = image.createInstance();
+                    machine.setInstance(instance);
+                    machine.setState(MachineState.RUNNING);
+                } catch (Exception error) {
+                    machine.setError(error);
+                    machine.setState(MachineState.FAILED);
+                }
             }
         });
+        return machine;
     }
 
     private String generateMachineId() {
@@ -215,11 +231,14 @@ public class MachineManager {
     public Future<Snapshot> save(final String machineId, final String owner, final String description)
             throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
+        final Instance instance = machine.getInstance();
+        if (instance == null) {
+            throw new MachineException(
+                    String.format("Unable save machine '%s' in image, machine isn't properly initialized yet", machineId));
+        }
         return executor.submit(new Callable<Snapshot>() {
             @Override
             public Snapshot call() throws Exception {
-                final Instance instance = machine.getInstance();
-                final List<ProjectBinding> projectBindings = new ArrayList<>(machine.getProjectBindings());
                 final ImageKey imageKey;
                 try {
                     imageKey = instance.saveToImage();
@@ -227,7 +246,7 @@ public class MachineManager {
                     throw new MachineException(e.getServiceError());
                 }
                 final Snapshot snapshot = new Snapshot(generateSnapshotId(), machine.getType(), imageKey, owner, System.currentTimeMillis(),
-                                                       projectBindings, description);
+                                                       new ArrayList<>(machine.getProjectBindings()), description);
                 snapshotStorage.saveSnapshot(snapshot);
                 return snapshot;
             }
@@ -275,6 +294,10 @@ public class MachineManager {
             throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
         final Instance instance = machine.getInstance();
+        if (instance == null) {
+            throw new MachineException(
+                    String.format("Unable execute command in machine '%s' in image, machine isn't properly initialized yet", machineId));
+        }
         final InstanceProcess instanceProcess;
         try {
             instanceProcess = instance.createProcess(command.getCommandLine());
@@ -298,13 +321,24 @@ public class MachineManager {
         return new ProcessImpl(instanceProcess);
     }
 
-    public void destroy(String machineId) throws NotFoundException, MachineException {
+    public void destroy(final String machineId) throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
-        try {
-            machine.getInstance().destroy();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
+        machine.setState(MachineState.DESTROYING);
+        final Instance instance = machine.getInstance();
+        if (instance != null) {
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        instance.destroy();
+                        machine.setInstance(null);
+                        machines.remove(machineId);
+                    } catch (InstanceException error) {
+                        machine.setError(error);
+                        machine.setState(MachineState.FAILED);
+                    }
+                }
+            });
         }
-        machines.remove(machineId);
     }
 }

@@ -124,10 +124,14 @@ public abstract class FactoryBaseValidator {
 
     protected void validateWorkspace(Factory factory) throws ApiException {
         final Workspace workspace = factory.getWorkspace();
-        if (workspace != null && workspace.getType() != null && workspace.getType()) {
-            Policies policies = factory.getPolicies();
-            if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
-                throw new ConflictException(ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
+        if (workspace != null && workspace.getType() != null) {
+            if (workspace.getType().equals("named")) {
+                Policies policies = factory.getPolicies();
+                if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
+                    throw new ConflictException(ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
+                }
+            } else if (!workspace.getType().equals("temp")) {
+                throw new ConflictException("workspace.type have only two possible values - named or temp");
             }
         }
     }

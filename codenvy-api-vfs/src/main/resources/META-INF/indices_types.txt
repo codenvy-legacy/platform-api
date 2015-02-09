@@ -5,6 +5,8 @@ text/plain
 text/xml
 text/html
 text/css
+text/x-java
+text/x-java-source
 application/x-jaxrs+groovy
 application/x-groovy
 application/javascript
@@ -14,7 +16,6 @@ application/x-google-gadget
 application/x-uwa-widget
 application/x-groovy+html
 application/x-chromattic+groovy
-application/java
 application/jsp
 application/x-ruby
 application/php

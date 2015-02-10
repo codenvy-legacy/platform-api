@@ -21,6 +21,6 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface $ProcessDescriptor extends Process, Hyperlinks {
-    $ProcessDescriptor withLinks(List<Link> links);
+public interface ProcessDescriptor extends Process, Hyperlinks {
+    ProcessDescriptor withLinks(List<Link> links);
 }

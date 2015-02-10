@@ -81,8 +81,6 @@
                 <configuration>
                     <dtoPackages>
                         <package>com.codenvy.api.machine.shared.dto</package>
-                        <package>com.codenvy.api.machine.v1.dto</package>
-                        <package>com.codenvy.api.machine.v1.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
                     <genClassName>com.codenvy.api.machine.v1.dto.DtoServerImpls</genClassName>

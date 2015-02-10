@@ -21,18 +21,18 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface $MachineDescriptor extends Machine, Hyperlinks {
+public interface MachineDescriptor extends Machine, Hyperlinks {
     void setId(String id);
 
-    $MachineDescriptor withId(String id);
+    MachineDescriptor withId(String id);
 
     void setType(String type);
 
-    $MachineDescriptor withType(String type);
+    MachineDescriptor withType(String type);
 
     void setOwner(String owner);
 
-    $MachineDescriptor withOwner(String owner);
+    MachineDescriptor withOwner(String owner);
 
-    $MachineDescriptor withLinks(List<Link> links);
+    MachineDescriptor withLinks(List<Link> links);
 }

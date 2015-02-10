@@ -10,25 +10,22 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
 
 /**
  * @author andrew00x
  */
 @DTO
-public interface $ProjectBindingDescriptor extends ProjectBinding, Hyperlinks {
-    void setWorkspaceId(String workspaceId);
+public interface RecipeDescriptor {
+    String getType();
 
-    $ProjectBindingDescriptor withWorkspaceId(String workspaceId);
+    void setType(String type);
 
-    void setPath(String path);
+    RecipeDescriptor withType(String type);
 
-    $ProjectBindingDescriptor withPath(String path);
+    String getScript();
 
-    $ProjectBindingDescriptor withLinks(List<Link> links);
+    void setScript(String script);
+
+    RecipeDescriptor withScript(String script);
 }

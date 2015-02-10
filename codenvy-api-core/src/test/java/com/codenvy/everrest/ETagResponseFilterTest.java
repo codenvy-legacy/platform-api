@@ -127,7 +127,7 @@ public class ETagResponseFilterTest {
         List<Object> headerTags = response.getHttpHeaders().get("ETag");
         Assert.assertNotNull(headerTags);
         Assert.assertEquals(headerTags.size(), 1);
-        Assert.assertEquals(headerTags.get(0), new EntityTag("ce1473cf80c6b3fda8e3dfc006adc315"));
+        Assert.assertEquals(headerTags.get(0), new EntityTag("900150983cd24fb0d6963f7d28e17f72"));
     }
 
     /**

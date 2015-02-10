@@ -27,6 +27,7 @@ import javax.ws.rs.core.EntityTag;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Request;
 import javax.ws.rs.core.Response;
+import java.nio.charset.Charset;
 import java.util.List;
 
 import static com.codenvy.everrest.ETagResponseFilter.EntityType.JSON_SERIALIZABLE;
@@ -140,7 +141,7 @@ public class ETagResponseFilter implements ResponseFilter {
         }
         // add hash if all is OK
         try {
-            hasher.putString(getJson(entity, entityType));
+            hasher.putString(getJson(entity, entityType), Charset.defaultCharset());
         } catch (RuntimeException e) {
             return false;
         }

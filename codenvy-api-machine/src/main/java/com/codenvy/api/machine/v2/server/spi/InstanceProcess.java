@@ -12,7 +12,7 @@ package com.codenvy.api.machine.v2.server.spi;
 
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.api.machine.v2.server.InstanceException;
+import com.codenvy.api.machine.v2.server.MachineException;
 
 /**
  * Represents process in the machine created by command.
@@ -40,12 +40,12 @@ public interface InstanceProcess {
      *
      * @throws com.codenvy.api.core.ConflictException
      *         if process is started already
-     * @throws InstanceException
+     * @throws MachineException
      *         if internal error occurs
      * @see #start()
      * @see #isAlive()
      */
-    void start() throws ConflictException, InstanceException;
+    void start() throws ConflictException, MachineException;
 
     /**
      * Starts process.
@@ -55,10 +55,10 @@ public interface InstanceProcess {
      *         specified then this method is blocked until process is running.
      * @throws com.codenvy.api.core.ConflictException
      *         if process is started already
-     * @throws InstanceException
+     * @throws MachineException
      *         if internal error occurs
      */
-    void start(LineConsumer output) throws ConflictException, InstanceException;
+    void start(LineConsumer output) throws ConflictException, MachineException;
 
     /**
      * Checks is process is running or not.
@@ -70,8 +70,8 @@ public interface InstanceProcess {
     /**
      * Kills this process.
      *
-     * @throws InstanceException
+     * @throws MachineException
      *         if internal error occurs
      */
-    void kill() throws InstanceException;
+    void kill() throws MachineException;
 }

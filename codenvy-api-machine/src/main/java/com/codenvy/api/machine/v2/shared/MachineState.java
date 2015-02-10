@@ -14,5 +14,5 @@ package com.codenvy.api.machine.v2.shared;
 * @author andrew00x
 */
 public enum MachineState {
-    CREATING, RUNNING, DESTROYING, FAILED
+    CREATING, RUNNING, DESTROYING
 }

@@ -39,10 +39,6 @@ public class ProcessImpl implements Process {
     }
 
     public void kill() throws MachineException {
-        try {
-            instanceProcess.kill();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+        instanceProcess.kill();
     }
 }

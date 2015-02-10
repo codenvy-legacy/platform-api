@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server.spi;
 
+import com.codenvy.api.machine.v2.server.MachineException;
+
 /**
  * @author andrew00x
  */
 public interface Image {
-    ImageMetadata getMetadata();
+    ImageMetadata getMetadata() throws MachineException;
 
-    Instance createInstance();
+    Instance createInstance() throws MachineException;
 }

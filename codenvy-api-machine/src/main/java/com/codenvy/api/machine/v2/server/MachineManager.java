@@ -13,6 +13,8 @@ package com.codenvy.api.machine.v2.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.core.util.CompositeLineConsumer;
+import com.codenvy.api.core.util.FileLineConsumer;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.spi.Image;
 import com.codenvy.api.machine.v2.server.spi.ImageKey;
@@ -26,12 +28,23 @@ import com.codenvy.api.machine.v2.shared.Process;
 import com.codenvy.api.machine.v2.shared.ProjectBinding;
 import com.codenvy.api.machine.v2.shared.Recipe;
 import com.codenvy.api.machine.v2.shared.RecipeId;
+import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
+import java.io.File;
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -43,6 +56,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Facade for Machine level operations.
@@ -51,20 +65,67 @@ import java.util.concurrent.Future;
  */
 @Singleton
 public class MachineManager {
+    private static final Logger LOG = LoggerFactory.getLogger(MachineManager.class);
+
     private final SnapshotStorage            snapshotStorage;
+    private final File                       machineLogsDir;
     private final Map<String, ImageProvider> imageProviders;
     private final Map<String, Machine>       machines;
     private final ExecutorService            executor;
 
     @Inject
-    public MachineManager(SnapshotStorage snapshotStorage, Set<ImageProvider> imageProviders) {
+    public MachineManager(SnapshotStorage snapshotStorage,
+                          Set<ImageProvider> imageProviders,
+                          @Named("machine.logs_dir") File machineLogsDir) {
         this.snapshotStorage = snapshotStorage;
+        this.machineLogsDir = machineLogsDir;
         this.imageProviders = new HashMap<>();
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
         }
         machines = new ConcurrentHashMap<>();
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("MachineManager-", true));
+    }
+
+    @PostConstruct
+    void start() {
+        if (!(machineLogsDir.exists() || machineLogsDir.mkdirs())) {
+            throw new IllegalStateException(String.format("Unable create directory %s", machineLogsDir.getAbsolutePath()));
+        }
+    }
+
+    @PreDestroy
+    void stop() {
+        boolean interrupted = false;
+        executor.shutdown();
+        try {
+            if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                executor.shutdownNow();
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    LOG.warn("Unable terminate main pool");
+                }
+            }
+        } catch (InterruptedException e) {
+            interrupted = true;
+            executor.shutdownNow();
+        }
+        final java.io.File[] files = machineLogsDir.listFiles();
+        if (files != null && files.length > 0) {
+            for (java.io.File f : files) {
+                boolean deleted;
+                if (f.isDirectory()) {
+                    deleted = IoUtil.deleteRecursive(f);
+                } else {
+                    deleted = f.delete();
+                }
+                if (!deleted) {
+                    LOG.warn("Failed delete {}", f);
+                }
+            }
+        }
+        if (interrupted) {
+            Thread.currentThread().interrupt();
+        }
     }
 
     /**
@@ -74,8 +135,8 @@ public class MachineManager {
      *         id of recipe
      * @param owner
      *         owner for new machine
-     * @param creationLogsOutput
-     *         output for image creation logs
+     * @param machineLogsOutput
+     *         output for machine's logs
      * @return new Machine
      * @throws NotFoundException
      *         if recipe not found
@@ -86,26 +147,34 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(final RecipeId recipeId, final String owner, final LineConsumer creationLogsOutput)
+    public Machine create(final RecipeId recipeId, final String owner, final LineConsumer machineLogsOutput)
             throws NotFoundException, UnsupportedRecipeException, InvalidRecipeException, MachineException {
         final Recipe recipe = getRecipe(recipeId);
         final String recipeType = recipe.getType();
         for (final ImageProvider imageProvider : imageProviders.values()) {
             if (imageProvider.getRecipeTypes().contains(recipeType)) {
-                final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner);
+                final String machineId = generateMachineId();
+                final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
+                final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
                 machine.setState(MachineState.CREATING);
                 machines.put(machine.getId(), machine);
                 executor.execute(new Runnable() {
                     @Override
                     public void run() {
                         try {
-                            final Image image = imageProvider.createImage(recipe, creationLogsOutput);
+                            final Image image = imageProvider.createImage(recipe, machineLogsOutput);
                             final Instance instance = image.createInstance();
                             machine.setInstance(instance);
                             machine.setState(MachineState.RUNNING);
                         } catch (Exception error) {
-                            machine.setError(error);
-                            machine.setState(MachineState.FAILED);
+                            machines.remove(machine.getId());
+                            LOG.warn(error.getMessage());
+                            try {
+                                machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
+                                machineLogger.close();
+                            } catch (IOException e) {
+                                LOG.warn(e.getMessage());
+                            }
                         }
                     }
                 });
@@ -125,8 +194,8 @@ public class MachineManager {
      *         id of snapshot
      * @param owner
      *         owner for new machine
-     * @param creationLogsOutput
-     *         output for image creation logs
+     * @param machineLogsOutput
+     *         output for machine's creation logs
      * @return new Machine
      * @throws NotFoundException
      *         if snapshot not found
@@ -135,7 +204,7 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(final String snapshotId, final String owner, final LineConsumer creationLogsOutput)
+    public Machine create(final String snapshotId, final String owner, final LineConsumer machineLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
         final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
@@ -144,20 +213,28 @@ public class MachineManager {
             throw new InvalidImageException(
                     String.format("Unable start machine from image '%s', unsupported image type '%s'", snapshotId, imageType));
         }
-        final MachineImpl machine = new MachineImpl(generateMachineId(), imageProvider.getType(), owner);
+        final String machineId = generateMachineId();
+        final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
+        final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
         machine.setState(MachineState.CREATING);
         machines.put(machine.getId(), machine);
         executor.execute(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final Image image = imageProvider.createImage(snapshot.getImageKey(), creationLogsOutput);
+                    final Image image = imageProvider.createImage(snapshot.getImageKey(), machineLogsOutput);
                     final Instance instance = image.createInstance();
                     machine.setInstance(instance);
                     machine.setState(MachineState.RUNNING);
                 } catch (Exception error) {
-                    machine.setError(error);
-                    machine.setState(MachineState.FAILED);
+                    machines.remove(machine.getId());
+                    LOG.warn(error.getMessage());
+                    try {
+                        machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
+                        machineLogger.close();
+                    } catch (IOException e) {
+                        LOG.warn(e.getMessage());
+                    }
                 }
             }
         });
@@ -166,6 +243,30 @@ public class MachineManager {
 
     private String generateMachineId() {
         return NameGenerator.generate("machine-", 16);
+    }
+
+    private FileLineConsumer getMachineFileLogger(String machineId) throws MachineException {
+        try {
+            return new FileLineConsumer(getMachineLogsFile(machineId));
+        } catch (IOException e) {
+            throw new MachineException(String.format("Unable create log file for machine '%s'. %s", machineId, e.getMessage()));
+        }
+    }
+
+    private File getMachineLogsFile(String machineId) {
+        return new File(machineLogsDir, machineId);
+    }
+
+    public Reader getMachineLogReader(String machineId) throws NotFoundException, MachineException {
+        final File machineLogsFile = getMachineLogsFile(machineId);
+        if (machineLogsFile.isFile()) {
+            try {
+                return Files.newBufferedReader(machineLogsFile.toPath(), Charset.defaultCharset());
+            } catch (IOException e) {
+                throw new MachineException(String.format("Unable read log file for machine '%s'. %s", machineId, e.getMessage()));
+            }
+        }
+        throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
     public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
@@ -239,12 +340,7 @@ public class MachineManager {
         return executor.submit(new Callable<Snapshot>() {
             @Override
             public Snapshot call() throws Exception {
-                final ImageKey imageKey;
-                try {
-                    imageKey = instance.saveToImage();
-                } catch (InstanceException e) {
-                    throw new MachineException(e.getServiceError());
-                }
+                final ImageKey imageKey = instance.saveToImage();
                 final Snapshot snapshot = new Snapshot(generateSnapshotId(), machine.getType(), imageKey, owner, System.currentTimeMillis(),
                                                        new ArrayList<>(machine.getProjectBindings()), description);
                 snapshotStorage.saveSnapshot(snapshot);
@@ -298,20 +394,16 @@ public class MachineManager {
             throw new MachineException(
                     String.format("Unable execute command in machine '%s' in image, machine isn't properly initialized yet", machineId));
         }
-        final InstanceProcess instanceProcess;
-        try {
-            instanceProcess = instance.createProcess(command.getCommandLine());
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+        final InstanceProcess instanceProcess = instance.createProcess(command.getCommandLine());
         final Runnable execTask = new Runnable() {
             @Override
             public void run() {
                 try {
                     instanceProcess.start(commandOutput);
-                } catch (ConflictException | InstanceException e) {
+                } catch (ConflictException | MachineException error) {
+                    LOG.warn(error.getMessage());
                     try {
-                        commandOutput.writeLine(e.getMessage());
+                        commandOutput.writeLine(String.format("[ERROR] %s", error.getMessage()));
                     } catch (IOException ignored) {
                     }
                 }
@@ -329,13 +421,23 @@ public class MachineManager {
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
+                    final LineConsumer machineLogger = machine.getMachineLogsOutput();
                     try {
                         instance.destroy();
                         machine.setInstance(null);
+                        try {
+                            machineLogger.close();
+                        } catch (IOException e) {
+                            LOG.warn(e.getMessage());
+                        }
                         machines.remove(machineId);
-                    } catch (InstanceException error) {
-                        machine.setError(error);
-                        machine.setState(MachineState.FAILED);
+                    } catch (MachineException error) {
+                        LOG.warn(error.getMessage());
+                        try {
+                            machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
+                        } catch (IOException e) {
+                            LOG.warn(e.getMessage());
+                        }
                     }
                 }
             });

@@ -10,7 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server.spi;
 
-import com.codenvy.api.machine.v2.server.InstanceException;
+import com.codenvy.api.machine.v2.server.MachineException;
 
 import java.io.File;
 import java.util.List;
@@ -20,15 +20,15 @@ import java.util.List;
  */
 public interface Instance {
 
-    InstanceMetadata getMetadata() throws InstanceException;
+    InstanceMetadata getMetadata() throws MachineException;
 
-    List<InstanceProcess> getProcesses() throws InstanceException;
+    List<InstanceProcess> getProcesses() throws MachineException;
 
-    InstanceProcess createProcess(String commandLine) throws InstanceException;
+    InstanceProcess createProcess(String commandLine) throws MachineException;
 
-    void mount(File dir) throws InstanceException;
+    void mount(File dir) throws MachineException;
 
-    ImageKey saveToImage() throws InstanceException;
+    ImageKey saveToImage() throws MachineException;
 
-    void destroy() throws InstanceException;
+    void destroy() throws MachineException;
 }

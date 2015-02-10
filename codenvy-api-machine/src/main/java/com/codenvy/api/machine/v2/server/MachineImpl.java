@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.v2.server;
 
+import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.v2.server.spi.Instance;
 import com.codenvy.api.machine.v2.server.spi.InstanceProcess;
 import com.codenvy.api.machine.v2.shared.Machine;
@@ -30,16 +31,17 @@ public class MachineImpl implements Machine {
     private final String              id;
     private final String              type;
     private final String              owner;
+    private final LineConsumer        machineLogsOutput;
     private final Set<ProjectBinding> projectBindings;
 
     private Instance     instance;
-    private Exception    error;
     private MachineState state;
 
-    MachineImpl(String id, String type, String owner) {
+    MachineImpl(String id, String type, String owner, LineConsumer machineLogsOutput) {
         this.id = id;
         this.type = type;
         this.owner = owner;
+        this.machineLogsOutput = machineLogsOutput;
         projectBindings = new CopyOnWriteArraySet<>();
     }
 
@@ -67,12 +69,7 @@ public class MachineImpl implements Machine {
         if (myInstance == null) {
             return Collections.emptyList();
         }
-        final List<InstanceProcess> instanceProcesses;
-        try {
-            instanceProcesses = myInstance.getProcesses();
-        } catch (InstanceException e) {
-            throw new MachineException(e.getServiceError());
-        }
+        final List<InstanceProcess> instanceProcesses = myInstance.getProcesses();
         final List<Process> processes = new LinkedList<>();
         for (InstanceProcess instanceProcess : instanceProcesses) {
             processes.add(new ProcessImpl(instanceProcess));
@@ -82,6 +79,10 @@ public class MachineImpl implements Machine {
 
     public Set<ProjectBinding> getProjectBindings() {
         return projectBindings;
+    }
+
+    LineConsumer getMachineLogsOutput() {
+        return machineLogsOutput;
     }
 
     synchronized void setState(MachineState state) {
@@ -94,13 +95,5 @@ public class MachineImpl implements Machine {
 
     synchronized void setInstance(Instance instance) {
         this.instance = instance;
-    }
-
-    synchronized Exception getError() {
-        return error;
-    }
-
-    synchronized void setError(Exception error) {
-        this.error = error;
     }
 }

@@ -362,6 +362,10 @@ public class MachineManager {
         return NameGenerator.generate("snapshot-", 16);
     }
 
+    public Snapshot getSnapshot(String snapshotId) throws NotFoundException {
+        return snapshotStorage.getSnapshot(snapshotId);
+    }
+
     /**
      * Gets list of Snapshots by project.
      *

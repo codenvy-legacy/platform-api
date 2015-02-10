@@ -10,21 +10,25 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.dto;
 
-import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
-import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.machine.shared.Process;
+import com.codenvy.api.machine.shared.Command;
 import com.codenvy.dto.shared.DTO;
-
-import java.util.List;
 
 /**
  * @author andrew00x
  */
 @DTO
-public interface ProcessDescriptor extends Process, Hyperlinks {
-    ProcessDescriptor withPid(int pid);
+public interface NewCommand extends Command {
+    void setName(String name);
 
-    ProcessDescriptor withCommandLine(String commandLine);
+    NewCommand withName(String name);
 
-    ProcessDescriptor withLinks(List<Link> links);
+    void setCommandLine(String commandLine);
+
+    NewCommand withCommandLine(String commandLine);
+
+    String getOutputChannel();
+
+    void setOutputChannel(String outputChannel);
+
+    NewCommand withOutputChannel(String outputChannel);
 }

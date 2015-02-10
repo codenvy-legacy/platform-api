@@ -22,7 +22,6 @@ import com.codenvy.api.machine.server.spi.ImageProvider;
 import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Command;
-import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.Process;
 import com.codenvy.api.machine.shared.ProjectBinding;
@@ -70,7 +69,7 @@ public class MachineManager {
     private final SnapshotStorage            snapshotStorage;
     private final File                       machineLogsDir;
     private final Map<String, ImageProvider> imageProviders;
-    private final Map<String, Machine>       machines;
+    private final Map<String, MachineImpl>   machines;
     private final ExecutorService            executor;
 
     @Inject
@@ -110,9 +109,9 @@ public class MachineManager {
             executor.shutdownNow();
         }
 
-        for (Machine machine : machines.values()) {
+        for (MachineImpl machine : machines.values()) {
             try {
-                destroy((MachineImpl)machine);
+                destroy(machine);
             } catch (Exception e) {
                 LOG.warn(e.getMessage());
             }
@@ -156,7 +155,7 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(final RecipeId recipeId, final String owner, final LineConsumer machineLogsOutput)
+    public MachineImpl create(final RecipeId recipeId, final String owner, final LineConsumer machineLogsOutput)
             throws NotFoundException, UnsupportedRecipeException, InvalidRecipeException, MachineException {
         final Recipe recipe = getRecipe(recipeId);
         final String recipeType = recipe.getType();
@@ -213,7 +212,7 @@ public class MachineManager {
      * @throws MachineException
      *         if any exception occurs during starting
      */
-    public Machine create(final String snapshotId, final String owner, final LineConsumer machineLogsOutput)
+    public MachineImpl create(final String snapshotId, final String owner, final LineConsumer machineLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
         final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
@@ -292,19 +291,19 @@ public class MachineManager {
         return new ArrayList<>(doGetMachine(machineId).getProjectBindings());
     }
 
-    public Machine getMachine(String machineId) throws NotFoundException {
+    public MachineImpl getMachine(String machineId) throws NotFoundException {
         return doGetMachine(machineId);
     }
 
     private MachineImpl doGetMachine(String machineId) throws NotFoundException {
-        final Machine machine = machines.get(machineId);
+        final MachineImpl machine = machines.get(machineId);
         if (machine == null) {
             throw new NotFoundException(String.format("Machine '%s' does not exist", machineId));
         }
-        return (MachineImpl)machine;
+        return machine;
     }
 
-    public List<Machine> getMachines() throws ServerException {
+    public List<MachineImpl> getMachines() throws ServerException {
         return new ArrayList<>(machines.values());
     }
 
@@ -317,10 +316,10 @@ public class MachineManager {
      *         project binding
      * @return list of machines or empty list
      */
-    public List<Machine> getMachines(String owner, ProjectBinding project) {
-        final List<Machine> result = new LinkedList<>();
-        for (Machine machine : machines.values()) {
-            if (owner != null && owner.equals(machine.getOwner()) && ((MachineImpl)machine).getProjectBindings().contains(project)) {
+    public List<MachineImpl> getMachines(String owner, ProjectBinding project) {
+        final List<MachineImpl> result = new LinkedList<>();
+        for (MachineImpl machine : machines.values()) {
+            if (owner != null && owner.equals(machine.getOwner()) && machine.getProjectBindings().contains(project)) {
                 result.add(machine);
             }
         }

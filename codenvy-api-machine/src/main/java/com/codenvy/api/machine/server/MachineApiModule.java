@@ -8,27 +8,18 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared.dto;
+package com.codenvy.api.machine.server;
 
-import com.codenvy.api.machine.shared.Command;
-import com.codenvy.dto.shared.DTO;
+import com.codenvy.inject.DynaModule;
+import com.google.inject.AbstractModule;
 
 /**
  * @author andrew00x
  */
-@DTO
-public interface CommandDescriptor extends Command {
-    void setName(String name);
-
-    CommandDescriptor withName(String name);
-
-    void setCommandLine(String commandLine);
-
-    CommandDescriptor withCommandLine(String commandLine);
-
-    String getOutputChannel();
-
-    void setOutputChannel(String outputChannel);
-
-    CommandDescriptor withOutputChannel(String outputChannel);
+@DynaModule
+public class MachineApiModule extends AbstractModule {
+    @Override
+    protected void configure() {
+        bind(com.codenvy.api.machine.server.MachineService.class);
+    }
 }

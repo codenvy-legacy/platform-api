@@ -15,7 +15,6 @@ import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
-import com.codenvy.api.machine.shared.Process;
 import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.Collections;
@@ -64,13 +63,13 @@ public class MachineImpl implements Machine {
         return state;
     }
 
-    public List<Process> getProcesses() throws MachineException {
+    public List<ProcessImpl> getProcesses() throws MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
             return Collections.emptyList();
         }
         final List<InstanceProcess> instanceProcesses = myInstance.getProcesses();
-        final List<Process> processes = new LinkedList<>();
+        final List<ProcessImpl> processes = new LinkedList<>();
         for (InstanceProcess instanceProcess : instanceProcesses) {
             processes.add(new ProcessImpl(instanceProcess));
         }

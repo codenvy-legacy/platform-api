@@ -109,6 +109,15 @@ public class MachineManager {
             interrupted = true;
             executor.shutdownNow();
         }
+
+        for (Machine machine : machines.values()) {
+            try {
+                destroy((MachineImpl)machine);
+            } catch (Exception e) {
+                LOG.warn(e.getMessage());
+            }
+        }
+
         final java.io.File[] files = machineLogsDir.listFiles();
         if (files != null && files.length > 0) {
             for (java.io.File f : files) {
@@ -415,32 +424,35 @@ public class MachineManager {
 
     public void destroy(final String machineId) throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    destroy(machine);
+                    machines.remove(machine.getId());
+                } catch (MachineException error) {
+                    LOG.warn(error.getMessage());
+                    try {
+                        machine.getMachineLogsOutput().writeLine(String.format("[ERROR] %s", error.getMessage()));
+                    } catch (IOException e) {
+                        LOG.warn(e.getMessage());
+                    }
+                }
+            }
+        });
+    }
+
+    private void destroy(MachineImpl machine) throws MachineException {
         machine.setState(MachineState.DESTROYING);
         final Instance instance = machine.getInstance();
         if (instance != null) {
-            executor.execute(new Runnable() {
-                @Override
-                public void run() {
-                    final LineConsumer machineLogger = machine.getMachineLogsOutput();
-                    try {
-                        instance.destroy();
-                        machine.setInstance(null);
-                        try {
-                            machineLogger.close();
-                        } catch (IOException e) {
-                            LOG.warn(e.getMessage());
-                        }
-                        machines.remove(machineId);
-                    } catch (MachineException error) {
-                        LOG.warn(error.getMessage());
-                        try {
-                            machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
-                        } catch (IOException e) {
-                            LOG.warn(e.getMessage());
-                        }
-                    }
-                }
-            });
+            instance.destroy();
+            machine.setInstance(null);
+        }
+        try {
+            machine.getMachineLogsOutput().close();
+        } catch (IOException e) {
+            LOG.warn(e.getMessage());
         }
     }
 }

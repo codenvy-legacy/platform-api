@@ -26,14 +26,14 @@ public interface InstanceProcess {
      *
      * @return pid of the process
      */
-    int getPid();
+    int getPid() throws MachineException;
 
     /**
      * Returns command with all its arguments
      *
      * @return command
      */
-    String getCommandLine();
+    String getCommandLine() throws MachineException ;
 
     /**
      * Starts process in the background.
@@ -65,7 +65,7 @@ public interface InstanceProcess {
      *
      * @return {@code true} if process running and {@code false} otherwise
      */
-    boolean isAlive();
+    boolean isAlive() throws MachineException;
 
     /**
      * Kills this process.

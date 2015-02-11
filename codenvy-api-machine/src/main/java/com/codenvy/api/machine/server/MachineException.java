@@ -15,6 +15,7 @@ import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
 /**
  * @author andrew00x
+ * @author Alexander Garagatyi
  */
 @SuppressWarnings("serial")
 public class MachineException extends ServerException {
@@ -24,5 +25,13 @@ public class MachineException extends ServerException {
 
     public MachineException(ServiceError serviceError) {
         super(serviceError);
+    }
+
+    public MachineException(Throwable cause) {
+        super(cause);
+    }
+
+    public MachineException(String message, Throwable cause) {
+        super(message, cause);
     }
 }

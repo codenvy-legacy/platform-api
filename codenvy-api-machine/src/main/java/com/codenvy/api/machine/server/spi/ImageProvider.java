@@ -14,6 +14,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.InvalidImageException;
 import com.codenvy.api.machine.server.InvalidRecipeException;
+import com.codenvy.api.machine.server.MachineException;
 import com.codenvy.api.machine.server.UnsupportedRecipeException;
 import com.codenvy.api.machine.shared.Recipe;
 
@@ -53,7 +54,8 @@ public interface ImageProvider {
      * @throws InvalidRecipeException
      *         if {@code recipe} is invalid
      */
-    Image createImage(Recipe recipe, LineConsumer creationLogsOutput) throws UnsupportedRecipeException, InvalidRecipeException;
+    Image createImage(Recipe recipe, LineConsumer creationLogsOutput)
+            throws UnsupportedRecipeException, InvalidRecipeException, MachineException;
 
 
     /**

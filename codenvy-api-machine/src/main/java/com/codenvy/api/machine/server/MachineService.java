@@ -174,11 +174,11 @@ public class MachineService {
         machineManager.destroy(machineId);
     }
 
-    @Path("/snapshot")
+    @Path("/snapshot/workspace/{ws-id}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<SnapshotDescriptor> getSnapshots(@QueryParam("workspace") String workspaceId, @QueryParam("path") String path) {
+    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @QueryParam("path") String path) {
         final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
                                                                      dtoFactory.createDto(ProjectBinding.class)
                                                                                .withWorkspaceId(workspaceId)

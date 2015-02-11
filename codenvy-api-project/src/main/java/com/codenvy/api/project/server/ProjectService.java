@@ -731,7 +731,7 @@ public class ProjectService extends Service {
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
                                            ImportProject importProject)
-            throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
+            throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException, NotFoundException {
 
 
         final ImportSourceDescriptor projectSource = importProject.getSource().getProject();
@@ -790,16 +790,20 @@ public class ProjectService extends Service {
 
             // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
-            if (importProject.getProject() != null) {
+            final String projectType = importProject.getProject().getType();
+            if (importProject.getProject() != null && projectType != null && !projectType.isEmpty()) {
 
                 final ProjectConfig providedConfig = DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry());
 
-                if (project == null)
+                if (project == null) {
                     project = new Project(baseProjectFolder, projectManager);
+                }
 
-
+                Map<String, AttributeValue> estimateProject = projectManager.estimateProject(workspace, path, projectType);
+                if (estimateProject != null && providedConfig.getAttributes().isEmpty()) {
+                    providedConfig.getAttributes().putAll(estimateProject);
+                }
                 project.updateConfig(providedConfig);
-
 
             } else if (project == null) {
                 // create BLANK project type

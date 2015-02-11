@@ -121,7 +121,7 @@ public class DtoConverter {
             }
         }
 
-        return new ProjectConfig(dto.getDescription(), typeId, attributes,
+        return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
                 fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
     }
 

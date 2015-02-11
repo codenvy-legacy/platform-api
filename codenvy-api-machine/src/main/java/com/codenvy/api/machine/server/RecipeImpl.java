@@ -34,16 +34,16 @@ public class RecipeImpl implements Recipe {
 
     @Override
     public RecipeId getId() {
-        return null;
+        return id;
     }
 
     @Override
     public String getType() {
-        return null;
+        return type;
     }
 
     @Override
     public String getScript() {
-        return null;
+        return script;
     }
 }

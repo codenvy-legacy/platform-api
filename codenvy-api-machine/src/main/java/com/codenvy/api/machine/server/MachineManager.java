@@ -139,60 +139,55 @@ public class MachineManager {
     /**
      * Creates and starts machine from scratch using recipe.
      *
-     * @param recipeId
-     *         id of recipe
+     * @param recipe
+     *         machine's recipe
      * @param owner
      *         owner for new machine
      * @param machineLogsOutput
      *         output for machine's logs
      * @return new Machine
-     * @throws NotFoundException
-     *         if recipe not found
      * @throws UnsupportedRecipeException
      *         if recipe isn't supported
      * @throws InvalidRecipeException
      *         if recipe is not valid
      * @throws MachineException
-     *         if any exception occurs during starting
+     *         if any other exception occurs during starting
      */
-    public MachineImpl create(final RecipeId recipeId, final String owner, final LineConsumer machineLogsOutput)
-            throws NotFoundException, UnsupportedRecipeException, InvalidRecipeException, MachineException {
-        final Recipe recipe = getRecipe(recipeId);
+    public MachineImpl create(final String machineType, final Recipe recipe, final String owner, final LineConsumer machineLogsOutput)
+            throws UnsupportedRecipeException, InvalidRecipeException, MachineException {
+        final ImageProvider imageProvider = imageProviders.get(machineType);
+        if (imageProvider == null) {
+            throw new MachineException(String.format("Unable create machine from recipe, unsupported machine type '%s'", machineType));
+        }
         final String recipeType = recipe.getType();
-        for (final ImageProvider imageProvider : imageProviders.values()) {
-            if (imageProvider.getRecipeTypes().contains(recipeType)) {
-                final String machineId = generateMachineId();
-                final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
-                final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
-                machine.setState(MachineState.CREATING);
-                machines.put(machine.getId(), machine);
-                executor.execute(new Runnable() {
-                    @Override
-                    public void run() {
+        if (imageProvider.getRecipeTypes().contains(recipeType)) {
+            final String machineId = generateMachineId();
+            final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
+            final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
+            machine.setState(MachineState.CREATING);
+            machines.put(machine.getId(), machine);
+            executor.execute(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        final Image image = imageProvider.createImage(recipe, machineLogsOutput);
+                        final Instance instance = image.createInstance();
+                        machine.setInstance(instance);
+                        machine.setState(MachineState.RUNNING);
+                    } catch (Exception error) {
+                        machines.remove(machine.getId());
+                        LOG.warn(error.getMessage());
                         try {
-                            final Image image = imageProvider.createImage(recipe, machineLogsOutput);
-                            final Instance instance = image.createInstance();
-                            machine.setInstance(instance);
-                            machine.setState(MachineState.RUNNING);
-                        } catch (Exception error) {
-                            machines.remove(machine.getId());
-                            LOG.warn(error.getMessage());
-                            try {
-                                machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
-                                machineLogger.close();
-                            } catch (IOException e) {
-                                LOG.warn(e.getMessage());
-                            }
+                            machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
+                            machineLogger.close();
+                        } catch (IOException e) {
+                            LOG.warn(e.getMessage());
                         }
                     }
-                });
-            }
+                }
+            });
         }
         throw new UnsupportedRecipeException(String.format("Recipe of type '%s' is not supported", recipeType));
-    }
-
-    private Recipe getRecipe(RecipeId recipeId) throws NotFoundException {
-        return null; // TODO
     }
 
     /**
@@ -210,7 +205,7 @@ public class MachineManager {
      * @throws InvalidImageException
      *         if Image pointed by snapshot is not valid
      * @throws MachineException
-     *         if any exception occurs during starting
+     *         if any other exception occurs during starting
      */
     public MachineImpl create(final String snapshotId, final String owner, final LineConsumer machineLogsOutput)
             throws NotFoundException, MachineException, InvalidImageException {
@@ -218,8 +213,8 @@ public class MachineManager {
         final String imageType = snapshot.getImageType();
         final ImageProvider imageProvider = imageProviders.get(imageType);
         if (imageProvider == null) {
-            throw new InvalidImageException(
-                    String.format("Unable start machine from image '%s', unsupported image type '%s'", snapshotId, imageType));
+            throw new MachineException(
+                    String.format("Unable create machine from snapshot '%s', unsupported image type '%s'", snapshotId, imageType));
         }
         final String machineId = generateMachineId();
         final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));

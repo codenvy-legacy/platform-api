@@ -10,8 +10,15 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server.spi;
 
+import com.codenvy.api.machine.shared.Recipe;
+
 /**
  * @author andrew00x
  */
 public interface ImageMetadata extends ImageKey {
+    /**
+     * Get recipe that was used for creation this image. If image was created as snapshot of {@code Instance} this method returns {@code
+     * null}.
+     */
+    Recipe getRecipe();
 }

@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
@@ -61,6 +62,14 @@ public class MachineImpl implements Machine {
 
     public synchronized MachineState getState() {
         return state;
+    }
+
+    public ProcessImpl getProcesse(int pid) throws NotFoundException, MachineException {
+        final Instance myInstance = getInstance();
+        if (myInstance == null) {
+            throw new NotFoundException(String.format("No such process: %d in machine %s", pid, id));
+        }
+        return new ProcessImpl(myInstance.getProcess(pid));
     }
 
     public List<ProcessImpl> getProcesses() throws MachineException {

@@ -64,10 +64,10 @@ public interface ImageProvider {
      * @param creationLogsOutput
      *         output for image creation logs
      * @return newly created image
-     * @throws InvalidImageException
-     *         if recipe is invalid
      * @throws NotFoundException
      *         if image described by {@code imageKey} doesn't exists
+     * @throws InvalidImageException
+     *         if other errors occurs while restoring image
      */
-    Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws InvalidImageException, NotFoundException;
+    Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws NotFoundException, InvalidImageException;
 }

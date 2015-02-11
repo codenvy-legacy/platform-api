@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server.spi;
 
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.machine.server.MachineException;
 
 import java.io.File;
@@ -21,6 +22,8 @@ import java.util.List;
 public interface Instance {
 
     InstanceMetadata getMetadata() throws MachineException;
+
+    InstanceProcess getProcess(int pid) throws NotFoundException, MachineException;
 
     List<InstanceProcess> getProcesses() throws MachineException;
 

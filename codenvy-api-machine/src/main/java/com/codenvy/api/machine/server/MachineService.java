@@ -42,7 +42,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -60,6 +59,8 @@ public class MachineService {
 
     @Inject
     private MemberDao memberDao;
+
+    private DtoFactory dtoFactory = DtoFactory.getInstance();
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -138,7 +139,7 @@ public class MachineService {
         checkCurrentUserPermissionsForWorkspace(workspaceId);
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        final List<MachineImpl> machines = machineManager.getMachines(userId, DtoFactory.getInstance().createDto(ProjectBinding.class)
+        final List<MachineImpl> machines = machineManager.getMachines(userId, dtoFactory.createDto(ProjectBinding.class)
                                                                                         .withWorkspaceId(workspaceId)
                                                                                         .withPath(path));
 
@@ -179,21 +180,21 @@ public class MachineService {
     @RolesAllowed("user")
     public List<SnapshotDescriptor> getSnapshots(@QueryParam("workspace") String workspaceId, @QueryParam("path") String path) {
         final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
-                                                                     DtoFactory.getInstance().createDto(ProjectBinding.class)
+                                                                     dtoFactory.createDto(ProjectBinding.class)
                                                                                .withWorkspaceId(workspaceId)
                                                                                .withPath(path));
 
-        final List<SnapshotDescriptor> snapshotDescriptors = new ArrayList<>();
+        final List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
         for (Snapshot snapshot : snapshots) {
-            final List<ProjectBindingDescriptor> projectBindingDescriptors = new ArrayList<>();
+            final List<ProjectBindingDescriptor> projectBindingDescriptors = new LinkedList<>();
 
             for (ProjectBinding projectBinding : snapshot.getProjects()) {
-                projectBindingDescriptors.add(DtoFactory.getInstance().createDto(ProjectBindingDescriptor.class)
+                projectBindingDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)
                                                         .withPath(projectBinding.getPath())
                                                         .withWorkspaceId(projectBinding.getWorkspaceId()));
             }
 
-            snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
+            snapshotDescriptors.add(dtoFactory.createDto(SnapshotDescriptor.class)
                                               .withId(snapshot.getId())
                                               .withOwner(snapshot.getOwner())
                                               .withImageType(snapshot.getImageType())
@@ -294,7 +295,7 @@ public class MachineService {
                             @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
-        machineManager.bindProject(machineId, DtoFactory.getInstance().createDto(ProjectBinding.class)
+        machineManager.bindProject(machineId, dtoFactory.createDto(ProjectBinding.class)
                                                         .withWorkspaceId(workspace)
                                                         .withPath(path));
     }
@@ -307,7 +308,7 @@ public class MachineService {
                               @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
-        machineManager.unbindProject(machineId, DtoFactory.getInstance().createDto(ProjectBinding.class)
+        machineManager.unbindProject(machineId, dtoFactory.createDto(ProjectBinding.class)
                                                           .withWorkspaceId(workspace)
                                                           .withPath(path));
     }
@@ -362,7 +363,7 @@ public class MachineService {
 //        List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
 //        if (snapshots != null) {
 //            for (Snapshot snapshot : snapshots) {
-//                snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
+//                snapshotDescriptors.add(dtoFactory.createDto(SnapshotDescriptor.class)
 //                                                  .withId(snapshot.getId())
 //                                                  .withDate(snapshot.getDate())
 //                                                  .withDescription(snapshot.getDescription())
@@ -370,7 +371,7 @@ public class MachineService {
 //            }
 //        }
 
-        return DtoFactory.getInstance().createDto(MachineDescriptor.class)
+        return dtoFactory.createDto(MachineDescriptor.class)
                          .withId(id)
                          .withType(machineType)
                          .withOwner(machineOwner)
@@ -384,7 +385,7 @@ public class MachineService {
     }
 
     private ProcessDescriptor toDescriptor(int processId, String commandLine) throws ServerException {
-        return DtoFactory.getInstance().createDto(ProcessDescriptor.class)
+        return dtoFactory.createDto(ProcessDescriptor.class)
                          .withPid(processId)
                          .withCommandLine(commandLine)
 //                        TODO

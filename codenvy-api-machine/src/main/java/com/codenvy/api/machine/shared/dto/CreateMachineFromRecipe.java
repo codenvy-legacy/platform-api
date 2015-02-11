@@ -23,9 +23,9 @@ public interface CreateMachineFromRecipe {
 
     CreateMachineFromRecipe withOutputChannel(String outputChannel);
 
-    String getRecipe();
+    RecipeDescriptor getRecipeDescriptor();
 
-    void setRecipe(String recipe);
+    void setRecipeDescriptor(RecipeDescriptor recipeDescriptor);
 
-    CreateMachineFromRecipe withRecipe(String recipe);
+    CreateMachineFromRecipe withRecipeDescriptor(RecipeDescriptor recipeDescriptor);
 }

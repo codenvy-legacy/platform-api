@@ -64,6 +64,9 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromRecipe(final CreateMachineFromRecipe createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
+        requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
+        requiredNotNull(createMachineRequest.getRecipeDescriptor().getScript(), "Recipe script");
+        requiredNotNull(createMachineRequest.getRecipeDescriptor().getType(), "Recipe type");
         // TODO
         // client have to remember output channel
         // what if we put logs to this channel at the beginning. When machine will have an id we starts logging to channel based on machine id
@@ -75,7 +78,8 @@ public class MachineService {
             lineConsumer = LineConsumer.DEV_NULL;
         }
                                                            // TODO
-        final MachineImpl machine = machineManager.create(new RecipeId(), EnvironmentContext.getCurrent().getUser().getId(), lineConsumer);
+        final MachineImpl machine = machineManager
+                .create(createMachineRequest.getRecipeDescriptor(), EnvironmentContext.getCurrent().getUser().getId(), lineConsumer);
 
         return toDescriptor(machine.getId(),
                             machine.getType(),

@@ -19,7 +19,7 @@ import com.codenvy.api.machine.shared.*;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromRecipe;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
-import com.codenvy.api.machine.shared.dto.NewCommand;
+import com.codenvy.api.machine.shared.dto.CommandDescriptor;
 import com.codenvy.api.machine.shared.dto.ProcessDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
@@ -195,7 +195,7 @@ public class MachineService {
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void executeCommandInMachine(@PathParam("machineId") String machineId, final NewCommand command)
+    public void executeCommandInMachine(@PathParam("machineId") String machineId, final CommandDescriptor command)
             throws NotFoundException, ServerException, ForbiddenException {
         final MachineImpl machine = machineManager.getMachine(machineId);
 

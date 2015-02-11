@@ -17,18 +17,18 @@ import com.codenvy.dto.shared.DTO;
  * @author andrew00x
  */
 @DTO
-public interface NewCommand extends Command {
+public interface CommandDescriptor extends Command {
     void setName(String name);
 
-    NewCommand withName(String name);
+    CommandDescriptor withName(String name);
 
     void setCommandLine(String commandLine);
 
-    NewCommand withCommandLine(String commandLine);
+    CommandDescriptor withCommandLine(String commandLine);
 
     String getOutputChannel();
 
     void setOutputChannel(String outputChannel);
 
-    NewCommand withOutputChannel(String outputChannel);
+    CommandDescriptor withOutputChannel(String outputChannel);
 }

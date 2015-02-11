@@ -21,6 +21,10 @@ import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.CommandDescriptor;
 import com.codenvy.api.machine.shared.dto.ProcessDescriptor;
+import com.codenvy.api.machine.shared.dto.NewSnapshotDescriptor;
+import com.codenvy.api.machine.shared.ProjectBinding;
+import com.codenvy.api.machine.shared.dto.ProjectBindingDescriptor;
+import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
 import com.codenvy.api.workspace.server.dao.Member;
 import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -38,6 +42,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -56,8 +61,6 @@ public class MachineService {
     @Inject
     private MemberDao memberDao;
 
-    // TODO Save errors somewhere to send to client if client wasn't subscribed to build output
-
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -67,19 +70,18 @@ public class MachineService {
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getScript(), "Recipe script");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getType(), "Recipe type");
-        // TODO
-        // client have to remember output channel
-        // what if we put logs to this channel at the beginning. When machine will have an id we starts logging to channel based on machine id
-        // and put administrative message with url of the new channel to old channel
+
         final LineConsumer lineConsumer;
         if (createMachineRequest.getOutputChannel() != null) {
             lineConsumer = new WebsocketLineConsumer(createMachineRequest.getOutputChannel());
         } else {
             lineConsumer = LineConsumer.DEV_NULL;
         }
-                                                           // TODO
-        final MachineImpl machine = machineManager
-                .create(createMachineRequest.getRecipeDescriptor(), EnvironmentContext.getCurrent().getUser().getId(), lineConsumer);
+
+        final MachineImpl machine = machineManager.create(createMachineRequest.getType(),
+                                                          RecipeImpl.fromDescriptor(createMachineRequest.getRecipeDescriptor()),
+                                                          EnvironmentContext.getCurrent().getUser().getId(),
+                                                          lineConsumer);
 
         return toDescriptor(machine.getId(),
                             machine.getType(),
@@ -163,24 +165,58 @@ public class MachineService {
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
-        // todo how to check access rights?
-//        checkCurrentUserPermissionsForMachine(machine.getCreatedBy());
+        final MachineImpl machine = machineManager.getMachine(machineId);
+        if (!EnvironmentContext.getCurrent().getUser().getId().equals(machine.getOwner())) {
+            throw new ForbiddenException("Operation is not permitted");
+        }
+
         machineManager.destroy(machineId);
+    }
+
+    @Path("/snapshot")
+    @GET
+    @Produces(MediaType.APPLICATION_JSON)
+    @RolesAllowed("user")
+    public List<SnapshotDescriptor> getSnapshots(@QueryParam("workspace") String workspaceId, @QueryParam("path") String path) {
+        final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
+                                                                     DtoFactory.getInstance().createDto(ProjectBinding.class)
+                                                                               .withWorkspaceId(workspaceId)
+                                                                               .withPath(path));
+
+        final List<SnapshotDescriptor> snapshotDescriptors = new ArrayList<>();
+        for (Snapshot snapshot : snapshots) {
+            final List<ProjectBindingDescriptor> projectBindingDescriptors = new ArrayList<>();
+
+            for (ProjectBinding projectBinding : snapshot.getProjects()) {
+                projectBindingDescriptors.add(DtoFactory.getInstance().createDto(ProjectBindingDescriptor.class)
+                                                        .withPath(projectBinding.getPath())
+                                                        .withWorkspaceId(projectBinding.getWorkspaceId()));
+            }
+
+            snapshotDescriptors.add(DtoFactory.getInstance().createDto(SnapshotDescriptor.class)
+                                              .withId(snapshot.getId())
+                                              .withOwner(snapshot.getOwner())
+                                              .withImageType(snapshot.getImageType())
+                                              .withDescription(snapshot.getDescription())
+                                              .withCreationDate(snapshot.getCreationDate())
+                                              .withProjects(projectBindingDescriptors));
+        }
+
+        return snapshotDescriptors;
     }
 
     @Path("/{machineId}/snapshot")
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
-    @RolesAllowed("user")                                               // fixme move to body
-    public void saveSnapshot(@PathParam("machineId") String machineId, @QueryParam("description") String description)
+    @RolesAllowed("user")
+    public void saveSnapshot(@PathParam("machineId") String machineId, NewSnapshotDescriptor newSnapshotDescriptor)
             throws NotFoundException, ServerException, ForbiddenException {
         final MachineImpl machine = machineManager.getMachine(machineId);
         if (!EnvironmentContext.getCurrent().getUser().getId().equals(machine.getOwner())) {
             throw new ForbiddenException("Operation is not permitted");
         }
 
-        // todo should we send output to client?
-        machineManager.save(machineId, EnvironmentContext.getCurrent().getUser().getId(), description);
+        machineManager.save(machineId, EnvironmentContext.getCurrent().getUser().getId(), newSnapshotDescriptor.getDescription());
     }
 
     @Path("/snapshot/{snapshotId}")
@@ -242,17 +278,12 @@ public class MachineService {
         final MachineImpl machine = machineManager.getMachine(machineId);
         checkCurrentUserPermissionsForMachine(machine.getOwner());
 
-        for (ProcessImpl process : machine.getProcesses()) {
-            if (process.getPid() == processId) {
-                if (!process.isAlive()) {
-                    throw new ForbiddenException("Process finished already");
-                }
-                // TODO should we do that in separate thread. E.g. if process is zombie request will stop by timeout
-                process.kill();
-                return;
-            }
+        final ProcessImpl process = machine.getProcesse(processId);
+        if (!process.isAlive()) {
+            throw new ForbiddenException("Process finished already");
         }
-        throw new NotFoundException(String.format("Process with id %s not found in machine %s.", processId, machineId));
+
+        process.kill();
     }
 
     @Path("/{machineId}/bind/{workspaceId}/{path:.*}")
@@ -262,7 +293,6 @@ public class MachineService {
                             @PathParam("workspaceId") String workspace,
                             @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
-        // TODO check user's permissions for project
 
         machineManager.bindProject(machineId, DtoFactory.getInstance().createDto(ProjectBinding.class)
                                                         .withWorkspaceId(workspace)

@@ -26,7 +26,6 @@ import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.Process;
 import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.Recipe;
-import com.codenvy.api.machine.shared.RecipeId;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;

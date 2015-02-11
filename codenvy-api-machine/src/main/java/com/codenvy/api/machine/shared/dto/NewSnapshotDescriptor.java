@@ -16,22 +16,10 @@ import com.codenvy.dto.shared.DTO;
  * @author Alexander Garagatyi
  */
 @DTO
-public interface CreateMachineFromRecipe {
-    String getOutputChannel();
+public interface NewSnapshotDescriptor {
+    String getDescription();
 
-    void setOutputChannel(String outputChannel);
+    void setDescription(String description);
 
-    CreateMachineFromRecipe withOutputChannel(String outputChannel);
-
-    String getType();
-
-    void setType(String type);
-
-    CreateMachineFromRecipe withType(String type);
-
-    RecipeDescriptor getRecipeDescriptor();
-
-    void setRecipeDescriptor(RecipeDescriptor recipeDescriptor);
-
-    CreateMachineFromRecipe withRecipeDescriptor(RecipeDescriptor recipeDescriptor);
+    NewSnapshotDescriptor withDescription(String description);
 }

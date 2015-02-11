@@ -75,6 +75,21 @@ public class DtoConverter {
                 runners == null ? null : fromDto(runners));
     }
 
+
+    public static ProjectTemplateDescriptor toDto(ProjectTemplateDescription templateDescription) {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        ImportSourceDescriptor sources = dtoFactory.createDto(ImportSourceDescriptor.class)
+                                                   .withLocation(templateDescription.getLocation())
+                                                   .withType(templateDescription.getImporterType());
+
+        return dtoFactory.createDto(ProjectTemplateDescriptor.class).withDescription(templateDescription.getDescription())
+                                                             .withBuilders(toDto(templateDescription.getBuilders()))
+                                                             .withCategory(templateDescription.getCategory())
+                                                             .withDisplayName(templateDescription.getDisplayName())
+                                                             .withRunners(toDto(templateDescription.getRunners()))
+                                                             .withSource(sources);
+    }
+
     public static ProjectConfig fromDto2(ProjectUpdate dto, ProjectTypeRegistry typeRegistry) throws ServerException,
             ProjectTypeConstraintException, InvalidValueException, ValueStorageException {
         final String typeId = dto.getType();

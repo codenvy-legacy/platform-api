@@ -192,11 +192,11 @@ public class DtoConverter {
         return definition;
     }
 
-    public static ProjectTemplateDescriptor toTemplateDescriptor(ProjectTemplateDescription projectTemplate) {
-        return toTemplateDescriptor(DtoFactory.getInstance(), projectTemplate);
+    public static ProjectTemplateDescriptor toTemplateDescriptor(ProjectTemplateDescription projectTemplate, String projectType) {
+        return toTemplateDescriptor(DtoFactory.getInstance(), projectTemplate, projectType);
     }
 
-    private static ProjectTemplateDescriptor toTemplateDescriptor(DtoFactory dtoFactory, ProjectTemplateDescription projectTemplate) {
+    private static ProjectTemplateDescriptor toTemplateDescriptor(DtoFactory dtoFactory, ProjectTemplateDescription projectTemplate, String projectType) {
         final ImportSourceDescriptor importSource = dtoFactory.createDto(ImportSourceDescriptor.class)
                                                               .withType(projectTemplate.getImporterType())
                                                               .withLocation(projectTemplate.getLocation())
@@ -207,6 +207,7 @@ public class DtoConverter {
                                                         .withDisplayName(projectTemplate.getDisplayName())
                                                         .withSource(importSource)
                                                         .withCategory(projectTemplate.getCategory())
+                                                        .withProjectType(projectType)
                                                         .withDescription(projectTemplate.getDescription());
         if (builders != null) {
             dto.withBuilders(toDto(dtoFactory, builders));

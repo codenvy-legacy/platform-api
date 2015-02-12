@@ -776,8 +776,10 @@ public class ProjectService extends Service {
         Project project = projectManager.getProject(workspace, path);
 
         if (importProject.getProject() != null || project == null) {
+            String projectType = null;
             if (importProject.getProject() != null) {
                 visibility = importProject.getProject().getVisibility();
+                 projectType = importProject.getProject().getType();
             }
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
@@ -790,7 +792,7 @@ public class ProjectService extends Service {
 
             // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
-            final String projectType = importProject.getProject().getType();
+
             if (importProject.getProject() != null && projectType != null && !projectType.isEmpty()) {
 
                 final ProjectConfig providedConfig = DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry());
@@ -869,6 +871,15 @@ public class ProjectService extends Service {
         //set project visibility if needed
         if (visibility != null) {
             project.setVisibility(visibility);
+        }
+
+        //TODO: bad solutions add this temporary because don't know how fix it in other way
+        //TODO: will be fix soon. Don't remove this code
+        //TODO: Vitalii Parfonov
+        if (importer.getId().equals("git")) {
+            ProjectConfig config = project.getConfig();
+            config.getMixinTypes().add("git");
+            project.updateConfig(config);
         }
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));

@@ -68,6 +68,7 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromRecipe(final CreateMachineFromRecipe createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
+        requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Machine type");
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getScript(), "Recipe script");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getType(), "Recipe type");

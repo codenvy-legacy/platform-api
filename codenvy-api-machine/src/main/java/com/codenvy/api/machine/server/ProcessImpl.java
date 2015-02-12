@@ -24,17 +24,17 @@ public class ProcessImpl implements Process {
     }
 
     @Override
-    public int getPid() throws MachineException {
+    public int getPid() {
         return instanceProcess.getPid();
     }
 
     @Override
-    public String getCommandLine() throws MachineException {
+    public String getCommandLine() {
         return instanceProcess.getCommandLine();
     }
 
     @Override
-    public boolean isAlive() throws MachineException {
+    public boolean isAlive() {
         return instanceProcess.isAlive();
     }
 

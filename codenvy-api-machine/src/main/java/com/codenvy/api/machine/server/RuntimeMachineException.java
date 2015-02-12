@@ -8,15 +8,22 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.shared;
+package com.codenvy.api.machine.server;
 
 /**
- * @author andrew00x
+ * @author Alexander Garagatyi
  */
-public interface Process {
-    int getPid();
+@SuppressWarnings("serial")
+public class RuntimeMachineException extends RuntimeException {
+    public RuntimeMachineException(String message) {
+        super(message);
+    }
 
-    String getCommandLine();
+    public RuntimeMachineException(Throwable cause) {
+        super(cause);
+    }
 
-    boolean isAlive();
+    public RuntimeMachineException(String message, Throwable cause) {
+        super(message, cause);
+    }
 }

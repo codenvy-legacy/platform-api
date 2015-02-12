@@ -31,7 +31,7 @@ public interface Instance {
 
     void mount(File dir) throws MachineException;
 
-    ImageKey saveToImage() throws MachineException;
+    ImageKey saveToImage(String owner) throws MachineException;
 
     void destroy() throws MachineException;
 }

@@ -15,7 +15,7 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
-import com.codenvy.api.machine.shared.*;
+import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromRecipe;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;

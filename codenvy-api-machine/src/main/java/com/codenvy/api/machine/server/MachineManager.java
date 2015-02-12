@@ -342,7 +342,7 @@ public class MachineManager {
         return executor.submit(new Callable<Snapshot>() {
             @Override
             public Snapshot call() throws Exception {
-                final ImageKey imageKey = instance.saveToImage();
+                final ImageKey imageKey = instance.saveToImage(machine.getOwner());
                 final Snapshot snapshot = new Snapshot(generateSnapshotId(), machine.getType(), imageKey, owner, System.currentTimeMillis(),
                                                        new ArrayList<>(machine.getProjectBindings()), description);
                 snapshotStorage.saveSnapshot(snapshot);

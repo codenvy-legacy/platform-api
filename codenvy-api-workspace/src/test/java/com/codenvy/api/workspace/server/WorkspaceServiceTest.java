@@ -336,7 +336,7 @@ public class WorkspaceServiceTest {
 
         final String errorJson = doPost(SERVICE_PATH, newWorkspace, CONFLICT);
 
-        assertEquals(asError(errorJson).getMessage(), "Attribute name 'codenvy:god_mode' is not valid");
+        assertEquals(asError(errorJson).getMessage(), "Attribute2 name 'codenvy:god_mode' is not valid");
     }
 
     @Test
@@ -377,7 +377,7 @@ public class WorkspaceServiceTest {
 
         final String errorJson = doPost(SERVICE_PATH + "/temp", testWorkspace, CONFLICT);
 
-        assertEquals(asError(errorJson).getMessage(), "Attribute name 'codenvy:god_mode' is not valid");
+        assertEquals(asError(errorJson).getMessage(), "Attribute2 name 'codenvy:god_mode' is not valid");
     }
 
     @Test
@@ -510,7 +510,7 @@ public class WorkspaceServiceTest {
 
         final String errorJson = doDelete(SERVICE_PATH + "/" + testWorkspace.getId() + "/attribute?name=codenvy:runner_ram", CONFLICT);
 
-        assertEquals(asError(errorJson).getMessage(), "Attribute name 'codenvy:runner_ram' is not valid");
+        assertEquals(asError(errorJson).getMessage(), "Attribute2 name 'codenvy:runner_ram' is not valid");
     }
 
     @Test
@@ -551,7 +551,7 @@ public class WorkspaceServiceTest {
 
         final String errorJson = doPost(SERVICE_PATH + "/" + testWorkspace.getId(), update, CONFLICT);
 
-        assertEquals(asError(errorJson).getMessage(), "Attribute name 'codenvy:runner_ram' is not valid");
+        assertEquals(asError(errorJson).getMessage(), "Attribute2 name 'codenvy:runner_ram' is not valid");
     }
 
     @Test

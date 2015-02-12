@@ -12,7 +12,11 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
@@ -23,6 +27,8 @@ import java.util.Map;
  * A manager for codenvy projects.
  *
  * @author andrew00x
+ *
+ * @deprecated rename DefaultProjectManager instead, no needs to have interface to implement
  */
 @ImplementedBy(DefaultProjectManager.class)
 public interface ProjectManager {
@@ -53,6 +59,7 @@ public interface ProjectManager {
     Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException;
 
     /**
+     *
      * Creates new project.
      *
      * @param workspace
@@ -69,8 +76,9 @@ public interface ProjectManager {
      * @throws ServerException
      *         if other error occurs
      */
-    Project createProject(String workspace, String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException;
+    Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options,
+                          String visibility)
+            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException;
 
     /**
      * Gets root folder od project tree.
@@ -108,14 +116,32 @@ public interface ProjectManager {
      */
     void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException;
 
+
     /**
-     * Gets ProjectTypeDescriptionRegistry.
      *
-     * @see ProjectTypeDescriptionRegistry
+     * @return VirtualFileSystemRegistry
      */
-    ProjectTypeDescriptionRegistry getTypeDescriptionRegistry();
-
-    Map<String, ValueProviderFactory> getValueProviderFactories();
-
     VirtualFileSystemRegistry getVirtualFileSystemRegistry();
+
+    /**
+     *
+     * @return ProjectTypeRegistry
+     */
+    ProjectTypeRegistry getProjectTypeRegistry();
+
+    /**
+     *
+     * @return ProjectHandlerRegistry
+     */
+    ProjectHandlerRegistry getHandlers();
+
+
+    Map<String, AttributeValue> estimateProject(String workspace, String path, String projectTypeId) throws
+            ValueStorageException, ServerException, ForbiddenException, NotFoundException,
+            ProjectTypeConstraintException;
+
+
+    Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
+            String> options, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException;
 }

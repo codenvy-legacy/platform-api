@@ -97,4 +97,13 @@ public interface ProjectUpdate {
     void setVisibility(String visibility);
 
     ProjectUpdate withVisibility(String visibility);
+
+
+    /** Gets project mixin types */
+    List<String> getMixinTypes();
+
+    /** Sets permissions of current user on this project. */
+    void setMixinTypes(List<String> mixinTypes);
+
+    ProjectUpdate withMixinTypes(List<String> mixinTypes);
 }

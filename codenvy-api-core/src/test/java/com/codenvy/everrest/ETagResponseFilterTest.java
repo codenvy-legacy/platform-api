@@ -144,7 +144,7 @@ public class ETagResponseFilterTest {
         List<Object> headerTags = response.getHttpHeaders().get("ETag");
         Assert.assertNotNull(headerTags);
         Assert.assertEquals(headerTags.size(), 1);
-        Assert.assertEquals(headerTags.get(0), new EntityTag("fd186dd49a16b1bf2bd2f44e495e14c9"));
+        Assert.assertEquals(headerTags.get(0), new EntityTag("5d41402abc4b2a76b9719d911017c592"));
     }
 
 
@@ -156,7 +156,7 @@ public class ETagResponseFilterTest {
     public void filterListEntityTestWithEtag() throws Exception {
 
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("If-None-Match", Collections.singletonList(new EntityTag("ce1473cf80c6b3fda8e3dfc006adc315").toString()));
+        headers.put("If-None-Match", Collections.singletonList(new EntityTag("900150983cd24fb0d6963f7d28e17f72").toString()));
 
 
         final ContainerResponse response = resourceLauncher.service("GET", SERVICE_PATH + "/list", BASE_URI, headers, null, null);
@@ -172,7 +172,7 @@ public class ETagResponseFilterTest {
     public void filterSingleEntityTestWithEtag() throws Exception {
 
         Map<String, List<String>> headers = new HashMap<>();
-        headers.put("If-None-Match", Collections.singletonList(new EntityTag("fd186dd49a16b1bf2bd2f44e495e14c9").toString()));
+        headers.put("If-None-Match", Collections.singletonList(new EntityTag("5d41402abc4b2a76b9719d911017c592").toString()));
 
 
         final ContainerResponse response = resourceLauncher.service("GET", SERVICE_PATH + "/single", BASE_URI, headers, null, null);

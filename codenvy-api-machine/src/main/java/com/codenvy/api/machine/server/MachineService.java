@@ -280,7 +280,7 @@ public class MachineService {
         final MachineImpl machine = machineManager.getMachine(machineId);
         checkCurrentUserPermissionsForMachine(machine.getOwner());
 
-        final ProcessImpl process = machine.getProcesse(processId);
+        final ProcessImpl process = machine.getProcess(processId);
         if (!process.isAlive()) {
             throw new ForbiddenException("Process finished already");
         }

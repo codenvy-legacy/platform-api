@@ -64,7 +64,7 @@ public class MachineImpl implements Machine {
         return state;
     }
 
-    public ProcessImpl getProcesse(int pid) throws NotFoundException, MachineException {
+    public ProcessImpl getProcess(int pid) throws NotFoundException, MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
             throw new NotFoundException(String.format("No such process: %d in machine %s", pid, id));

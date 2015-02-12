@@ -10,13 +10,15 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared;
 
+import com.codenvy.api.machine.server.MachineException;
+
 /**
  * @author andrew00x
  */
 public interface Process {
-    int getPid();
+    int getPid() throws MachineException;
 
-    String getCommandLine();
+    String getCommandLine() throws MachineException;
 
-    boolean isAlive();
+    boolean isAlive() throws MachineException;
 }

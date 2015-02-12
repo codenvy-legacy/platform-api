@@ -12,7 +12,6 @@ package com.codenvy.api.machine.shared.dto;
 
 import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
-import com.codenvy.api.machine.shared.Process;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -21,10 +20,25 @@ import java.util.List;
  * @author andrew00x
  */
 @DTO
-public interface ProcessDescriptor extends Process, Hyperlinks {
+public interface ProcessDescriptor extends Hyperlinks {
+    int getPid();
+
+    void setPid(int pid);
+
     ProcessDescriptor withPid(int pid);
+
+    String getCommandLine();
+
+    void setCommandLine(String commandLine);
 
     ProcessDescriptor withCommandLine(String commandLine);
 
+    boolean getIsAlive();
+
+    void setIsAlive(boolean isAlive);
+
+    ProcessDescriptor withIsAlive(boolean isAlive);
+
+    @Override
     ProcessDescriptor withLinks(List<Link> links);
 }

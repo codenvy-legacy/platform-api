@@ -975,7 +975,6 @@ public class AccountService extends Service {
     }
 
 
-
     @ApiOperation(value = "Remove account",
                   notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
                   position = 16)

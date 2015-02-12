@@ -390,32 +390,6 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Account> getPaidSaasAccountsWithOldBillingDate(Date newDate) throws ServerException, ForbiddenException {
-        if (newDate == null) {
-            throw new ForbiddenException("Date can't be null");
-        }
-
-        List<Account> paidAccounts = new LinkedList<>();
-        for (Account account : accounts) {
-            if ("true".equals(account.getAttributes().get("codenvy:paid"))) {
-                final String lastBillingDate = account.getAttributes().get("codenvy:billing_date");
-                if (lastBillingDate != null) {
-                    try {
-                        if (Long.valueOf(lastBillingDate).compareTo(newDate.getTime()) >= 0) {
-                            continue;
-                        }
-                    } catch (NumberFormatException e) {
-                        throw new ServerException(e.getLocalizedMessage(), e);
-                    }
-                }
-
-                paidAccounts.add(account);
-            }
-        }
-        return paidAccounts;
-    }
-
-    @Override
     public List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException {
         List<Account> lockedAccounts  = new LinkedList<>();
         for (Account account : accounts) {

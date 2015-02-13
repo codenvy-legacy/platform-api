@@ -632,6 +632,7 @@ public class FactoryService extends Service {
                                    .withAttributes(projectJson.getAttributes())
                                    .withVisibility(project.getVisibility())
                                    .withDescription(projectJson.getDescription());
+            newProject.setMixinTypes(projectJson.getMixinTypes());
 
             final Builders builders = projectJson.getBuilders();
             if (builders != null) {

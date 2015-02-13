@@ -876,7 +876,7 @@ public class ProjectService extends Service {
         //TODO: bad solutions add this temporary because don't know how fix it in other way
         //TODO: will be fix soon. Don't remove this code
         //TODO: Vitalii Parfonov
-        if (importer.getId().equals("git")) {
+        if (importer.getId().equals("git") || importer.getId().equals("github")) {
             ProjectConfig config = project.getConfig();
             if (!config.getMixinTypes().contains("git")) {
                 config.getMixinTypes().add("git");

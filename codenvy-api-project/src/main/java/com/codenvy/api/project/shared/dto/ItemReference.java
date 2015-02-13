@@ -54,11 +54,15 @@ public interface ItemReference extends Hyperlinks {
 
     ItemReference withPath(String path);
 
+    ItemReference withLinks(List<Link> links);
+
+    /**
+     *
+     * Attributes
+     */
     Map<String, String> getAttributes();
 
     void setAttributes(Map<String, String> attributes);
 
     ItemReference withAttributes(Map<String, String> attributes);
-
-    ItemReference withLinks(List<Link> links);
 }

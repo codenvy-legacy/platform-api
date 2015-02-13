@@ -10,17 +10,24 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import javax.annotation.PostConstruct;
+import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.List;
+import java.util.Set;
 
 /**
- * Reads project template descriptions that may be described in separate .json files for every project type. This file should be named as
+ * Reads project template descriptions that may be described in separate json-files for every project type. This file should be named as
  * &lt;project_type_id&gt;.json.
  *
  * @author Artem Zatsarynnyy
@@ -28,27 +35,44 @@ import java.util.List;
 @Singleton
 public class ProjectTemplateDescriptionLoader {
 
+    private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
+    private final Set<ProjectType>        projectTypes;
+    private final ProjectTemplateRegistry templateRegistry;
+
+    @Inject
+    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes, ProjectTemplateRegistry templateRegistry) {
+        this.projectTypes = projectTypes;
+        this.templateRegistry = templateRegistry;
+    }
+
+    @PostConstruct
+    private void start() {
+        for (ProjectType projectType : projectTypes) {
+            load(projectType.getId());
+        }
+    }
+
     /**
      * Load project template descriptions for the specified project type.
      *
      * @param projectTypeId
      *         id of the project type for which templates should be loaded
-     * @param list
-     *         list to add {@link ProjectTemplateDescription}s
-     * @throws IOException
-     *         if i/o error occurs while reading file with templates
      */
-    public void load(String projectTypeId, List<ProjectTemplateDescription> list) throws IOException {
-        final URL url = Thread.currentThread().getContextClassLoader().getResource(projectTypeId + ".json");
-        if (url != null) {
-            final List<ProjectTemplateDescriptor> templates;
-            try (InputStream inputStream = url.openStream()) {
-                // re-use DTO for storing description of project templates in file.
-                templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
+    private void load(String projectTypeId) {
+        try {
+            final URL url = Thread.currentThread().getContextClassLoader().getResource(projectTypeId + ".json");
+            if (url != null) {
+                final List<ProjectTemplateDescriptor> templates;
+                try (InputStream inputStream = url.openStream()) {
+                    templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
+                    for (ProjectTemplateDescriptor template : templates) {
+                        template.setProjectType(projectTypeId);
+                    }
+                }
+                templateRegistry.register(projectTypeId, templates);
             }
-            for (ProjectTemplateDescriptor template : templates) {
-                list.add(DtoConverter.fromDto(template));
-            }
+        } catch (IOException e) {
+            LOG.debug(String.format("Can't load information about project templates for %s project type", projectTypeId), e);
         }
     }
 }

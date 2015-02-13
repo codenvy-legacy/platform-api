@@ -45,7 +45,7 @@ import java.util.List;
  *     RemoteTask remote = builder.perform(request);
  *     // do something with RemoteTask
  *     // e.g. check status
- *     System.out.println(remote.getDescriptor());
+ *     System.out.println(remote.getConfig());
  * </pre>
  *
  * @author andrew00x

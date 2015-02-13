@@ -10,22 +10,27 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
+import com.codenvy.api.project.server.handlers.CreateModuleHandler;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.GetItemHandler;
+import com.codenvy.api.project.server.type.*;
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.api.vfs.shared.dto.VirtualFileSystemInfo.BasicPermissions;
 import com.codenvy.dto.server.DtoFactory;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.LinkedHashSet;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.Writer;
+import java.util.*;
 
 /**
  * Server side representation for codenvy project.
@@ -36,10 +41,12 @@ import java.util.Set;
 public class Project {
     private final FolderEntry    baseFolder;
     private final ProjectManager manager;
+    private final Modules modules;
 
     public Project(FolderEntry baseFolder, ProjectManager manager) {
         this.baseFolder = baseFolder;
         this.manager = manager;
+        modules = new Modules();
     }
 
     /** Gets id of workspace which this project belongs to. */
@@ -82,106 +89,167 @@ public class Project {
         manager.saveProjectMisc(this, misc);
     }
 
-    /** Gets project meta-information. */
-    public ProjectDescription getDescription() throws ServerException, ValueStorageException {
-        // Copy attributes after merging to be independent to type of ValueProvider. ProjectDescription contains attributes that may use
-        // different ValueProviders. After we have all attributes copy them with DefaultValueProvider. Caller gets description of project
-        // update some attributes or(and) type of project than caller sends description back with method updateDescription.
-        final ProjectDescription projectDescription = doGetDescription();
-        final List<Attribute> attributes = projectDescription.getAttributes();
-        final List<Attribute> copy = new ArrayList<>(attributes.size());
-        for (Attribute attribute : attributes) {
-            copy.add(new Attribute(attribute));
-        }
-        projectDescription.clearAttributes();
-        projectDescription.setAttributes(copy);
-        return projectDescription;
-    }
 
-    private ProjectDescription doGetDescription() throws ServerException {
-        final ProjectJson2 projectJson = ProjectJson2.load(this);
-        final String typeId = projectJson.getType();
-        ProjectType projectType;
-        if (typeId == null) {
-            // Treat type as blank type if type is not set in .codenvy/project.json
-            projectType = ProjectType.BLANK;
-        } else {
-            projectType = manager.getTypeDescriptionRegistry().getProjectType(typeId);
-            if (projectType == null) {
-                // Type is unknown but set in codenvy/.project.json
-                projectType = new ProjectType(typeId);
+    public ProjectConfig getConfig() throws ServerException, ValueStorageException, ProjectTypeConstraintException,
+            InvalidValueException {
+
+        final ProjectJson projectJson = ProjectJson.load(this);
+
+        ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
+
+        final Map<String, AttributeValue> attributes = new HashMap<>();
+
+        for(ProjectType t : types.all) {
+
+            for (Attribute attr : t.getAttributes()) {
+
+                if (attr.isVariable()) {
+                    Variable var = (Variable) attr;
+                    final ValueProviderFactory factory = var.getValueProviderFactory();
+
+                    List<String> val;
+                    if (factory != null) {
+
+                        val = factory.newInstance(baseFolder).getValues(var.getName());
+
+                        if (val == null)
+                            throw new ProjectTypeConstraintException("Value Provider must not produce NULL value of variable " + var.getId());
+                    } else {
+                        val = projectJson.getAttributes().get(attr.getName());
+                    }
+
+                    if (val == null || val.isEmpty()) {
+                        if (var.isRequired())
+                            throw new ProjectTypeConstraintException("No Value nor ValueProvider defined for required variable " + var.getId());
+                        // else just not add it
+
+                    } else {
+                        attributes.put(var.getName(), new AttributeValue(val));
+
+                    }
+
+                } else {  // Constant
+
+                    attributes.put(attr.getName(), attr.getValue());
+                }
             }
         }
-        final ProjectDescription projectDescription =
-                new ProjectDescription(projectType, projectJson.getBuilders(), projectJson.getRunners());
-        projectDescription.setDescription(projectJson.getDescription());
 
-        final List<Attribute> tmp = new LinkedList<>();
 
-        // Merge project's attributes.
-        // 1. predefined
-        for (Attribute attribute : manager.getTypeDescriptionRegistry().getPredefinedAttributes(projectType)) {
-            tmp.add(attribute);
-        }
-        projectDescription.setAttributes(tmp);
-        tmp.clear();
+        Builders builders = (projectJson.getBuilders() == null)?new Builders(types.primary.getDefaultBuilder()):projectJson.getBuilders();
+        Runners runners = (projectJson.getRunners() == null)?new Runners(types.primary.getDefaultRunner()):projectJson.getRunners();
 
-        // 2. "calculated"
-        for (AttributeDescription attributeDescription : manager.getTypeDescriptionRegistry().getAttributeDescriptions(projectType)) {
-            final ValueProviderFactory factory = manager.getValueProviderFactories().get(attributeDescription.getName());
-            if (factory != null) {
-                tmp.add(new Attribute(attributeDescription.getName(), factory.newInstance(this)));
-            }
-        }
-        projectDescription.setAttributes(tmp);
-        tmp.clear();
+        return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
+                attributes, runners, builders, projectJson.getMixinTypes());
 
-        // 3. persistent
-        for (Map.Entry<String, List<String>> e : projectJson.getAttributes().entrySet()) {
-            tmp.add(new Attribute(e.getKey(), e.getValue()));
-        }
-        projectDescription.setAttributes(tmp);
-        tmp.clear();
-
-        return projectDescription;
     }
 
-    /** Updates project meta-information. */
-    public final void updateDescription(ProjectDescription update) throws ServerException, ValueStorageException, InvalidValueException {
-        ProjectDescription thisProjectDescription;
-        try {
-            thisProjectDescription = doGetDescription();
-        } catch (ServerException e) { // in case we have problem with reading/parsing project.json file we going to create new one
-            thisProjectDescription = new ProjectDescription();
-        }
-        final ProjectJson2 projectJson = new ProjectJson2();
-        projectJson.setType(update.getProjectType().getId());
+
+    /**
+     * Updates Project Config making all necessary validations
+     * @param update
+     * @throws ServerException
+     * @throws ValueStorageException
+     * @throws ProjectTypeConstraintException
+     * @throws InvalidValueException
+     */
+    public final void updateConfig(ProjectConfig update) throws ServerException, ValueStorageException,
+            ProjectTypeConstraintException, InvalidValueException {
+
+        final ProjectJson projectJson = new ProjectJson();
+
+        ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
+
+        // init Provided attributes if any
+//        if(ProjectJson.isReadable(this)) {
+//            ProjectJson oldJson = ProjectJson.load(this);
+//            ProjectTypes oldTypes = new ProjectTypes(oldJson.getType(), oldJson.getMixinTypes());
+//
+//            for(ProjectType t : types.all) {
+//                if(!oldTypes.all.contains(t)) {
+//                    for(ValueProviderFactory f : t.getProvidedFactories()) {
+//                        f.newInstance(this.baseFolder).setValues();
+//                    }
+//                }
+//            }
+//        } else {
+//            for (ProjectType t : types.all) {
+//                for (ValueProviderFactory f : t.getProvidedFactories()) {
+//                    f.newInstance(this.baseFolder).init();
+//                }
+//
+//            }
+//        }
+
+        projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
         projectJson.setRunners(update.getRunners());
         projectJson.setDescription(update.getDescription());
-        for (Attribute attributeUpdate : update.getAttributes()) {
-            final String attributeName = attributeUpdate.getName();
-            Attribute thisAttribute = thisProjectDescription.getAttribute(attributeName);
-            if (thisAttribute == null) {
-                final ValueProviderFactory valueProviderFactory = manager.getValueProviderFactories().get(attributeName);
-                if (valueProviderFactory == null) {
-                    // New attribute without special behaviour - setPreferences it in properties.
-                    projectJson.getAttributes().put(attributeName, attributeUpdate.getValues());
-                } else {
-                    thisAttribute = new Attribute(attributeName, valueProviderFactory.newInstance(this));
-                    thisAttribute.setValues(attributeUpdate.getValues());
+
+        ArrayList <String> ms = new ArrayList<>();
+        ms.addAll(types.mixins.keySet());
+        projectJson.setMixinTypes(ms);
+
+        // update attributes
+        for (String attributeName : update.getAttributes().keySet()) {
+
+            AttributeValue attributeValue = update.getAttributes().get(attributeName);
+
+            // Try to Find definition in all the types
+            Attribute definition = null;
+            for(ProjectType t : types.all) {
+                definition = t.getAttribute(attributeName);
+                if(definition != null)
+                    break;
+            }
+
+            // initialize provided attributes
+            if(definition != null && definition.isVariable()) {
+                Variable var = (Variable)definition;
+
+                final ValueProviderFactory valueProviderFactory = var.getValueProviderFactory();
+
+                if(attributeValue == null && var.isRequired())
+                     throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
+
+                if(valueProviderFactory != null) {
+                    valueProviderFactory.newInstance(baseFolder).setValues(var.getName(), attributeValue.getList());
                 }
-            } else {
-                // Don't store attributes as properties of project if have specific ValueProvider.
-                if (manager.getValueProviderFactories().get(attributeName) == null) {
-                    // If don't have special ValueProvider then store attribute as project's property.
-                    projectJson.getAttributes().put(attributeName, attributeUpdate.getValues());
-                } else {
-                    thisAttribute.setValues(attributeUpdate.getValues());
-                }
+                projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
+
             }
         }
+
+        for(ProjectType t : types.all) {
+            for(Attribute attr : t.getAttributes()) {
+                if(attr.isVariable()) {
+                    // check if required variables initialized
+//                    if(attr.isRequired() && attr.getValue() == null) {
+                    if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
+                        throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
+
+                    }
+                } else {
+                    // add constants
+                    projectJson.getAttributes().put(attr.getName(), attr.getValue().getList());
+                }
+
+            }
+        }
+
+
+        // Default builders and runners
+        // NOTE we take it from Primary type only (for the time)
+        // TODO? let's see for Machine API
+        if(projectJson.getBuilders().getDefault() == null)
+            projectJson.getBuilders().setDefault(types.primary.getDefaultBuilder());
+
+        if(projectJson.getRunners().getDefault() == null)
+            projectJson.getRunners().setDefault(types.primary.getDefaultRunner());
+
+
         projectJson.save(this);
+
     }
 
     /**
@@ -278,4 +346,167 @@ public class Project {
             baseFolder.getVirtualFile().updateACL(acl, false, null);
         }
     }
+
+    public VirtualFileEntry getItem(String path) throws ProjectTypeConstraintException,
+             ValueStorageException, ServerException, NotFoundException, ForbiddenException {
+        final VirtualFileEntry entry = getVirtualFileEntry(path);
+        GetItemHandler handler = manager.getHandlers().getGetItemHandler(getConfig().getTypeId());
+        if(handler != null)
+            handler.onGetItem(entry);
+        //getConfig().getMixinTypes()
+        return entry;
+    }
+
+
+
+    /**
+     *
+     * @return list of paths to modules
+     */
+    public Modules getModules() {
+        return modules;
+    }
+
+
+
+    private VirtualFileEntry getVirtualFileEntry(String path)
+            throws NotFoundException, ForbiddenException, ServerException {
+        final FolderEntry root = manager.getProjectsRoot(this.getWorkspace());
+        final VirtualFileEntry entry = root.getChild(path);
+        if (entry == null) {
+            throw new NotFoundException(String.format("Path '%s' doesn't exist.", path));
+        }
+        return entry;
+    }
+
+
+    public class Modules {
+
+        private final String MODULES_PATH = ".codenvy/modules";
+
+        public void remove(String path) throws ForbiddenException, ServerException, ConflictException {
+
+            Set<String> all = read();
+            all.remove(path);
+            write(all);
+
+        }
+
+        public void add(String path) throws ForbiddenException, ServerException, ConflictException {
+            Set<String> all = read();
+            all.add(path);
+            write(all);
+        }
+
+        public Set<String> get() throws ForbiddenException, ServerException {
+            return read();
+        }
+
+        private Set<String> read() throws ForbiddenException, ServerException {
+            HashSet<String> modules = new HashSet<>();
+            VirtualFileEntry file = null;
+
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null || file.isFolder())
+                return modules;
+
+            try {
+                BufferedReader in = new BufferedReader(new InputStreamReader(((FileEntry) file).getInputStream()));
+                while (in.ready()) {
+                    modules.add(in.readLine());
+                }
+                in.close();
+            } catch (IOException e) {
+                throw new ServerException(e);
+            }
+
+            return modules;
+        }
+
+        private void write(Set<String> modules) throws ForbiddenException, ServerException, ConflictException {
+
+            VirtualFileEntry file = null;
+            file = baseFolder.getChild(MODULES_PATH);
+
+            if (file == null && !modules.isEmpty())
+                file = ((FolderEntry) baseFolder.getChild(".codenvy")).createFile("modules", new byte[0], "text/plain");
+
+//                if(modules.isEmpty() && file != null)
+//                    file.remove();
+
+            String all = "";
+            for (String path : modules) {
+                all += (path + "\n");
+            }
+
+            ((FileEntry) file).updateContent(all.getBytes());
+
+        }
+
+
+    }
+
+
+
+    private class ProjectTypes {
+
+        ProjectType primary;
+        Map<String, ProjectType> mixins = new HashMap<>();
+        Set<ProjectType> all = new HashSet<>();
+
+        ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
+            if(pt == null)
+                throw new ProjectTypeConstraintException("No primary type defined for "+getWorkspace()+" : "+getPath());
+
+            primary = manager.getProjectTypeRegistry().getProjectType(pt);
+            if(primary == null)
+                throw new ProjectTypeConstraintException("No project type registered for "+pt);
+            if(!primary.canBePrimary())
+                throw new ProjectTypeConstraintException("Project type "+primary.getId()+" is not allowable to be primary type");
+            all.add(primary);
+
+            if(mss == null)
+                mss = new ArrayList<>();
+
+            // temporary storage to detect duplicated attributes
+            HashMap<String, Attribute> tmpAttrs = new HashMap<>();
+            for(Attribute attr : primary.getAttributes()) {
+                tmpAttrs.put(attr.getName(), attr);
+            }
+
+
+            for(String m : mss) {
+                if(!m.equals(primary.getId())) {
+
+                    ProjectType mixin = manager.getProjectTypeRegistry().getProjectType(m);
+                    if(mixin == null)
+                        throw new ProjectTypeConstraintException("No project type registered for "+m);
+                    if(!mixin.canBeMixin())
+                        throw new ProjectTypeConstraintException("Project type "+mixin+" is not allowable to be mixin");
+
+                    // detect duplicated attributes
+                    for(Attribute attr : mixin.getAttributes()) {
+                        if(tmpAttrs.containsKey(attr.getName()))
+                            throw new ProjectTypeConstraintException("Attribute name conflict. Duplicated attributes detected "+getPath() +
+                                    " Attribute "+ attr.getName() + " declared in " + mixin.getId() + " already declared in " +
+                                    tmpAttrs.get(attr.getName()).getProjectType());
+
+                        tmpAttrs.put(attr.getName(), attr);
+                    }
+
+
+                    // Silently remove repeated items from mixins if any
+                    mixins.put(m, mixin);
+                    all.add(mixin);
+
+                }
+
+            }
+
+        }
+
+
+    }
+
 }

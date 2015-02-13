@@ -191,6 +191,8 @@ public class Project {
         projectJson.setMixinTypes(ms);
 
         // update attributes
+
+        HashMap <String, AttributeValue>  checkVariables = new HashMap<>();
         for (String attributeName : update.getAttributes().keySet()) {
 
             AttributeValue attributeValue = update.getAttributes().get(attributeName);
@@ -209,13 +211,20 @@ public class Project {
 
                 final ValueProviderFactory valueProviderFactory = var.getValueProviderFactory();
 
-                if(attributeValue == null && var.isRequired())
-                     throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
-
+                // calculate provided values
                 if(valueProviderFactory != null) {
                     valueProviderFactory.newInstance(baseFolder).setValues(var.getName(), attributeValue.getList());
                 }
-                projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
+
+                if(attributeValue == null && var.isRequired())
+                    throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+var.getId());
+
+
+                // store non-provided values into JSON
+                if(valueProviderFactory == null)
+                     projectJson.getAttributes().put(definition.getName(), attributeValue.getList());
+
+                checkVariables.put(attributeName, attributeValue);
 
             }
         }
@@ -225,7 +234,7 @@ public class Project {
                 if(attr.isVariable()) {
                     // check if required variables initialized
 //                    if(attr.isRequired() && attr.getValue() == null) {
-                    if(!projectJson.getAttributes().containsKey(attr.getName()) && attr.isRequired()) {
+                    if(!checkVariables.containsKey(attr.getName()) && attr.isRequired()) {
                         throw new ProjectTypeConstraintException("Required attribute value is initialized with null value "+attr.getId());
 
                     }

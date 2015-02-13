@@ -273,18 +273,16 @@ public class MachineManager {
 
     public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
-        machine.getProjectBindings().add(project);
-
-        String projectsFolder = machine.getInstance().getMetadata().getHostProjectsFolder();
+        final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         // TODO: 'physical' bind, e.g. download project sources and put in specific place
+        machine.getProjectBindings().add(project);
     }
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = doGetMachine(machineId);
-        machine.getProjectBindings().remove(project);
-
-        String projectsFolder = machine.getInstance().getMetadata().getHostProjectsFolder();
+        final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         // TODO: 'physical' unbind, e.g. remove locally saved project
+        machine.getProjectBindings().remove(project);
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {

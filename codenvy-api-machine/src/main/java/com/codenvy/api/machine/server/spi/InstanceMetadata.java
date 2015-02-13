@@ -14,9 +14,4 @@ package com.codenvy.api.machine.server.spi;
  * @author andrew00x
  */
 public interface InstanceMetadata {
-    String getHostProjectsFolder();
-
-    void setHostProjectsFolder(String projectsFolder);
-
-    InstanceMetadata withHostProjectsFolder(String projectsFolder);
 }

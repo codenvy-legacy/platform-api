@@ -29,7 +29,22 @@ public interface Instance {
 
     InstanceProcess createProcess(String commandLine) throws MachineException;
 
-    void mount(File dir) throws MachineException;
+    /**
+     * Mount host directory to some directory in this instance. Methods returns path to the instance's directory (target of mount).
+     *
+     * @param dir
+     *         mountpoint on local host
+     * @return path to directory on this instance where host directory is mounted
+     * @throws MachineException
+     *         if any error occurs while mounting
+     */
+    String mount(File dir) throws MachineException;
+
+    /**
+     * Directory on local host that is mounted some target place in this instance an reserved for holding projects bounded to this
+     * instance. Method returns {@code null} if there is no any directory for bounded projects.
+     */
+    File getHostProjectsFolder();
 
     ImageKey saveToImage(String owner) throws MachineException;
 

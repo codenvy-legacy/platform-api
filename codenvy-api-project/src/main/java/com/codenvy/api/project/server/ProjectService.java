@@ -884,6 +884,14 @@ public class ProjectService extends Service {
             }
         }
 
+        if(importer.getId().equals("subversion")){
+            ProjectConfig config = project.getConfig();
+            if (!config.getMixinTypes().contains("subversion")) {
+                config.getMixinTypes().add("subversion");
+                project.updateConfig(config);
+            }
+        }
+
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
 
 

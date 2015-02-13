@@ -802,7 +802,7 @@ public class ProjectService extends Service {
                 }
 
                 Map<String, AttributeValue> estimateProject = projectManager.estimateProject(workspace, path, projectType);
-                if (estimateProject != null && providedConfig.getAttributes().isEmpty()) {
+                if (estimateProject != null /*&& providedConfig.getAttributes().isEmpty()*/) {
                     providedConfig.getAttributes().putAll(estimateProject);
                 }
                 project.updateConfig(providedConfig);

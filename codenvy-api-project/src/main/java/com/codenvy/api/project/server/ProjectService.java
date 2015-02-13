@@ -23,6 +23,7 @@ import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
+import com.codenvy.api.project.server.notification.ProjectItemModifiedEvent;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
@@ -445,6 +446,10 @@ public class ProjectService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final ItemReference fileReference = DtoConverter.toItemReferenceDto(newFile, uriBuilder.clone());
         final URI location = uriBuilder.clone().path(getClass(), "getFile").build(workspace, newFile.getPath().substring(1));
+
+        eventService.publish(new ProjectItemModifiedEvent(ProjectItemModifiedEvent.EventType.CREATED,
+                workspace, projectPath(newFile.getPath()), newFile.getPath(), false));
+
         return Response.created(location).entity(fileReference).build();
     }
 
@@ -469,6 +474,10 @@ public class ProjectService extends Service {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final ItemReference folderReference = DtoConverter.toItemReferenceDto(newFolder, uriBuilder.clone());
         final URI location = uriBuilder.clone().path(getClass(), "getChildren").build(workspace, newFolder.getPath().substring(1));
+
+        eventService.publish(new ProjectItemModifiedEvent(ProjectItemModifiedEvent.EventType.CREATED,
+                workspace, projectPath(newFolder.getPath()), newFolder.getPath(), true));
+
         return Response.created(location).entity(folderReference).build();
     }
 
@@ -492,6 +501,7 @@ public class ProjectService extends Service {
                                Iterator<FileItem> formData)
             throws NotFoundException, ConflictException, ForbiddenException, ServerException {
         final FolderEntry parent = asFolder(workspace, parentPath);
+
         return VirtualFileSystemImpl.uploadFile(parent.getVirtualFile(), formData);
     }
 
@@ -542,6 +552,9 @@ public class ProjectService extends Service {
         } else {
             file.updateContent(content, contentType.getType() + '/' + contentType.getSubtype());
         }
+
+        eventService.publish(new ProjectItemModifiedEvent(ProjectItemModifiedEvent.EventType.UPDATED,
+                workspace, projectPath(file.getPath()), file.getPath(), false));
         return Response.ok().build();
     }
 
@@ -585,6 +598,10 @@ public class ProjectService extends Service {
             LOG.info("EVENT#project-destroyed# PROJECT#{}# TYPE#{}# WS#{}# USER#{}#", name, projectType,
                      EnvironmentContext.getCurrent().getWorkspaceName(), EnvironmentContext.getCurrent().getUser().getName());
         } else {
+
+            eventService.publish(new ProjectItemModifiedEvent(ProjectItemModifiedEvent.EventType.DELETED,
+                    workspace, projectPath(entry.getPath()), entry.getPath(), entry.isFolder()));
+
             entry.remove();
         }
     }
@@ -714,7 +731,7 @@ public class ProjectService extends Service {
                                            @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
                                            @QueryParam("force") boolean force,
                                            ImportProject importProject)
-            throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException {
+            throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException, NotFoundException {
 
 
         final ImportSourceDescriptor projectSource = importProject.getSource().getProject();
@@ -759,8 +776,10 @@ public class ProjectService extends Service {
         Project project = projectManager.getProject(workspace, path);
 
         if (importProject.getProject() != null || project == null) {
+            String projectType = null;
             if (importProject.getProject() != null) {
                 visibility = importProject.getProject().getVisibility();
+                 projectType = importProject.getProject().getType();
             }
             Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
             for (ProjectTypeResolver resolver : resolvers) {
@@ -773,16 +792,20 @@ public class ProjectService extends Service {
 
             // try to get project again after trying to resolve it
             project = projectManager.getProject(workspace, path);
-            if (importProject.getProject() != null) {
+
+            if (importProject.getProject() != null && projectType != null && !projectType.isEmpty()) {
 
                 final ProjectConfig providedConfig = DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry());
 
-                if (project == null)
+                if (project == null) {
                     project = new Project(baseProjectFolder, projectManager);
+                }
 
-
+                Map<String, AttributeValue> estimateProject = projectManager.estimateProject(workspace, path, projectType);
+                if (estimateProject != null && providedConfig.getAttributes().isEmpty()) {
+                    providedConfig.getAttributes().putAll(estimateProject);
+                }
                 project.updateConfig(providedConfig);
-
 
             } else if (project == null) {
                 // create BLANK project type
@@ -848,6 +871,17 @@ public class ProjectService extends Service {
         //set project visibility if needed
         if (visibility != null) {
             project.setVisibility(visibility);
+        }
+
+        //TODO: bad solutions add this temporary because don't know how fix it in other way
+        //TODO: will be fix soon. Don't remove this code
+        //TODO: Vitalii Parfonov
+        if (importer.getId().equals("git")) {
+            ProjectConfig config = project.getConfig();
+            if (!config.getMixinTypes().contains("git")) {
+                config.getMixinTypes().add("git");
+                project.updateConfig(config);
+            }
         }
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));

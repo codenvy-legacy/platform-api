@@ -19,6 +19,7 @@ import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
 import com.codenvy.api.project.shared.dto.AttributeDescriptor;
+import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.ItemReference;
@@ -74,6 +75,21 @@ public class DtoConverter {
                 runners == null ? null : fromDto(runners));
     }
 
+
+    public static ProjectTemplateDescriptor toDto(ProjectTemplateDescription templateDescription) {
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        ImportSourceDescriptor sources = dtoFactory.createDto(ImportSourceDescriptor.class)
+                                                   .withLocation(templateDescription.getLocation())
+                                                   .withType(templateDescription.getImporterType());
+
+        return dtoFactory.createDto(ProjectTemplateDescriptor.class).withDescription(templateDescription.getDescription())
+                                                             .withBuilders(toDto(templateDescription.getBuilders()))
+                                                             .withCategory(templateDescription.getCategory())
+                                                             .withDisplayName(templateDescription.getDisplayName())
+                                                             .withRunners(toDto(templateDescription.getRunners()))
+                                                             .withSource(sources);
+    }
+
     public static ProjectConfig fromDto2(ProjectUpdate dto, ProjectTypeRegistry typeRegistry) throws ServerException,
             ProjectTypeConstraintException, InvalidValueException, ValueStorageException {
         final String typeId = dto.getType();
@@ -105,7 +121,7 @@ public class DtoConverter {
             }
         }
 
-        return new ProjectConfig(dto.getDescription(), typeId, attributes,
+        return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
                 fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
     }
 
@@ -114,9 +130,17 @@ public class DtoConverter {
     /*================================ Methods for conversion to DTO. ===============================*/
 
     public static Builders fromDto(BuildersDescriptor dto) {
-        if(dto == null)
+        if (dto == null)
             return null;
-        return new Builders(dto.getDefault());
+        final Builders builders = new Builders(dto.getDefault());
+        for (Map.Entry<String, BuilderConfiguration> e : dto.getConfigs().entrySet()) {
+            final BuilderConfiguration config = e.getValue();
+            if (config != null) {
+                builders.getConfigs().put(e.getKey(), new Builders.Config(config.getOptions(), config.getTargets()));
+            }
+        }
+        return builders;
+
     }
 
     public static Runners fromDto(RunnersDescriptor dto) {
@@ -157,22 +181,22 @@ public class DtoConverter {
 //                valueList = new ArrayList<>();
 
             typeAttributes.add(dtoFactory.createDto(AttributeDescriptor.class)
-                    .withName(attr.getName())
-                    .withDescription(attr.getDescription())
-                    .withRequired(attr.isRequired())
-                    .withVariable(attr.isVariable())
-                    .withValues(valueList));
+                                         .withName(attr.getName())
+                                         .withDescription(attr.getDescription())
+                                         .withRequired(attr.isRequired())
+                                         .withVariable(attr.isVariable())
+                                         .withValues(valueList));
         }
         definition.setAttributeDescriptors(typeAttributes);
 
         return definition;
     }
 
-    public static ProjectTemplateDescriptor toTemplateDescriptor(ProjectTemplateDescription projectTemplate) {
-        return toTemplateDescriptor(DtoFactory.getInstance(), projectTemplate);
+    public static ProjectTemplateDescriptor toTemplateDescriptor(ProjectTemplateDescription projectTemplate, String projectType) {
+        return toTemplateDescriptor(DtoFactory.getInstance(), projectTemplate, projectType);
     }
 
-    private static ProjectTemplateDescriptor toTemplateDescriptor(DtoFactory dtoFactory, ProjectTemplateDescription projectTemplate) {
+    private static ProjectTemplateDescriptor toTemplateDescriptor(DtoFactory dtoFactory, ProjectTemplateDescription projectTemplate, String projectType) {
         final ImportSourceDescriptor importSource = dtoFactory.createDto(ImportSourceDescriptor.class)
                                                               .withType(projectTemplate.getImporterType())
                                                               .withLocation(projectTemplate.getLocation())
@@ -183,6 +207,7 @@ public class DtoConverter {
                                                         .withDisplayName(projectTemplate.getDisplayName())
                                                         .withSource(importSource)
                                                         .withCategory(projectTemplate.getCategory())
+                                                        .withProjectType(projectType)
                                                         .withDescription(projectTemplate.getDescription());
         if (builders != null) {
             dto.withBuilders(toDto(dtoFactory, builders));
@@ -330,7 +355,20 @@ public class DtoConverter {
     }
 
     private static BuildersDescriptor toDto(DtoFactory dtoFactory, Builders builders) {
-        return dtoFactory.createDto(BuildersDescriptor.class).withDefault(builders.getDefault());
+        BuildersDescriptor dto = dtoFactory.createDto(BuildersDescriptor.class).withDefault(builders.getDefault());
+        final Map<String, Builders.Config> configs = builders.getConfigs();
+        Map<String, BuilderConfiguration> configsDto = new LinkedHashMap<>(configs.size());
+        for (Map.Entry<String, Builders.Config> e : configs.entrySet()) {
+            final Builders.Config config = e.getValue();
+            if (config != null) {
+                configsDto.put(e.getKey(), dtoFactory.createDto(BuilderConfiguration.class)
+                                                     .withOptions(config.getOptions())
+                                                     .withTargets(config.getTargets())
+                              );
+            }
+        }
+        dto.withConfigs(configsDto);
+        return dto;
     }
 
     public static RunnersDescriptor toDto(Runners runners) {

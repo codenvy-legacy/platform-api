@@ -13,8 +13,6 @@ package com.codenvy.api.builder;
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
-import com.codenvy.api.builder.dto.BuildTaskDescriptor;
-import com.codenvy.api.builder.dto.BuilderDescriptor;
 import com.codenvy.api.builder.dto.BuilderServerAccessCriteria;
 import com.codenvy.api.builder.dto.BuilderServerLocation;
 import com.codenvy.api.builder.dto.BuilderServerRegistration;
@@ -22,7 +20,6 @@ import com.codenvy.api.builder.dto.BuilderState;
 import com.codenvy.api.builder.dto.DependencyRequest;
 import com.codenvy.api.builder.internal.BuilderEvent;
 import com.codenvy.api.builder.internal.Constants;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -34,11 +31,13 @@ import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.ServiceContext;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.server.ProjectService;
+import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.CollectionUtils;
 import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
@@ -67,6 +66,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -413,15 +413,22 @@ public class BuildQueue {
 
     private void fillRequestFromProjectDescriptor(ProjectDescriptor descriptor, BaseBuilderRequest request) throws BuilderException {
         String builder = request.getBuilder();
+        final BuildersDescriptor builders = descriptor.getBuilders();
         if (builder == null) {
-            final BuildersDescriptor builders = descriptor.getBuilders();
             if (builders != null) {
                 builder = builders.getDefault();
+                //if builder not set in request we will use builder that set in ProjectDescriptor
+                request.setBuilder(builder);
+                //fill build configuration from ProjectDescriptor for default builder
+                fillBuildConfig(request, builder, builders.getConfigs());
             }
             if (builder == null) {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
-            request.setBuilder(builder);
+
+        } else if (builder == null) {
+            //fill build configuration from ProjectDescriptor for builder from request
+            fillBuildConfig(request, builder, builders.getConfigs());
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -430,6 +437,18 @@ public class BuildQueue {
             final String zipballLinkHref = zipballLink.getHref();
             final String token = getAuthenticationToken();
             request.setSourcesUrl(token != null ? String.format("%s?token=%s", zipballLinkHref, token) : zipballLinkHref);
+        }
+    }
+
+    private void fillBuildConfig(BaseBuilderRequest request, String builder, Map<String, BuilderConfiguration> buildersConfigs) {
+        //here we going to check is ProjectDescriptor have some setting for giving builder form ProjectDescriptor
+        if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
+            if (CollectionUtils.isEmpty(request.getOptions())) {
+                request.setOptions(buildersConfigs.get(builder).getOptions());
+            }
+            if (CollectionUtils.isEmpty(request.getTargets())) {
+                request.setTargets(buildersConfigs.get(builder).getTargets());
+            }
         }
     }
 
@@ -618,16 +637,20 @@ public class BuildQueue {
             eventService.subscribe(new EventSubscriber<BuilderEvent>() {
                 @Override
                 public void onEvent(BuilderEvent event) {
-                    final long id = event.getTaskId();
-                    try {
-                        final BuildQueueTask task = getTask(id);
-                        final BaseBuilderRequest request = task.getRequest();
-                        if (task.getDescriptor().getStatus() == BuildStatus.SUCCESSFUL) {
-                            // Clone request and replace its id and timeout with 0.
-                            successfulBuilds.put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
+                    if (event.getType() == BuilderEvent.EventType.DONE && !event.isReused()) {
+                        final long id = event.getTaskId();
+                        try {
+                            final BuildQueueTask task = getTask(id);
+                            final BaseBuilderRequest request = task.getRequest();
+                            if (task.getDescriptor().getStatus() == BuildStatus.SUCCESSFUL) {
+                                // Clone request and replace its id and timeout with 0.
+                                successfulBuilds
+                                        .put(DtoFactory.getInstance().clone(request).withId(0L).withTimeout(0L), task.getRemoteTask());
+                            }
+                        } catch (NotFoundException ignored) {
+                        } catch (Exception e) {
+                            LOG.warn(String.format("%s: %s", event, e.getMessage()));
                         }
-                    } catch (Exception e) {
-                        LOG.error(e.getMessage(), e);
                     }
                 }
             });
@@ -892,7 +915,8 @@ public class BuildQueue {
                         final String analyticsID = task.getCreationTime() + "-" + taskId;
                         final String project = extractProjectName(event.getProject());
                         final String workspace = request.getWorkspace();
-                        final long waitingTime = System.currentTimeMillis() - task.getCreationTime();
+                        final long time = System.currentTimeMillis();
+                        final long waitingTime = time - task.getCreationTime();
                         final long timeout;
                         if (request.getTimeout() == Integer.MAX_VALUE) {
                             timeout = -1;
@@ -904,15 +928,16 @@ public class BuildQueue {
 
                         switch (event.getType()) {
                             case BEGIN:
-                                LOG.info(
-                                        "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                        workspace,
-                                        user,
-                                        project,
-                                        projectTypeId,
-                                        analyticsID,
-                                        waitingTime);
-                                LOG.info("EVENT#build-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                LOG.info("EVENT#build-queue-waiting-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                         time,
+                                         workspace,
+                                         user,
+                                         project,
+                                         projectTypeId,
+                                         analyticsID,
+                                         waitingTime);
+                                LOG.info("EVENT#build-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                         time,
                                          workspace,
                                          user,
                                          project,
@@ -923,7 +948,9 @@ public class BuildQueue {
                             case DONE:
                                 if (event.isReused()) {
                                     LOG.info(
-                                            "EVENT#build-queue-waiting-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                            "EVENT#build-queue-waiting-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# " +
+                                            "WAITING-TIME#{}#",
+                                            time,
                                             workspace,
                                             user,
                                             project,
@@ -931,32 +958,20 @@ public class BuildQueue {
                                             analyticsID,
                                             0);
                                 } else {
-                                    long usageTime;
-                                    try {
-                                        final BuildTaskDescriptor descriptor = task.getDescriptor();
-                                        final long startTime = descriptor.getStartTime();
-                                        if (startTime <= 0) { // no start event happened
-                                            break;
-                                        }
-                                        usageTime = descriptor.getEndTime() - startTime;
-                                    } catch (ApiException e) {
-                                        usageTime = 0;
-                                    }
-                                    long finishedNormally = timeout == -1 || timeout > usageTime ? 1 : 0;
                                     LOG.info(
-                                            "EVENT#build-finished# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}# USAGE-TIME#{}# FINISHED-NORMALLY#{}#",
+                                            "EVENT#build-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
+                                            time,
                                             workspace,
                                             user,
                                             project,
                                             projectTypeId,
                                             analyticsID,
-                                            timeout,
-                                            usageTime,
-                                            finishedNormally);
+                                            timeout);
                                 }
                                 break;
                             case BUILD_TASK_ADDED_IN_QUEUE:
-                                LOG.info("EVENT#build-queue-waiting-started# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                LOG.info("EVENT#build-queue-waiting-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}#",
+                                         time,
                                          workspace,
                                          user,
                                          project,
@@ -964,7 +979,8 @@ public class BuildQueue {
                                          analyticsID);
                                 break;
                             case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                                LOG.info("EVENT#build-queue-terminated# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                LOG.info("EVENT#build-queue-terminated# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                         time,
                                          workspace,
                                          user,
                                          project,

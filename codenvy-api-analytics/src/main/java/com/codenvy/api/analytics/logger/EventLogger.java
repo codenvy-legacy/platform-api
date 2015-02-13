@@ -43,14 +43,11 @@ public class EventLogger {
     public static final String PROJECT_TYPE_PARAM = "TYPE";
     public static final String PARAMETERS_PARAM   = "PARAMETERS";
 
-    public static final String IDE_USAGE               = "ide-usage";
-    public static final String DASHBOARD_USAGE         = "dashboard-usage";
-    public static final String SESSION_STARTED         = "session-started";
-    public static final String SESSION_FINISHED        = "session-finished";
-    public static final String SESSION_FACTORY_STARTED = "session-factory-started";
-    public static final String SESSION_FACTORY_STOPPED = "session-factory-stopped";
-    public static final String SESSION_USAGE           = "session-usage";
-    public static final String SESSION_FACTORY_USAGE   = "session-factory-usage";
+    public static final String IDE_USAGE             = "ide-usage";
+    public static final String DASHBOARD_USAGE       = "dashboard-usage";
+    public static final String USER_INVITE           = "user_invite";
+    public static final String SESSION_USAGE         = "session-usage";
+    public static final String SESSION_FACTORY_USAGE = "session-factory-usage";
 
     private static final int MAX_EXTENDED_PARAMS_NUMBER = 3;
     private static final int RESERVED_PARAMS_NUMBER     = 6;
@@ -61,10 +58,7 @@ public class EventLogger {
     private static final Set<String> ALLOWED_EVENTS = new HashSet<String>() {{
         add(IDE_USAGE);
         add(DASHBOARD_USAGE);
-        add(SESSION_STARTED);
-        add(SESSION_FINISHED);
-        add(SESSION_FACTORY_STARTED);
-        add(SESSION_FACTORY_STOPPED);
+        add(USER_INVITE);
         add(SESSION_USAGE);
         add(SESSION_FACTORY_USAGE);
     }};

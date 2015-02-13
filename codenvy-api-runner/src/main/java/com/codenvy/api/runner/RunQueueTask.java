@@ -145,6 +145,7 @@ public final class RunQueueTask implements Cancellable {
                 descriptor = dtoFactory.clone(remoteDescriptor)
                                        .withProcessId(id)
                                        .withCreationTime(created)
+                                       .withMemorySize(request.getMemorySize())
                                        .withLinks(rewriteKnownLinks(remoteDescriptor.getLinks()));
                 final long started = descriptor.getStartTime();
                 final long waitingTimeMillis = started > 0 ? started - created : System.currentTimeMillis() - created;

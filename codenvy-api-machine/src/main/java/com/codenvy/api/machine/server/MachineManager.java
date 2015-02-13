@@ -272,28 +272,24 @@ public class MachineManager {
     }
 
     public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
-        final MachineImpl machine = doGetMachine(machineId);
+        final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         // TODO: 'physical' bind, e.g. download project sources and put in specific place
         machine.getProjectBindings().add(project);
     }
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
-        final MachineImpl machine = doGetMachine(machineId);
+        final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         // TODO: 'physical' unbind, e.g. remove locally saved project
         machine.getProjectBindings().remove(project);
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
-        return new ArrayList<>(doGetMachine(machineId).getProjectBindings());
+        return new ArrayList<>(getMachine(machineId).getProjectBindings());
     }
 
     public MachineImpl getMachine(String machineId) throws NotFoundException {
-        return doGetMachine(machineId);
-    }
-
-    private MachineImpl doGetMachine(String machineId) throws NotFoundException {
         final MachineImpl machine = machines.get(machineId);
         if (machine == null) {
             throw new NotFoundException(String.format("Machine '%s' does not exist", machineId));
@@ -337,7 +333,7 @@ public class MachineManager {
      */
     public Future<Snapshot> save(final String machineId, final String owner, final String description)
             throws NotFoundException, MachineException {
-        final MachineImpl machine = doGetMachine(machineId);
+        final MachineImpl machine = getMachine(machineId);
         final Instance instance = machine.getInstance();
         if (instance == null) {
             throw new MachineException(
@@ -398,7 +394,7 @@ public class MachineManager {
 
     public Process exec(final String machineId, final Command command, final LineConsumer commandOutput)
             throws NotFoundException, MachineException {
-        final MachineImpl machine = doGetMachine(machineId);
+        final MachineImpl machine = getMachine(machineId);
         final Instance instance = machine.getInstance();
         if (instance == null) {
             throw new MachineException(
@@ -424,7 +420,7 @@ public class MachineManager {
     }
 
     public void destroy(final String machineId) throws NotFoundException, MachineException {
-        final MachineImpl machine = doGetMachine(machineId);
+        final MachineImpl machine = getMachine(machineId);
         executor.execute(new Runnable() {
             @Override
             public void run() {

@@ -878,8 +878,10 @@ public class ProjectService extends Service {
         //TODO: Vitalii Parfonov
         if (importer.getId().equals("git")) {
             ProjectConfig config = project.getConfig();
-            config.getMixinTypes().add("git");
-            project.updateConfig(config);
+            if (!config.getMixinTypes().contains("git")) {
+                config.getMixinTypes().add("git");
+                project.updateConfig(config);
+            }
         }
 
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));

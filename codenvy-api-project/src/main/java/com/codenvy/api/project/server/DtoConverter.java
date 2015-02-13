@@ -274,6 +274,8 @@ public class DtoConverter {
             dto.withType(typeId)
                .withTypeName(ptRegistry.getProjectType(typeId).getDisplayName());
 
+            dto.withMixins(config.getMixinTypes());
+
             final Map<String, AttributeValue> attributes = config.getAttributes();
 
             final Map<String, List<String>> attributesMap = new LinkedHashMap<>(attributes.size());

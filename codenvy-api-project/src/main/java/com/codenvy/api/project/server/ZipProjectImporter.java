@@ -16,11 +16,12 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumerFactory;
 
 import javax.inject.Singleton;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
 import java.util.Map;
+
+import static com.codenvy.api.project.shared.Constants.ZIP_IMPORTER_ID;
 
 /**
  * @author Vitaly Parfonov
@@ -29,7 +30,7 @@ import java.util.Map;
 public class ZipProjectImporter implements ProjectImporter {
     @Override
     public String getId() {
-        return "zip";
+        return ZIP_IMPORTER_ID;
     }
 
     @Override

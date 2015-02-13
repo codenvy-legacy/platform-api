@@ -60,7 +60,7 @@ public class LocalProfileDaoImpl implements UserProfileDao {
 
     @PostConstruct
     private void start() {
-        // use write lock since we are init storage at this stage
+        // use write lock since we are validate storage at this stage
         lock.writeLock().lock();
         try {
             if (storageFile.exists()) {

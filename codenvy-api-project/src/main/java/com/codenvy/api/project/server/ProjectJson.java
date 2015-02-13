@@ -13,31 +13,30 @@ package com.codenvy.api.project.server;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
-import com.codenvy.api.project.shared.BuilderEnvironmentConfiguration;
-import com.codenvy.api.project.shared.RunnerEnvironmentConfiguration;
-import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
-import com.codenvy.api.vfs.shared.dto.Principal;
+import com.codenvy.api.project.shared.Builders;
+import com.codenvy.api.project.shared.Runners;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
-import com.codenvy.dto.server.DtoFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
+ * Part of project meta-data that is stored in file &lt;project folder&gt;/.codenvy/project.json.
+ *
  * @author andrew00x
  */
-@Deprecated
 public class ProjectJson {
 
     /**
      * Checks whether the Project's meta information is readable
+     *
      * @param project
+     *         project to check
      * @return true if project meta-information is readable (it exists, there are appropriate permissions etc)
      * otherwise returns false
      */
@@ -63,11 +62,20 @@ public class ProjectJson {
             // If have access to the project then must have access to its meta-information. If don't have access then treat that as server error.
             throw new ServerException(e.getServiceError());
         }
+
+
         if (projectFile == null || !projectFile.isFile()) {
             return new ProjectJson();
         }
         try (InputStream inputStream = ((FileEntry)projectFile).getInputStream()) {
-            return load(inputStream);
+
+            ProjectJson json = load(inputStream);
+
+            // possible if no content
+            if(json == null)
+                json = new ProjectJson();
+
+            return json;
         } catch (IOException e) {
             throw new ServerException(e.getMessage(), e);
         }
@@ -75,6 +83,7 @@ public class ProjectJson {
 
     public static ProjectJson load(InputStream inputStream) throws IOException {
         try {
+
             return JsonHelper.fromJson(inputStream, ProjectJson.class, null);
         } catch (JsonParseException e) {
             throw new IOException("Unable to parse the project's property file. " +
@@ -93,7 +102,7 @@ public class ProjectJson {
                             "Unable to save the project's properties to the file system. Path %s/%s exists but is not a file.",
                             baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
                 }
-                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes());
+                ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes(), null);
             } else {
                 VirtualFileEntry codenvyDir = baseFolder.getChild(Constants.CODENVY_DIR);
                 if (codenvyDir == null) {
@@ -103,21 +112,13 @@ public class ProjectJson {
                         // Already checked existence of folder ".codenvy".
                         throw new ServerException(e.getServiceError());
                     }
-                    // Need to be able update files in .codenvy folder independently to user actions.
-                    final List<AccessControlEntry> acl = new ArrayList<>(1);
-                    final DtoFactory dtoFactory = DtoFactory.getInstance();
-                    acl.add(dtoFactory.createDto(AccessControlEntry.class)
-                                      .withPrincipal(dtoFactory.createDto(Principal.class).withName("any").withType(Principal.Type.USER))
-                                      .withPermissions(Arrays.asList("all")));
-                    codenvyDir.getVirtualFile().updateACL(acl, true, null);
                 } else if (!codenvyDir.isFolder()) {
                     throw new ServerException(String.format(
                             "Unable to save the project's properties to the file system. Path %s/%s exists but is not a folder.",
                             baseFolder.getPath(), Constants.CODENVY_DIR));
                 }
                 try {
-                    ((FolderEntry)codenvyDir)
-                            .createFile(Constants.CODENVY_PROJECT_FILE, JsonHelper.toJson(this).getBytes(), "application/json");
+                    ((FolderEntry)codenvyDir).createFile(Constants.CODENVY_PROJECT_FILE, JsonHelper.toJson(this).getBytes(), null);
                 } catch (ConflictException e) {
                     // Already checked existence of file ".codenvy/project.json".
                     throw new ServerException(e.getServiceError());
@@ -129,121 +130,61 @@ public class ProjectJson {
         }
     }
 
-    private String                                       projectTypeId;
-    private String                                       builder;
-    private String                                       runner;
-    private String                                       defaultBuilderEnvironment;
-    private String                                       defaultRunnerEnvironment;
-    private Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations;
-    private Map<String, RunnerEnvironmentConfiguration>  runnerEnvironmentConfigurations;
-    private String                                       description;
-    private Map<String, List<String>>                    attributes;
+    private String                    type;
+    private Builders builders;
+    private Runners runners;
+    private String                    description;
+    private Map<String, List<String>> attributes;
+    private List <String> mixinTypes;
 
     public ProjectJson() {
     }
 
-    public ProjectJson(String projectTypeId, String description, Map<String, List<String>> attributes) {
-        this.projectTypeId = projectTypeId;
+    public ProjectJson(String type, Map<String, List<String>> attributes, Builders builders, Runners runners, String description) {
+        this.type = type;
+        this.builders = builders;
+        this.runners = runners;
         this.description = description;
         this.attributes = attributes;
     }
 
-    public String getProjectTypeId() {
-        return projectTypeId;
+    public String getType() {
+        return type;
     }
 
-    public void setProjectTypeId(String projectTypeId) {
-        this.projectTypeId = projectTypeId;
+    public void setType(String type) {
+        this.type = type;
     }
 
     public ProjectJson withType(String type) {
-        this.projectTypeId = type;
+        this.type = type;
         return this;
     }
 
-    public String getBuilder() {
-        return builder;
+    public Builders getBuilders() {
+        return builders;
     }
 
-    public void setBuilder(String builder) {
-        this.builder = builder;
-    }
-
-    public ProjectJson withBuilder(String builder) {
-        this.builder = builder;
+    public ProjectJson withBuilders(Builders builders) {
+        this.builders = builders;
         return this;
     }
 
-    public String getRunner() {
-        return runner;
+    public void setBuilders(Builders builders) {
+        this.builders = builders;
     }
 
-    public void setRunner(String runner) {
-        this.runner = runner;
+    public Runners getRunners() {
+        return runners;
     }
 
-    public ProjectJson withRunner(String runner) {
-        this.runner = runner;
+    public ProjectJson withRunners(Runners runners) {
+        this.runners = runners;
         return this;
     }
 
-    public String getDefaultBuilderEnvironment() {
-        return defaultBuilderEnvironment;
-    }
-
-    public void setDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
-        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
-    }
-
-    public ProjectJson withDefaultBuilderEnvironment(String defaultBuilderEnvironment) {
-        this.defaultBuilderEnvironment = defaultBuilderEnvironment;
-        return this;
-    }
-
-    public String getDefaultRunnerEnvironment() {
-        return defaultRunnerEnvironment;
-    }
-
-    public void setDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
-        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
-    }
-
-    public ProjectJson withDefaultRunnerEnvironment(String defaultRunnerEnvironment) {
-        this.defaultRunnerEnvironment = defaultRunnerEnvironment;
-        return this;
-    }
-
-    public Map<String, BuilderEnvironmentConfiguration> getBuilderEnvironmentConfigurations() {
-        if (builderEnvironmentConfigurations == null) {
-            builderEnvironmentConfigurations = new HashMap<>();
-        }
-        return builderEnvironmentConfigurations;
-    }
-
-    public void setBuilderEnvironmentConfigurations(
-            Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
-        this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
-    }
-
-    public ProjectJson withBuilderEnvironmentConfigurations(Map<String, BuilderEnvironmentConfiguration> builderEnvironmentConfigurations) {
-        this.builderEnvironmentConfigurations = builderEnvironmentConfigurations;
-        return this;
-    }
-
-    public Map<String, RunnerEnvironmentConfiguration> getRunnerEnvironmentConfigurations() {
-        if (runnerEnvironmentConfigurations == null) {
-            runnerEnvironmentConfigurations = new HashMap<>();
-        }
-        return runnerEnvironmentConfigurations;
-    }
-
-    public void setRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
-        this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
-    }
-
-    public ProjectJson withRunnerEnvironmentConfigurations(Map<String, RunnerEnvironmentConfiguration> runnerEnvironmentConfigurations) {
-        this.runnerEnvironmentConfigurations = runnerEnvironmentConfigurations;
-        return this;
+    public void setRunners(Runners runners) {
+        this.runners = runners;
     }
 
     public Map<String, List<String>> getAttributes() {
@@ -298,6 +239,19 @@ public class ProjectJson {
 
     public ProjectJson withDescription(String description) {
         this.description = description;
+        return this;
+    }
+
+    public List<String> getMixinTypes() {
+        return mixinTypes;
+    }
+
+    public void setMixinTypes(List <String> mixinTypes) {
+        this.mixinTypes = mixinTypes;
+    }
+
+    public ProjectJson withMixinTypes(List <String> mixinTypes) {
+        this.mixinTypes = mixinTypes;
         return this;
     }
 }

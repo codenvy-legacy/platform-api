@@ -802,7 +802,7 @@ public class ProjectService extends Service {
                 }
 
                 Map<String, AttributeValue> estimateProject = projectManager.estimateProject(workspace, path, projectType);
-                if (estimateProject != null && providedConfig.getAttributes().isEmpty()) {
+                if (estimateProject != null /*&& providedConfig.getAttributes().isEmpty()*/) {
                     providedConfig.getAttributes().putAll(estimateProject);
                 }
                 project.updateConfig(providedConfig);
@@ -876,10 +876,18 @@ public class ProjectService extends Service {
         //TODO: bad solutions add this temporary because don't know how fix it in other way
         //TODO: will be fix soon. Don't remove this code
         //TODO: Vitalii Parfonov
-        if (importer.getId().equals("git")) {
+        if (importer.getId().equals("git") || importer.getId().equals("github")) {
             ProjectConfig config = project.getConfig();
             if (!config.getMixinTypes().contains("git")) {
                 config.getMixinTypes().add("git");
+                project.updateConfig(config);
+            }
+        }
+
+        if(importer.getId().equals("subversion")){
+            ProjectConfig config = project.getConfig();
+            if (!config.getMixinTypes().contains("subversion")) {
+                config.getMixinTypes().add("subversion");
                 project.updateConfig(config);
             }
         }

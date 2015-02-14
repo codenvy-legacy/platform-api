@@ -225,33 +225,50 @@ public final class DefaultProjectManager implements ProjectManager {
         return project;
     }
 
+    /**
+     * Adds module to parent project. If module does not exist creates it before.
+     * @param workspace
+     * @param projectPath - parent project path
+     * @param modulePath - path for the module to add
+     * @param moduleConfig - module configuration (optional, needed only if module does not exist)
+     * @param options - options for module creation (optional, same as moduleConfig)
+     * @param visibility - visibility for the module (optional, same as moduleConfig)
+     * @return
+     * @throws ConflictException
+     * @throws ForbiddenException
+     * @throws ServerException
+     * @throws NotFoundException
+     */
     public Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
             String> options, String visibility)
             throws ConflictException, ForbiddenException, ServerException, NotFoundException {
 
+        Project parentProject = getProject(workspace, projectPath);
+        if(parentProject == null)
+            throw new NotFoundException("Parent Project not found "+projectPath);
+
         String absModulePath = modulePath.startsWith("/")?modulePath:projectPath+"/"+modulePath;
-        Project module = getProject(workspace, absModulePath);
 
-        if(module == null) {
+        VirtualFileEntry moduleFolder = getProjectsRoot(workspace).getChild(absModulePath);
+        if(moduleFolder != null && moduleFolder.isFile())
+            throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
 
+        Project module;
+        // there are no source folder for module
+        // create folder and make it project and update config
+        if(moduleFolder == null) {
             if(moduleConfig == null)
                 throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
-
             String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
             String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
             final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
             if(parentFolder == null || parentFolder.isFile())
                 throw new NotFoundException("Parent Folder not found "+parentPath);
 
-            VirtualFileEntry moduleFolder = ((FolderEntry)parentFolder).getChild(name);
-            if(moduleFolder == null)
-                moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
-            else if(moduleFolder.isFile())
-                throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
+            // create folder for module
+            moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
 
             module = new Project((FolderEntry)moduleFolder, this);
-
-
             module.updateConfig(moduleConfig);
 
             final ProjectMisc misc = module.getMisc();
@@ -266,18 +283,65 @@ public final class DefaultProjectManager implements ProjectManager {
             if (generator != null) {
                 generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
             }
-
+        } else if(!((FolderEntry)moduleFolder).isProjectFolder()) {
+        //  folder exists but is not a project, just update config
+            if(moduleConfig == null)
+                throw new ConflictException("Folder at "+absModulePath+" is not a project and module configuration is not defined");
+            module = new Project((FolderEntry)moduleFolder, this);
+            module.updateConfig(moduleConfig);
+        } else {
+        // project module exists
+            module = getProject(workspace, absModulePath);
         }
 
-        Project parentProject = getProject(workspace, projectPath);
+        // finally adds the module to parent
         parentProject.getModules().add(modulePath);
-
 
         CreateModuleHandler moduleHandler = this.getHandlers().getCreateModuleHandler(parentProject.getConfig().getTypeId());
         if (moduleHandler != null) {
             moduleHandler.onCreateModule(parentProject.getBaseFolder(), absModulePath, module.getConfig(), options);
         }
         return module;
+
+
+//        if(module == null) {
+//
+//            if(moduleConfig == null)
+//                throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
+//
+//            String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
+//            String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
+//            final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
+//            if(parentFolder == null || parentFolder.isFile())
+//                throw new NotFoundException("Parent Folder not found "+parentPath);
+//
+//            VirtualFileEntry moduleFolder = ((FolderEntry)parentFolder).getChild(name);
+//            if(moduleFolder == null)
+//                moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
+//            else if(moduleFolder.isFile())
+//                throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
+//
+//            module = new Project((FolderEntry)moduleFolder, this);
+//
+//
+//            module.updateConfig(moduleConfig);
+//
+//            final ProjectMisc misc = module.getMisc();
+//            misc.setCreationDate(System.currentTimeMillis());
+//            misc.save(); // Important to save misc!!
+//
+//            if (visibility != null) {
+//                module.setVisibility(visibility);
+//            }
+//
+//            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+//            if (generator != null) {
+//                generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
+//            }
+//
+//        }
+
+
 
     }
 

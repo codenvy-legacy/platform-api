@@ -608,7 +608,7 @@ public class FactoryService extends Service {
         try {
             final ProjectConfig projectDescription = project.getConfig();
             Map<String, AttributeValue> attributes = projectDescription.getAttributes();
-            if (attributes.containsKey("vcs.provider.name") && "git".equals(attributes.get("vcs.provider.name"))) {
+            if (attributes.containsKey("vcs.provider.name") && attributes.get("vcs.provider.name").getList().contains("git")) {
                 final Link importSourceLink = dtoFactory.createDto(Link.class)
                                                         .withMethod("GET")
                                                         .withHref(UriBuilder.fromUri(baseApiUrl)
@@ -632,6 +632,7 @@ public class FactoryService extends Service {
                                    .withAttributes(projectJson.getAttributes())
                                    .withVisibility(project.getVisibility())
                                    .withDescription(projectJson.getDescription());
+            newProject.setMixinTypes(projectJson.getMixinTypes());
 
             final Builders builders = projectJson.getBuilders();
             if (builders != null) {

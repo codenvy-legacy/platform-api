@@ -175,6 +175,7 @@ public class ProjectTest {
         Map <String, AttributeValue> attrs = new HashMap<>();
         attrs.put("calculated_attribute", new AttributeValue("updated calculated_attribute"));
         attrs.put("my_property_1", new AttributeValue("updated value 1"));
+        // wont stored
         attrs.put("new_my_property_2", new AttributeValue("new value 2"));
 
         ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null, null);
@@ -186,7 +187,8 @@ public class ProjectTest {
         Assert.assertEquals(projectJson.getType(), "my_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
         Map<String, List<String>> pm = projectJson.getAttributes();
-        Assert.assertEquals(pm.size(), 2);
+        // only stored (non-provided) attributes
+        Assert.assertEquals(pm.size(), 1);
         Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
 
     }
@@ -510,6 +512,33 @@ public class ProjectTest {
 
         Assert.assertEquals(myProject.getModules().get().size(), 1);
         Assert.assertEquals(myProject.getModules().get().iterator().next(), "test");
+
+    }
+
+    @Test
+    public void testAddFolderAndProjectAsAModule() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testAddFolderAsAModule", "my type", true, false) {
+        });
+
+        Project parent = pm.getProject("my_ws", "my_project");
+        parent.updateConfig(new ProjectConfig("my proj", "testAddFolderAsAModule"));
+
+        Assert.assertEquals(parent.getModules().get().size(), 0);
+
+        parent.getBaseFolder().createFolder("module");
+
+
+        pm.addModule("my_ws", "my_project", "module", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 1);
+        Assert.assertEquals(parent.getModules().get().iterator().next(), "module");
+
+
+        Project module2 = pm.createProject("my_ws", "module2", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+        pm.addModule("my_ws", "my_project", "/module2", null, null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 2);
 
     }
 

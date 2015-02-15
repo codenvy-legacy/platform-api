@@ -515,5 +515,32 @@ public class ProjectTest {
 
     }
 
+    @Test
+    public void testAddFolderAndProjectAsAModule() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testAddFolderAsAModule", "my type", true, false) {
+        });
+
+        Project parent = pm.getProject("my_ws", "my_project");
+        parent.updateConfig(new ProjectConfig("my proj", "testAddFolderAsAModule"));
+
+        Assert.assertEquals(parent.getModules().get().size(), 0);
+
+        parent.getBaseFolder().createFolder("module");
+
+
+        pm.addModule("my_ws", "my_project", "module", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 1);
+        Assert.assertEquals(parent.getModules().get().iterator().next(), "module");
+
+
+        Project module2 = pm.createProject("my_ws", "module2", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+        pm.addModule("my_ws", "my_project", "/module2", null, null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 2);
+
+    }
+
 }
 

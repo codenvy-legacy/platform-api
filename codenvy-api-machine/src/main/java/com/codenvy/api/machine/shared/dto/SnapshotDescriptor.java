@@ -46,9 +46,15 @@ public interface SnapshotDescriptor {
 
     SnapshotDescriptor withCreationDate(long creationDate);
 
-    List<ProjectBindingDescriptor> getProjects();
+    String getWorkspaceId();
 
-    void setProjects(List<ProjectBindingDescriptor> projects);
+    void setWorkspaceId(String workspaceId);
 
-    SnapshotDescriptor withProjects(List<ProjectBindingDescriptor> projects);
+    SnapshotDescriptor withWorkspaceId(String workspaceId);
+
+    List<String> getProjects();
+
+    void setProjects(List<String> projects);
+
+    SnapshotDescriptor withProjects(List<String> projects);
 }

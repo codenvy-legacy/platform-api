@@ -16,7 +16,6 @@ import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
-import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -31,17 +30,19 @@ public class MachineImpl implements Machine {
     private final String              type;
     private final String              owner;
     private final LineConsumer        machineLogsOutput;
-    private final Set<ProjectBinding> projectBindings;
+    private final Set<String>         projects;
+    private final String              workspaceId;
 
     private Instance     instance;
     private MachineState state;
 
-    MachineImpl(String id, String type, String owner, LineConsumer machineLogsOutput) {
+    MachineImpl(String id, String type, String workspaceId, String owner, LineConsumer machineLogsOutput) {
         this.id = id;
         this.type = type;
         this.owner = owner;
         this.machineLogsOutput = machineLogsOutput;
-        projectBindings = new CopyOnWriteArraySet<>();
+        this.workspaceId = workspaceId;
+        projects = new CopyOnWriteArraySet<>();
     }
 
     @Override
@@ -63,7 +64,7 @@ public class MachineImpl implements Machine {
         return state;
     }
 
-    public ProcessImpl getProcess(int pid) throws NotFoundException, MachineException {
+    ProcessImpl getProcess(int pid) throws NotFoundException, MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
             throw new MachineException(String.format("Machine %s is not ready to perform this action", id));
@@ -71,7 +72,7 @@ public class MachineImpl implements Machine {
         return new ProcessImpl(myInstance.getProcess(pid));
     }
 
-    public List<ProcessImpl> getProcesses() throws MachineException {
+    List<ProcessImpl> getProcesses() throws MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
             throw new MachineException(String.format("Machine %s is not ready to perform this action", id));
@@ -84,8 +85,12 @@ public class MachineImpl implements Machine {
         return processes;
     }
 
-    public Set<ProjectBinding> getProjectBindings() {
-        return projectBindings;
+    Set<String> getProjects() {
+        return projects;
+    }
+
+    String getWorkspaceId() {
+        return workspaceId;
     }
 
     LineConsumer getMachineLogsOutput() {

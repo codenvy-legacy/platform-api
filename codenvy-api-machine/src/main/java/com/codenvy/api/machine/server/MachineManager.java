@@ -11,6 +11,7 @@
 package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.CompositeLineConsumer;
@@ -24,7 +25,6 @@ import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Command;
 import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.Process;
-import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.Recipe;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
@@ -93,14 +93,14 @@ public class MachineManager {
     }
 
     @PostConstruct
-    private void start() {
+    private void createLogsDir() {
         if (!(machineLogsDir.exists() || machineLogsDir.mkdirs())) {
             throw new IllegalStateException(String.format("Unable create directory %s", machineLogsDir.getAbsolutePath()));
         }
     }
 
     @PreDestroy
-    private void stop() {
+    private void cleanup() {
         boolean interrupted = false;
         executor.shutdown();
         try {
@@ -145,10 +145,14 @@ public class MachineManager {
     /**
      * Creates and starts machine from scratch using recipe.
      *
+     * @param machineType
+     *         type of machine
      * @param recipe
      *         machine's recipe
      * @param owner
      *         owner for new machine
+     * @param workspaceId
+     *         workspace the machine is bound to
      * @param machineLogsOutput
      *         output for machine's logs
      * @return new Machine
@@ -159,7 +163,11 @@ public class MachineManager {
      * @throws MachineException
      *         if any other exception occurs during starting
      */
-    public MachineImpl create(final String machineType, final Recipe recipe, final String owner, final LineConsumer machineLogsOutput)
+    public MachineImpl create(final String machineType,
+                              final Recipe recipe,
+                              final String workspaceId,
+                              final String owner,
+                              final LineConsumer machineLogsOutput)
             throws UnsupportedRecipeException, InvalidRecipeException, MachineException {
         final ImageProvider imageProvider = imageProviders.get(machineType);
         if (imageProvider == null) {
@@ -169,7 +177,7 @@ public class MachineManager {
         if (imageProvider.getRecipeTypes().contains(recipeType)) {
             final String machineId = generateMachineId();
             final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
-            final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
+            final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), workspaceId, owner, machineLogger);
             machine.setState(MachineState.CREATING);
             machines.put(machine.getId(), machine);
             executor.execute(new Runnable() {
@@ -226,7 +234,7 @@ public class MachineManager {
         }
         final String machineId = generateMachineId();
         final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
-        final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), owner, machineLogger);
+        final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), snapshot.getWorkspaceId(), owner, machineLogger);
         machine.setState(MachineState.CREATING);
         machines.put(machine.getId(), machine);
         executor.execute(new Runnable() {
@@ -250,6 +258,7 @@ public class MachineManager {
             }
         });
         return machine;
+        // TODO recover projects bindings
     }
 
     private String generateMachineId() {
@@ -280,28 +289,28 @@ public class MachineManager {
         throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
-    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+    public void bindProject(String machineId, String project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         try {
-            final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
-            copyProjectSource(fullPath, project.getWorkspaceId(), project.getPath());
+            final File fullPath = Files.createDirectories(new File(projectsFolder, project).toPath()).toFile();
+            copyProjectSource(fullPath, machine.getWorkspaceId(), project);
         } catch (IOException e) {
             throw new MachineException(e.getLocalizedMessage(), e);
         }
-        machine.getProjectBindings().add(project);
+        machine.getProjects().add(project);
         // TODO add synchronization of origin project and copied
     }
 
-    public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+    public void unbindProject(String machineId, String project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         try {
-            Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
+            Files.delete(Paths.get(projectsFolder.toString(), project));
         } catch (IOException e) {
             throw new MachineException(e.getLocalizedMessage(), e);
         }
-        machine.getProjectBindings().remove(project);
+        machine.getProjects().remove(project);
     }
 
     private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
@@ -318,8 +327,8 @@ public class MachineManager {
         ZipUtils.unzip(zipBall, destinationDir);
     }
 
-    public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
-        return new ArrayList<>(getMachine(machineId).getProjectBindings());
+    public List<String> getProjects(String machineId) throws NotFoundException, MachineException {
+        return new ArrayList<>(getMachine(machineId).getProjects());
     }
 
     public MachineImpl getMachine(String machineId) throws NotFoundException {
@@ -335,18 +344,22 @@ public class MachineManager {
     }
 
     /**
-     * Machine(s) the Project is bound to.
+     * Machine(s) the project is bound to.
      *
      * @param owner
      *         id of owner of machine
+     * @param workspaceId
+     *         workspace binding
      * @param project
      *         project binding
      * @return list of machines or empty list
      */
-    public List<MachineImpl> getMachines(String owner, ProjectBinding project) {
+    public List<MachineImpl> getMachines(String owner, String workspaceId, String project) {
         final List<MachineImpl> result = new LinkedList<>();
         for (MachineImpl machine : machines.values()) {
-            if (owner != null && owner.equals(machine.getOwner()) && machine.getProjectBindings().contains(project)) {
+            if (owner != null && owner.equals(machine.getOwner()) &&
+                machine.getWorkspaceId().equals(workspaceId) &&
+                machine.getProjects().contains(project)) {
                 result.add(machine);
             }
         }
@@ -376,8 +389,14 @@ public class MachineManager {
             @Override
             public Snapshot call() throws Exception {
                 final ImageKey imageKey = instance.saveToImage(machine.getOwner());
-                final Snapshot snapshot = new Snapshot(generateSnapshotId(), machine.getType(), imageKey, owner, System.currentTimeMillis(),
-                                                       new ArrayList<>(machine.getProjectBindings()), description);
+                final Snapshot snapshot = new Snapshot(generateSnapshotId(),
+                                                       machine.getType(),
+                                                       imageKey,
+                                                       owner,
+                                                       System.currentTimeMillis(),
+                                                       machine.getWorkspaceId(),
+                                                       new ArrayList<>(machine.getProjects()),
+                                                       description);
                 snapshotStorage.saveSnapshot(snapshot);
                 return snapshot;
             }
@@ -393,16 +412,18 @@ public class MachineManager {
     }
 
     /**
-     * Gets list of Snapshots by project.
+     * Gets list of Snapshots by project in workspace.
      *
      * @param owner
      *         id of owner of machine
+     * @param workspaceId
+     *         workspace binding
      * @param project
      *         project binding
      * @return list of Snapshots
      */
-    public List<Snapshot> getSnapshots(String owner, ProjectBinding project) {
-        return snapshotStorage.findSnapshots(owner, project);
+    public List<Snapshot> getSnapshots(String owner, String workspaceId, String project) {
+        return snapshotStorage.findSnapshots(owner, workspaceId, project);
     }
 
     public void removeSnapshot(String snapshotId) throws NotFoundException {
@@ -410,13 +431,17 @@ public class MachineManager {
     }
 
     /**
-     * Removes Snapshots by project.
+     * Removes Snapshots by owner, workspace and project.
      *
+     * @param owner
+     *         owner of required snapshots
+     * @param workspaceId
+     *         workspace binding
      * @param project
      *         project binding
      */
-    public void removeSnapshots(String owner, ProjectBinding project) {
-        for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, project)) {
+    public void removeSnapshots(String owner, String workspaceId, String project) {
+        for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, workspaceId, project)) {
             try {
                 snapshotStorage.removeSnapshot(snapshot.getId());
             } catch (NotFoundException ignored) {
@@ -450,6 +475,19 @@ public class MachineManager {
         };
         executor.execute(execTask);
         return new ProcessImpl(instanceProcess);
+    }
+
+    public List<ProcessImpl> getProcesses(String machineId) throws NotFoundException, MachineException {
+        return getMachine(machineId).getProcesses();
+    }
+
+    public void stopProcess(String machineId, int processId) throws NotFoundException, MachineException, ForbiddenException {
+        final ProcessImpl process = getMachine(machineId).getProcess(processId);
+        if (!process.isAlive()) {
+            throw new ForbiddenException("Process finished already");
+        }
+
+        process.kill();
     }
 
     public void destroy(final String machineId) throws NotFoundException, MachineException {

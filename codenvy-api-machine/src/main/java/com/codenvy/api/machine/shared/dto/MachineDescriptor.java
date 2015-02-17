@@ -34,5 +34,17 @@ public interface MachineDescriptor extends Machine, Hyperlinks {
 
     MachineDescriptor withOwner(String owner);
 
+    String getWorkspaceId();
+
+    void setWorkspaceId(String workspaceId);
+
+    MachineDescriptor withWorkspaceId(String workspaceId);
+
+    List<String> getProjects();
+
+    void setProjects(List<String> projects);
+
+    MachineDescriptor withProjects(List<String> projects);
+
     MachineDescriptor withLinks(List<Link> links);
 }

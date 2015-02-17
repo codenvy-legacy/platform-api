@@ -11,7 +11,6 @@
 package com.codenvy.api.machine.server;
 
 import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.List;
 
@@ -23,7 +22,7 @@ public interface SnapshotStorage {
 
     void saveSnapshot(Snapshot snapshot);
 
-    List<Snapshot> findSnapshots(String owner, ProjectBinding project);
+    List<Snapshot> findSnapshots(String owner, String workspaceId, String project);
 
     void removeSnapshot(String snapshotId) throws NotFoundException;
 }

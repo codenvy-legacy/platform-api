@@ -34,4 +34,10 @@ public interface CreateMachineFromRecipe {
     void setRecipeDescriptor(RecipeDescriptor recipeDescriptor);
 
     CreateMachineFromRecipe withRecipeDescriptor(RecipeDescriptor recipeDescriptor);
+
+    String getWorkspaceId();
+
+    void setWorkspaceId(String workspaceId);
+
+    CreateMachineFromRecipe withWorkspaceId(String workspaceId);
 }

@@ -11,7 +11,6 @@
 package com.codenvy.api.machine.server;
 
 import com.codenvy.api.machine.server.spi.ImageKey;
-import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.Collections;
 import java.util.List;
@@ -22,21 +21,29 @@ import java.util.List;
  * @author andrew00x
  */
 public class Snapshot {
-    private final String               id;
-    private final String               type;
-    private final ImageKey             imageKey;
-    private final String               owner;
-    private final long                 creationDate;
-    private final List<ProjectBinding> projects;
-    private final String               description;
+    private final String      id;
+    private final String      type;
+    private final ImageKey    imageKey;
+    private final String      owner;
+    private final long        creationDate;
+    private final String      workspaceId;
+    private final List<String> projects;
+    private final String      description;
 
-    public Snapshot(String id, String type, ImageKey imageKey, String owner, long creationDate, List<ProjectBinding> projects,
+    public Snapshot(String id,
+                    String type,
+                    ImageKey imageKey,
+                    String owner,
+                    long creationDate,
+                    String workspaceId,
+                    List<String> projects,
                     String description) {
         this.id = id;
         this.type = type;
         this.imageKey = imageKey;
         this.owner = owner;
         this.creationDate = creationDate;
+        this.workspaceId = workspaceId;
         this.projects = Collections.unmodifiableList(projects);
         this.description = description;
     }
@@ -61,7 +68,11 @@ public class Snapshot {
         return creationDate;
     }
 
-    public List<ProjectBinding> getProjects() {
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
+    public List<String> getProjects() {
         return projects;
     }
 

@@ -71,5 +71,5 @@ public interface ImageProvider {
      * @throws InvalidImageException
      *         if other errors occurs while restoring image
      */
-    Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws NotFoundException, InvalidImageException;
+    Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws NotFoundException, InvalidImageException, MachineException;
 }

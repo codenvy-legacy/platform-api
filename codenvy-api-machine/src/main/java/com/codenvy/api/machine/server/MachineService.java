@@ -42,6 +42,7 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
@@ -54,13 +55,16 @@ import java.util.Set;
  */
 @Path("/machine")
 public class MachineService {
-    @Inject
     private MachineManager machineManager;
+    private MemberDao memberDao;
+    private DtoFactory dtoFactory;
 
     @Inject
-    private MemberDao memberDao;
-
-    private DtoFactory dtoFactory = DtoFactory.getInstance();
+    public MachineService(MachineManager machineManager, MemberDao memberDao) {
+        this.machineManager = machineManager;
+        this.memberDao = memberDao;
+        this.dtoFactory = DtoFactory.getInstance();
+    }
 
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
@@ -68,23 +72,21 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromRecipe(final CreateMachineFromRecipe createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
+        // fixme Must depend on a workspace to bill for resources & search machines
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Machine type");
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getScript(), "Recipe script");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getType(), "Recipe type");
 
-        final LineConsumer lineConsumer;
-        if (createMachineRequest.getOutputChannel() != null) {
-            lineConsumer = new WebsocketLineConsumer(createMachineRequest.getOutputChannel());
-        } else {
-            lineConsumer = LineConsumer.DEV_NULL;
-        }
+        final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
         final MachineImpl machine = machineManager.create(createMachineRequest.getType(),
                                                           RecipeImpl.fromDescriptor(createMachineRequest.getRecipeDescriptor()),
                                                           EnvironmentContext.getCurrent().getUser().getId(),
                                                           lineConsumer);
 
+        // TODO state?
+        // TODO displayName? machine description?
         return toDescriptor(machine.getId(),
                             machine.getType(),
                             machine.getOwner(),
@@ -98,15 +100,9 @@ public class MachineService {
     @RolesAllowed("user")
     public void createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
             throws ForbiddenException, NotFoundException, ServerException {
-
         // todo how to check access rights?
+        final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
-        final LineConsumer lineConsumer;
-        if (createMachineRequest.getOutputChannel() != null) {
-            lineConsumer = new WebsocketLineConsumer(createMachineRequest.getOutputChannel());
-        } else {
-            lineConsumer = LineConsumer.DEV_NULL;
-        }
         machineManager.create(createMachineRequest.getSnapshotId(), EnvironmentContext.getCurrent().getUser().getId(), lineConsumer);
     }
 
@@ -124,10 +120,7 @@ public class MachineService {
                             machine.getType(),
                             machine.getOwner(),
                             machine.getProjectBindings(),
-//                            machine.getDisplayName(),
                             machine.getState());
-//                            machine.getProjects(),
-//                            machine.getSnapshots());
     }
 
     @GET
@@ -151,12 +144,7 @@ public class MachineService {
                                                  machine.getType(),
                                                  machine.getOwner(),
                                                  machine.getProjectBindings(),
-//                                                 workspaceId,
-//                                                 machine.getDisplayName(),
-                                                 machine.getState()
-//                                                 machine.getProjects(),
-//                                                 machine.getSnapshots()
-                                                ));
+                                                 machine.getState()));
         }
 
         return machinesDescriptors;
@@ -243,13 +231,9 @@ public class MachineService {
 
         checkCurrentUserPermissionsForMachine(machine.getOwner());
 
-        final LineConsumer lineConsumer;
-        if (command.getOutputChannel() != null) {
-            lineConsumer = new WebsocketLineConsumer(command.getOutputChannel());
-        } else {
-            lineConsumer = LineConsumer.DEV_NULL;
-        }
+        final LineConsumer lineConsumer = getLineConsumer(command.getOutputChannel());
 
+        // TODO change pid of just launched command from 0 to -1
         machineManager.exec(machineId, command, lineConsumer);
     }
 
@@ -335,6 +319,26 @@ public class MachineService {
         if (object == null) {
             throw new ForbiddenException(subject + " required");
         }
+    }
+
+    private LineConsumer getLineConsumer(String outputChannel) {
+        final LineConsumer lineConsumer;
+        if (outputChannel != null) {
+            lineConsumer = new WebsocketLineConsumer(outputChannel);
+        } else {
+//            lineConsumer = LineConsumer.DEV_NULL;
+            lineConsumer = new LineConsumer() {
+                @Override
+                public void writeLine(String line) throws IOException {
+                    System.err.println(line);
+                }
+
+                @Override
+                public void close() throws IOException {
+                }
+            };
+        }
+        return lineConsumer;
     }
 
     private void checkCurrentUserPermissionsForWorkspace(String workspaceId) throws ServerException, ForbiddenException {

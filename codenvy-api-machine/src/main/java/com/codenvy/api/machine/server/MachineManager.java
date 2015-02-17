@@ -26,9 +26,11 @@ import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.Process;
 import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.Recipe;
+import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
 import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.commons.lang.NamedThreadFactory;
+import com.codenvy.commons.lang.ZipUtils;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,11 +40,13 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
+import javax.ws.rs.core.UriBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -70,14 +74,17 @@ public class MachineManager {
     private final Map<String, ImageProvider> imageProviders;
     private final Map<String, MachineImpl>   machines;
     private final ExecutorService            executor;
+    private final String                     apiEndPoint;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
-                          @Named("machine.logs_dir") File machineLogsDir) {
+                          @Named("machine.logs_dir") File machineLogsDir,
+                          String apiEndPoint) {
         this.snapshotStorage = snapshotStorage;
         this.machineLogsDir = machineLogsDir;
         this.imageProviders = new HashMap<>();
+        this.apiEndPoint = apiEndPoint;
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
         }
@@ -169,24 +176,26 @@ public class MachineManager {
                 @Override
                 public void run() {
                     try {
-                        final Image image = imageProvider.createImage(recipe, machineLogsOutput);
+                        final Image image = imageProvider.createImage(recipe, machineLogger);
                         final Instance instance = image.createInstance();
                         machine.setInstance(instance);
                         machine.setState(MachineState.RUNNING);
                     } catch (Exception error) {
                         machines.remove(machine.getId());
-                        LOG.warn(error.getMessage());
+                        LOG.error(error.getMessage());
                         try {
                             machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
                             machineLogger.close();
                         } catch (IOException e) {
-                            LOG.warn(e.getMessage());
+                            LOG.error(e.getMessage());
                         }
                     }
                 }
             });
+            return machine;
+        } else {
+            throw new UnsupportedRecipeException(String.format("Recipe of type '%s' is not supported", recipeType));
         }
-        throw new UnsupportedRecipeException(String.format("Recipe of type '%s' is not supported", recipeType));
     }
 
     /**
@@ -224,18 +233,18 @@ public class MachineManager {
             @Override
             public void run() {
                 try {
-                    final Image image = imageProvider.createImage(snapshot.getImageKey(), machineLogsOutput);
+                    final Image image = imageProvider.createImage(snapshot.getImageKey(), machineLogger);
                     final Instance instance = image.createInstance();
                     machine.setInstance(instance);
                     machine.setState(MachineState.RUNNING);
                 } catch (Exception error) {
                     machines.remove(machine.getId());
-                    LOG.warn(error.getMessage());
+                    LOG.error(error.getMessage());
                     try {
                         machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
                         machineLogger.close();
                     } catch (IOException e) {
-                        LOG.warn(e.getMessage());
+                        LOG.error(e.getMessage());
                     }
                 }
             }
@@ -274,15 +283,39 @@ public class MachineManager {
     public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-        // TODO: 'physical' bind, e.g. download project sources and put in specific place
+        try {
+            final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
+            copyProjectSource(fullPath, project.getWorkspaceId(), project.getPath());
+        } catch (IOException e) {
+            throw new MachineException(e.getLocalizedMessage(), e);
+        }
         machine.getProjectBindings().add(project);
+        // TODO add synchronization of origin project and copied
     }
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-        // TODO: 'physical' unbind, e.g. remove locally saved project
+        try {
+            Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
+        } catch (IOException e) {
+            throw new MachineException(e.getLocalizedMessage(), e);
+        }
         machine.getProjectBindings().remove(project);
+    }
+
+    private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
+        final UriBuilder zipBallUriBuilder = UriBuilder.fromUri(apiEndPoint)
+                                                       .path("project")
+                                                       .path(workspaceId)
+                                                       .path("export")
+                                                       .path(path);
+
+        if (EnvironmentContext.getCurrent().getUser() != null && EnvironmentContext.getCurrent().getUser().getToken() != null) {
+            zipBallUriBuilder.queryParam("token", EnvironmentContext.getCurrent().getUser().getToken());
+        }
+        final File zipBall = IoUtil.downloadFile(null, "projectZip", null, zipBallUriBuilder.build().toURL());
+        ZipUtils.unzip(zipBall, destinationDir);
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {

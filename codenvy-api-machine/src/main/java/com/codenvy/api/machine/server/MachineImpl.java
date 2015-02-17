@@ -18,7 +18,6 @@ import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.ProjectBinding;
 
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -67,7 +66,7 @@ public class MachineImpl implements Machine {
     public ProcessImpl getProcess(int pid) throws NotFoundException, MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
-            throw new NotFoundException(String.format("No such process: %d in machine %s", pid, id));
+            throw new MachineException(String.format("Machine %s is not ready to perform this action", id));
         }
         return new ProcessImpl(myInstance.getProcess(pid));
     }
@@ -75,7 +74,7 @@ public class MachineImpl implements Machine {
     public List<ProcessImpl> getProcesses() throws MachineException {
         final Instance myInstance = getInstance();
         if (myInstance == null) {
-            return Collections.emptyList();
+            throw new MachineException(String.format("Machine %s is not ready to perform this action", id));
         }
         final List<InstanceProcess> instanceProcesses = myInstance.getProcesses();
         final List<ProcessImpl> processes = new LinkedList<>();

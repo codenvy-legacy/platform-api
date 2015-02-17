@@ -20,7 +20,6 @@ import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
 import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder.SubscriptionQuery;
-import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
@@ -82,7 +81,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
@@ -144,9 +142,6 @@ public class AccountServiceTest {
     private SecurityContext securityContext;
 
     @Mock
-    private PaymentService paymentService;
-
-    @Mock
     private SubscriptionServiceRegistry serviceRegistry;
 
     @Mock
@@ -180,7 +175,6 @@ public class AccountServiceTest {
         dependencies.addComponent(ResourcesManager.class, resourcesManager);
         dependencies.addComponent(AccountDao.class, accountDao);
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
-        dependencies.addComponent(PaymentService.class, paymentService);
         resources.addResource(AccountService.class, null);
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
         launcher = new ResourceLauncher(processor);

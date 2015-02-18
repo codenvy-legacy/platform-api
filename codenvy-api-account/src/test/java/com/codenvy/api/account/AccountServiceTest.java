@@ -666,7 +666,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "Given value of attribute usePaymentSystem is not allowed");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
-        verifyZeroInteractions(paymentService);
     }
 
     @Test
@@ -682,7 +681,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "User not authorized to add this subscription, please contact support");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
-        verifyZeroInteractions(paymentService);
     }
 
     @Test
@@ -698,7 +696,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "conflict");
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -717,7 +714,6 @@ public class AccountServiceTest {
 
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -739,7 +735,6 @@ public class AccountServiceTest {
         verify(subscriptionQuery).execute();
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -815,7 +810,6 @@ public class AccountServiceTest {
                 return true;
             }
         }));
-        verify(paymentService).charge(any(Subscription.class));
         verify(serviceRegistry).get(SERVICE_ID);
         verify(subscriptionService).beforeCreateSubscription(any(Subscription.class));
         verify(subscriptionService).afterCreateSubscription(any(Subscription.class));
@@ -878,7 +872,6 @@ public class AccountServiceTest {
                 return true;
             }
         }));
-        verify(paymentService, never()).charge(any(Subscription.class));
         verify(serviceRegistry).get(SERVICE_ID);
         verify(subscriptionService).beforeCreateSubscription(any(Subscription.class));
         verify(subscriptionService).afterCreateSubscription(any(Subscription.class));
@@ -898,7 +891,6 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao).addSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -911,39 +903,6 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao).addSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
-    }
-
-    @Test
-    public void shouldRemoveSubscriptionIfChargingFailsAndReturnOriginalExceptionMessageIfThrownExceptionIsApi() throws Exception {
-        prepareSuccessfulSubscriptionAddition();
-        newSubscription.setTrialDuration(0);
-        doThrow(new ServerException("origin exception")).when(paymentService).charge(any(Subscription.class));
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        assertEquals(response.getEntity(), "origin exception");
-        verify(accountDao).addSubscription(any(Subscription.class));
-        verify(accountDao).removeSubscription(anyString());
-        verify(paymentService).charge(any(Subscription.class));
-    }
-
-    @Test
-    public void shouldRemoveSubscriptionIfChargingFailsAndReturnDefaultExceptionMessageIfThrownExceptionIsNotApi() throws Exception {
-        prepareSuccessfulSubscriptionAddition();
-        newSubscription.setTrialDuration(0);
-        doThrow(new RuntimeException("origin exception")).when(paymentService).charge(any(Subscription.class));
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        assertEquals(response.getEntity(), "Internal server error. Please, contact support");
-        verify(accountDao).addSubscription(any(Subscription.class));
-        verify(accountDao).removeSubscription(anyString());
-        verify(paymentService).charge(any(Subscription.class));
     }
 
     @Test

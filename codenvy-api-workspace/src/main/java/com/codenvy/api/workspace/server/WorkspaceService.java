@@ -1105,30 +1105,4 @@ public class WorkspaceService extends Service {
         return EnvironmentContext.getCurrent().getUser();
     }
 
-    // TODO remove it after testing!
-    @GET
-    @Path("/{id}/paid")
-    @RolesAllowed({"account/owner", "system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
-    public void setPaid(@PathParam("id") String workspaceId,
-                        @QueryParam("paid") boolean paid) throws NotFoundException, ServerException {
-        final Workspace workspace = workspaceDao.getById(workspaceId);
-
-        final Account account = accountDao.getById(workspace.getAccountId());
-        account.getAttributes().put("codenvy:paid", Boolean.toString(paid));
-        account.getAttributes().remove(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY);
-        try {
-            accountDao.update(account);
-        } catch (NotFoundException | ServerException e) {
-            LOG.error("Error removing lock property into account  {} .", account.getId());
-        }
-        for (Workspace ws : workspaceDao.getByAccount(account.getId())) {
-            ws.getAttributes().remove(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY);
-            try {
-                workspaceDao.update(ws);
-            } catch (NotFoundException | ServerException | ConflictException e) {
-                LOG.error("Error removing lock property into workspace  {} .", ws.getId());
-            }
-        }
-    }
 }

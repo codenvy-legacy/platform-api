@@ -171,14 +171,6 @@ public interface AccountDao {
     SubscriptionQueryBuilder getSubscriptionQueryBuilder();
 
     /**
-     * Get all paid Saas accounts
-     *
-     * @return all paid Saas accounts
-     * @throws ServerException
-     */
-    List<Account> getPaidSaasAccountsWithOldBillingDate(Date newDate) throws ServerException, ForbiddenException;
-
-    /**
      * Get all SAAS community accounts which are locked after RAM runner resources was exceeded.
      *
      * @return all locked SAAS community accounts

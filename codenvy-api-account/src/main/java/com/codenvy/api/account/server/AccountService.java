@@ -15,7 +15,6 @@ import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Member;
 import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
@@ -79,7 +78,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Collections;
-import java.util.Date;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -104,7 +102,6 @@ public class AccountService extends Service {
     private final AccountDao                  accountDao;
     private final UserDao                     userDao;
     private final SubscriptionServiceRegistry registry;
-    private final PaymentService              paymentService;
     private final PlanDao                     planDao;
     private final ResourcesManager            resourcesManager;
 
@@ -112,13 +109,11 @@ public class AccountService extends Service {
     public AccountService(AccountDao accountDao,
                           UserDao userDao,
                           SubscriptionServiceRegistry registry,
-                          PaymentService paymentService,
                           PlanDao planDao,
                           ResourcesManager resourcesManager) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
-        this.paymentService = paymentService;
         this.planDao = planDao;
         this.resourcesManager = resourcesManager;
     }
@@ -839,12 +834,7 @@ public class AccountService extends Service {
             subscription.setUsePaymentSystem(false);
         }
 
-        Date currentDate = new Date();
         Calendar calendar = Calendar.getInstance();
-        calendar.setTime(currentDate);
-
-        // for now we allow addition of trial subscription or paid subscription without trial
-        boolean chargeNow = false;
 
         if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
             subscription.setTrialStartDate(calendar.getTime());
@@ -854,15 +844,9 @@ public class AccountService extends Service {
 
             calendar.add(Calendar.DATE, 1);
         } else {
-            // subscription without trial is paid unless another stated above
-            subscription.setStartDate(calendar.getTime());
-
-            calendar.add(Calendar.YEAR, 1);
-            subscription.setEndDate(calendar.getTime());
-
             if (subscription.getUsePaymentSystem()) {
                 Calendar billingCalendar = Calendar.getInstance();
-                billingCalendar.setTime(currentDate);
+                billingCalendar.setTime(calendar.getTime());
 
                 subscription.setBillingStartDate(billingCalendar.getTime());
 
@@ -873,9 +857,13 @@ public class AccountService extends Service {
 
                 billingCalendar.add(Calendar.YEAR, 1);
                 subscription.setBillingEndDate(billingCalendar.getTime());
-
-                chargeNow = true;
             }
+
+            // subscription without trial is paid unless another stated above
+            subscription.setStartDate(calendar.getTime());
+
+            calendar.add(Calendar.YEAR, 1);
+            subscription.setEndDate(calendar.getTime());
         }
 
         service.beforeCreateSubscription(subscription);
@@ -900,25 +888,16 @@ public class AccountService extends Service {
 
         accountDao.addSubscription(subscription);
 
-        if (chargeNow) {
+        //TODO This is awfully
+        try {
+            service.afterCreateSubscription(subscription);
+        } catch (Exception e) {
             try {
-                paymentService.charge(subscription);
-            } catch (Exception e) {
-                LOG.error(e.getLocalizedMessage(), e);
-                try {
-                    accountDao.removeSubscription(subscription.getId());
-                } catch (Exception e1) {
-                    LOG.error(e1.getLocalizedMessage(), e1);
-                }
-                // hide not user friendly exception if exception is not Api
-                if (!ApiException.class.isAssignableFrom(e.getClass())) {
-                    throw new ServerException("Internal server error. Please, contact support");
-                }
-                throw e;
+                accountDao.removeSubscription(subscription.getId());
+            } catch (Exception e1) {
+                LOG.error(e1.getLocalizedMessage(), e1);
             }
         }
-
-        service.afterCreateSubscription(subscription);
 
         LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
 
@@ -973,7 +952,6 @@ public class AccountService extends Service {
         service.onRemoveSubscription(toRemove);
 
     }
-
 
 
     @ApiOperation(value = "Remove account",

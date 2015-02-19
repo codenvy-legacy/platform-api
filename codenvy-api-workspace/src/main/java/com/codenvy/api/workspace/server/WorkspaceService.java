@@ -1103,4 +1103,5 @@ public class WorkspaceService extends Service {
     private com.codenvy.commons.user.User currentUser() {
         return EnvironmentContext.getCurrent().getUser();
     }
+
 }

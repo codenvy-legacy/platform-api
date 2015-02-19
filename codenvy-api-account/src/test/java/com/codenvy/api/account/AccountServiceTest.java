@@ -20,7 +20,6 @@ import com.codenvy.api.account.server.dao.PlanDao;
 import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder;
 import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder.SubscriptionQuery;
-import com.codenvy.api.account.server.subscription.PaymentService;
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
@@ -82,7 +81,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import static java.util.Collections.singletonList;
 import static org.mockito.Matchers.any;
@@ -144,9 +142,6 @@ public class AccountServiceTest {
     private SecurityContext securityContext;
 
     @Mock
-    private PaymentService paymentService;
-
-    @Mock
     private SubscriptionServiceRegistry serviceRegistry;
 
     @Mock
@@ -180,7 +175,6 @@ public class AccountServiceTest {
         dependencies.addComponent(ResourcesManager.class, resourcesManager);
         dependencies.addComponent(AccountDao.class, accountDao);
         dependencies.addComponent(SubscriptionServiceRegistry.class, serviceRegistry);
-        dependencies.addComponent(PaymentService.class, paymentService);
         resources.addResource(AccountService.class, null);
         EverrestProcessor processor = new EverrestProcessor(resources, providers, dependencies, new EverrestConfiguration(), null);
         launcher = new ResourceLauncher(processor);
@@ -672,7 +666,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "Given value of attribute usePaymentSystem is not allowed");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
-        verifyZeroInteractions(paymentService);
     }
 
     @Test
@@ -688,7 +681,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "User not authorized to add this subscription, please contact support");
         verify(accountDao).getByMember(USER_ID);
         verifyNoMoreInteractions(accountDao);
-        verifyZeroInteractions(paymentService);
     }
 
     @Test
@@ -704,7 +696,6 @@ public class AccountServiceTest {
         assertEquals(response.getEntity(), "conflict");
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -723,7 +714,6 @@ public class AccountServiceTest {
 
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -745,7 +735,6 @@ public class AccountServiceTest {
         verify(subscriptionQuery).execute();
         verify(accountDao, never()).addSubscription(any(Subscription.class));
         verify(subscriptionService, never()).afterCreateSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -821,7 +810,6 @@ public class AccountServiceTest {
                 return true;
             }
         }));
-        verify(paymentService).charge(any(Subscription.class));
         verify(serviceRegistry).get(SERVICE_ID);
         verify(subscriptionService).beforeCreateSubscription(any(Subscription.class));
         verify(subscriptionService).afterCreateSubscription(any(Subscription.class));
@@ -884,7 +872,6 @@ public class AccountServiceTest {
                 return true;
             }
         }));
-        verify(paymentService, never()).charge(any(Subscription.class));
         verify(serviceRegistry).get(SERVICE_ID);
         verify(subscriptionService).beforeCreateSubscription(any(Subscription.class));
         verify(subscriptionService).afterCreateSubscription(any(Subscription.class));
@@ -904,7 +891,6 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao).addSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
     }
 
     @Test
@@ -917,39 +903,6 @@ public class AccountServiceTest {
 
         assertEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
         verify(accountDao).addSubscription(any(Subscription.class));
-        verify(paymentService, never()).charge(any(Subscription.class));
-    }
-
-    @Test
-    public void shouldRemoveSubscriptionIfChargingFailsAndReturnOriginalExceptionMessageIfThrownExceptionIsApi() throws Exception {
-        prepareSuccessfulSubscriptionAddition();
-        newSubscription.setTrialDuration(0);
-        doThrow(new ServerException("origin exception")).when(paymentService).charge(any(Subscription.class));
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        assertEquals(response.getEntity(), "origin exception");
-        verify(accountDao).addSubscription(any(Subscription.class));
-        verify(accountDao).removeSubscription(anyString());
-        verify(paymentService).charge(any(Subscription.class));
-    }
-
-    @Test
-    public void shouldRemoveSubscriptionIfChargingFailsAndReturnDefaultExceptionMessageIfThrownExceptionIsNotApi() throws Exception {
-        prepareSuccessfulSubscriptionAddition();
-        newSubscription.setTrialDuration(0);
-        doThrow(new RuntimeException("origin exception")).when(paymentService).charge(any(Subscription.class));
-
-        ContainerResponse response =
-                makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);
-
-        assertNotEquals(response.getStatus(), Response.Status.CREATED.getStatusCode());
-        assertEquals(response.getEntity(), "Internal server error. Please, contact support");
-        verify(accountDao).addSubscription(any(Subscription.class));
-        verify(accountDao).removeSubscription(anyString());
-        verify(paymentService).charge(any(Subscription.class));
     }
 
     @Test

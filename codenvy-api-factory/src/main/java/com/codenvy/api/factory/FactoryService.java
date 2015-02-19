@@ -76,7 +76,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.codenvy.commons.lang.Strings.nullToEmpty;
+import static com.google.common.base.Strings.nullToEmpty;
 
 /** Service for factory rest api features */
 @Api(value = "/factory",

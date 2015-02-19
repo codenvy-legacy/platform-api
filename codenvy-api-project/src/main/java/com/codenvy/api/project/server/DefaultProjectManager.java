@@ -247,6 +247,9 @@ public final class DefaultProjectManager implements ProjectManager {
         if(parentProject == null)
             throw new NotFoundException("Parent Project not found "+projectPath);
 
+        if (!projectPath.startsWith("/")) {
+            projectPath = "/" + projectPath;
+        }
         String absModulePath = modulePath.startsWith("/")?modulePath:projectPath+"/"+modulePath;
 
         VirtualFileEntry moduleFolder = getProjectsRoot(workspace).getChild(absModulePath);
@@ -269,6 +272,12 @@ public final class DefaultProjectManager implements ProjectManager {
             moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
 
             module = new Project((FolderEntry)moduleFolder, this);
+
+            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+            if (generator != null) {
+                generator.onCreateProject(module.getBaseFolder(), moduleConfig.getAttributes(), options);
+            }
+
             module.updateConfig(moduleConfig);
 
             final ProjectMisc misc = module.getMisc();
@@ -277,11 +286,6 @@ public final class DefaultProjectManager implements ProjectManager {
 
             if (visibility != null) {
                 module.setVisibility(visibility);
-            }
-
-            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
-            if (generator != null) {
-                generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
             }
         } else if(!((FolderEntry)moduleFolder).isProjectFolder()) {
         //  folder exists but is not a project, just update config

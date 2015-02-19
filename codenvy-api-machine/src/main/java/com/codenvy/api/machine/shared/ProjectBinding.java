@@ -8,22 +8,15 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.machine.server;
-
-import com.codenvy.api.core.NotFoundException;
-import com.codenvy.api.machine.shared.ProjectBinding;
-
-import java.util.List;
+package com.codenvy.api.machine.shared;
 
 /**
- * @author andrew00x
+ * @author gazarenkov
  */
-public interface SnapshotStorage {
-    Snapshot getSnapshot(String snapshotId) throws NotFoundException;
+public interface ProjectBinding {
+    String getPath();
 
-    void saveSnapshot(Snapshot snapshot);
+    void setPath(String path);
 
-    List<Snapshot> findSnapshots(String owner, String workspaceId, ProjectBinding project);
-
-    void removeSnapshot(String snapshotId) throws NotFoundException;
+    ProjectBinding withPath(String path);
 }

@@ -52,9 +52,9 @@ public interface SnapshotDescriptor {
 
     SnapshotDescriptor withWorkspaceId(String workspaceId);
 
-    List<String> getProjects();
+    List<ProjectBindingDescriptor> getProjects();
 
-    void setProjects(List<String> projects);
+    void setProjects(List<ProjectBindingDescriptor> projects);
 
-    SnapshotDescriptor withProjects(List<String> projects);
+    SnapshotDescriptor withProjects(List<ProjectBindingDescriptor> projects);
 }

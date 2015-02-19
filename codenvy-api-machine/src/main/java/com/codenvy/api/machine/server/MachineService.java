@@ -15,12 +15,14 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
+import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromRecipe;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
 import com.codenvy.api.machine.shared.dto.MachineDescriptor;
 import com.codenvy.api.machine.shared.dto.CommandDescriptor;
 import com.codenvy.api.machine.shared.dto.ProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.NewSnapshotDescriptor;
+import com.codenvy.api.machine.shared.dto.ProjectBindingDescriptor;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
@@ -40,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Machine API
@@ -83,7 +86,7 @@ public class MachineService {
                             machine.getType(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
-                            Collections.<String>emptyList());
+                            Collections.<ProjectBinding>emptySet());
     }
 
     @PUT
@@ -112,21 +115,20 @@ public class MachineService {
                             machine.getType(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
-                            new ArrayList<>(machine.getProjects()));
+                            machine.getProjectBindings());
     }
 
-    @Path("/workspace/{ws-id}/project/{project:.*}")
+    @Path("/workspace/{ws-id}/project/{path:.*}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public List<MachineDescriptor> getMachines(@PathParam("ws-id") String workspaceId,
-                                               @PathParam("project") String project)
+                                               @PathParam("path") String path)
             throws ServerException, ForbiddenException {
         requiredNotNull(workspaceId, "Workspace parameter");
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        final List<MachineImpl> machines = machineManager.getMachines(userId, workspaceId, project);
-
+        final List<MachineImpl> machines = machineManager.getMachines(userId, workspaceId, new ProjectBindingImpl().withPath(path));
 
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         for (MachineImpl machine : machines) {
@@ -134,7 +136,7 @@ public class MachineService {
                                                  machine.getType(),
                                                  machine.getOwner(),
                                                  machine.getWorkspaceId(),
-                                                 new ArrayList<>(machine.getProjects())));
+                                                 machine.getProjectBindings()));
         }
 
         return machinesDescriptors;
@@ -153,13 +155,14 @@ public class MachineService {
         machineManager.destroy(machineId);
     }
 
-    @Path("/snapshot/workspace/{ws-id}/project/{project:.*}")
+    @Path("/snapshot/workspace/{ws-id}/project/{path:.*}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @PathParam("project") String project) {
-        final List<Snapshot> snapshots =
-                machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(), workspaceId, project);
+    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @PathParam("path") String path) {
+        final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
+                                                                     workspaceId,
+                                                                     new ProjectBindingImpl().withPath(path));
 
         final List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
         for (Snapshot snapshot : snapshots) {
@@ -241,24 +244,24 @@ public class MachineService {
         machineManager.stopProcess(machineId, processId);
     }
 
-    @Path("/{machineId}/bind/{project:.*}")
+    @Path("/{machineId}/bind/{path:.*}")
     @POST
     @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
-                            @PathParam("project") String project) throws NotFoundException, ServerException, ForbiddenException {
+                            @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
-        machineManager.bindProject(machineId, project);
+        machineManager.bindProject(machineId, new ProjectBindingImpl().withPath(path));
     }
 
-    @Path("/{machineId}/unbind/{project:.*}")
+    @Path("/{machineId}/unbind/{path:.*}")
     @POST
     @RolesAllowed("user")
     public void unbindProject(@PathParam("machineId") String machineId,
-                              @PathParam("project") String project) throws NotFoundException, ServerException, ForbiddenException {
+                              @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
-        machineManager.unbindProject(machineId, project);
+        machineManager.unbindProject(machineId, new ProjectBindingImpl().withPath(path));
     }
 
     private void checkCurrentUserPermissionsForMachine(String machineOwner) throws ForbiddenException {
@@ -298,28 +301,39 @@ public class MachineService {
                                            String machineType,
                                            String machineOwner,
                                            String workspaceId,
-                                           List<String> projects)
+                                           Set<ProjectBinding> projects)
             throws ServerException {
+        final List<ProjectBindingDescriptor> projectDescriptors = new ArrayList<>(projects.size());
+        for (ProjectBinding project : projects) {
+            projectDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)
+                                             .withPath(project.getPath())
+                                             .withLinks(null)); // TODO
+        }
 
         return dtoFactory.createDto(MachineDescriptor.class)
                          .withId(id)
                          .withType(machineType)
                          .withOwner(machineOwner)
                          .withWorkspaceId(workspaceId)
-                         .withProjects(projects)
-//                        TODO
-                         .withLinks(null);
+                         .withProjects(projectDescriptors)
+                         .withLinks(null); // TODO
     }
 
     private ProcessDescriptor toDescriptor(int processId, String commandLine) throws ServerException {
         return dtoFactory.createDto(ProcessDescriptor.class)
                          .withPid(processId)
                          .withCommandLine(commandLine)
-//                        TODO
-                         .withLinks(null);
+                         .withLinks(null); // TODO
     }
 
     private SnapshotDescriptor toDescriptor(Snapshot snapshot) {
+        final List<ProjectBindingDescriptor> projectDescriptors = new ArrayList<>(snapshot.getProjects().size());
+        for (ProjectBinding projectBinding : snapshot.getProjects()) {
+            projectDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)
+                                             .withPath(projectBinding.getPath())
+                                             .withLinks(null)); // TODO
+        }
+
         return dtoFactory.createDto(SnapshotDescriptor.class)
                          .withId(snapshot.getId())
                          .withOwner(snapshot.getOwner())
@@ -327,6 +341,6 @@ public class MachineService {
                          .withDescription(snapshot.getDescription())
                          .withCreationDate(snapshot.getCreationDate())
                          .withWorkspaceId(snapshot.getWorkspaceId())
-                         .withProjects(snapshot.getProjects());
+                         .withProjects(projectDescriptors);
     }
 }

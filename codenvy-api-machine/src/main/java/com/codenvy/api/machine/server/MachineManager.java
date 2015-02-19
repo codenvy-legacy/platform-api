@@ -25,6 +25,7 @@ import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Command;
 import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.Process;
+import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.Recipe;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.IoUtil;
@@ -289,28 +290,28 @@ public class MachineManager {
         throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
-    public void bindProject(String machineId, String project) throws NotFoundException, MachineException {
+    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         try {
-            final File fullPath = Files.createDirectories(new File(projectsFolder, project).toPath()).toFile();
-            copyProjectSource(fullPath, machine.getWorkspaceId(), project);
+            final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
+            copyProjectSource(fullPath, machine.getWorkspaceId(), project.getPath());
         } catch (IOException e) {
             throw new MachineException(e.getLocalizedMessage(), e);
         }
-        machine.getProjects().add(project);
+        machine.getProjectBindings().add(project);
         // TODO add synchronization of origin project and copied
     }
 
-    public void unbindProject(String machineId, String project) throws NotFoundException, MachineException {
+    public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         try {
-            Files.delete(Paths.get(projectsFolder.toString(), project));
+            Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
         } catch (IOException e) {
             throw new MachineException(e.getLocalizedMessage(), e);
         }
-        machine.getProjects().remove(project);
+        machine.getProjectBindings().remove(project);
     }
 
     private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
@@ -327,8 +328,8 @@ public class MachineManager {
         ZipUtils.unzip(zipBall, destinationDir);
     }
 
-    public List<String> getProjects(String machineId) throws NotFoundException, MachineException {
-        return new ArrayList<>(getMachine(machineId).getProjects());
+    public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
+        return new ArrayList<>(getMachine(machineId).getProjectBindings());
     }
 
     public MachineImpl getMachine(String machineId) throws NotFoundException {
@@ -354,12 +355,12 @@ public class MachineManager {
      *         project binding
      * @return list of machines or empty list
      */
-    public List<MachineImpl> getMachines(String owner, String workspaceId, String project) {
+    public List<MachineImpl> getMachines(String owner, String workspaceId, ProjectBinding project) {
         final List<MachineImpl> result = new LinkedList<>();
         for (MachineImpl machine : machines.values()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
                 machine.getWorkspaceId().equals(workspaceId) &&
-                machine.getProjects().contains(project)) {
+                machine.getProjectBindings().contains(project)) {
                 result.add(machine);
             }
         }
@@ -395,7 +396,7 @@ public class MachineManager {
                                                        owner,
                                                        System.currentTimeMillis(),
                                                        machine.getWorkspaceId(),
-                                                       new ArrayList<>(machine.getProjects()),
+                                                       new ArrayList<>(machine.getProjectBindings()),
                                                        description);
                 snapshotStorage.saveSnapshot(snapshot);
                 return snapshot;
@@ -412,7 +413,7 @@ public class MachineManager {
     }
 
     /**
-     * Gets list of Snapshots by project in workspace.
+     * Gets list of Snapshots by project.
      *
      * @param owner
      *         id of owner of machine
@@ -422,7 +423,7 @@ public class MachineManager {
      *         project binding
      * @return list of Snapshots
      */
-    public List<Snapshot> getSnapshots(String owner, String workspaceId, String project) {
+    public List<Snapshot> getSnapshots(String owner, String workspaceId, ProjectBinding project) {
         return snapshotStorage.findSnapshots(owner, workspaceId, project);
     }
 
@@ -440,7 +441,7 @@ public class MachineManager {
      * @param project
      *         project binding
      */
-    public void removeSnapshots(String owner, String workspaceId, String project) {
+    public void removeSnapshots(String owner, String workspaceId, ProjectBinding project) {
         for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, workspaceId, project)) {
             try {
                 snapshotStorage.removeSnapshot(snapshot.getId());

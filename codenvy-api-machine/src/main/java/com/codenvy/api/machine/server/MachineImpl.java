@@ -16,6 +16,7 @@ import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
+import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -30,7 +31,7 @@ public class MachineImpl implements Machine {
     private final String              type;
     private final String              owner;
     private final LineConsumer        machineLogsOutput;
-    private final Set<String>         projects;
+    private final Set<ProjectBinding> projectBindings;
     private final String              workspaceId;
 
     private Instance     instance;
@@ -42,7 +43,7 @@ public class MachineImpl implements Machine {
         this.owner = owner;
         this.machineLogsOutput = machineLogsOutput;
         this.workspaceId = workspaceId;
-        projects = new CopyOnWriteArraySet<>();
+        projectBindings = new CopyOnWriteArraySet<>();
     }
 
     @Override
@@ -85,8 +86,8 @@ public class MachineImpl implements Machine {
         return processes;
     }
 
-    Set<String> getProjects() {
-        return projects;
+    Set<ProjectBinding> getProjectBindings() {
+        return projectBindings;
     }
 
     String getWorkspaceId() {

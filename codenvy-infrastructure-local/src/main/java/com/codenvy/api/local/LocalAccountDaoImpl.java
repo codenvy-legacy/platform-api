@@ -407,8 +407,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     public List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException {
         List<Account> lockedAccounts = new LinkedList<>();
         for (Account account : accounts) {
-            if (!account.getAttributes().containsKey("codenvy:paid") &&
-                account.getAttributes().containsKey("codenvy:locked") &&
+            if (account.getAttributes().containsKey("codenvy:locked") &&
                 account.getAttributes().get("codenvy:locked").equals("true")) {
                 lockedAccounts.add(account);
             }

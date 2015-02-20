@@ -11,7 +11,7 @@
 package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.util.LineConsumer;
-import com.codenvy.commons.lang.NamedThreadFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
@@ -44,7 +44,7 @@ public class ProjectImportOutputWSLineConsumer implements LineConsumer {
         this.fWorkspace = fWorkspace;
         lineToSendQueue = new ArrayBlockingQueue<>(1024);
         executor = Executors.newSingleThreadScheduledExecutor(
-                new NamedThreadFactory(ProjectImportOutputWSLineConsumer.class.getSimpleName(), true));
+                new ThreadFactoryBuilder().setNameFormat(ProjectImportOutputWSLineConsumer.class.getSimpleName()).setDaemon(true).build());
         executor.scheduleAtFixedRate(new Runnable() {
             @Override
             public void run() {

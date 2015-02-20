@@ -25,7 +25,6 @@ import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -347,13 +346,12 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Subscription> getActiveSubscriptions(String accountId, String serviceId) {
+    public List<Subscription> getActiveSubscriptions(String accountId) {
         final List<Subscription> result = new LinkedList<>();
         lock.readLock().lock();
         try {
             for (Subscription subscription : subscriptions) {
-                if (accountId.equals(subscription.getAccountId()) && serviceId.equals(subscription.getServiceId()) && ACTIVE.equals(
-                        subscription.getState())) {
+                if (accountId.equals(subscription.getAccountId()) && ACTIVE.equals(subscription.getState())) {
                     result.add(new Subscription(subscription));
                 }
             }
@@ -361,6 +359,22 @@ public class LocalAccountDaoImpl implements AccountDao {
             lock.readLock().unlock();
         }
         return result;
+    }
+
+    @Override
+    public Subscription getActiveSubscription(String accountId, String serviceId) {
+        lock.readLock().lock();
+        try {
+            for (Subscription subscription : subscriptions) {
+                if (accountId.equals(subscription.getAccountId()) && serviceId.equals(subscription.getServiceId())
+                    && ACTIVE.equals(subscription.getState())) {
+                    return new Subscription(subscription);
+                }
+            }
+        } finally {
+            lock.readLock().unlock();
+        }
+        return null;
     }
 
     @Override
@@ -391,7 +405,7 @@ public class LocalAccountDaoImpl implements AccountDao {
 
     @Override
     public List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException {
-        List<Account> lockedAccounts  = new LinkedList<>();
+        List<Account> lockedAccounts = new LinkedList<>();
         for (Account account : accounts) {
             if (!account.getAttributes().containsKey("codenvy:paid") &&
                 account.getAttributes().containsKey("codenvy:locked") &&

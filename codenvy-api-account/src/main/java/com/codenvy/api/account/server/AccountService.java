@@ -611,8 +611,12 @@ public class AccountService extends Service {
                                                          @QueryParam("service") String serviceId,
                                                          @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                           ServerException {
-        final List<Subscription> subscriptions =
-                accountDao.getActiveSubscriptions(accountId, null == serviceId || serviceId.isEmpty() ? null : serviceId);
+        final List<Subscription> subscriptions = new ArrayList<>();
+        if (serviceId == null || serviceId.isEmpty()) {
+            subscriptions.addAll(accountDao.getActiveSubscriptions(accountId));
+        } else {
+            subscriptions.add(accountDao.getActiveSubscription(accountId, serviceId));
+        }
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
             result.add(toDescriptor(subscription, securityContext, null));
@@ -818,16 +822,16 @@ public class AccountService extends Service {
         Subscription subscription = new Subscription()
                 .withId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH))
                 .withAccountId(newSubscription.getAccountId())
+                .withUsePaymentSystem(newSubscription.getUsePaymentSystem())
+                .withPaymentToken(newSubscription.getPaymentToken())
                 .withServiceId(plan.getServiceId())
                 .withPlanId(plan.getId())
                 .withProperties(plan.getProperties())
-                .withState(SubscriptionState.ACTIVE)
                 .withDescription(plan.getDescription())
                 .withBillingCycleType(plan.getBillingCycleType())
                 .withBillingCycle(plan.getBillingCycle())
                 .withBillingContractTerm(plan.getBillingContractTerm())
-                .withUsePaymentSystem(newSubscription.getUsePaymentSystem())
-                .withPaymentToken(newSubscription.getPaymentToken());
+                .withState(SubscriptionState.ACTIVE);
 
         // disable payment if subscription is free
         if (!plan.isPaid()) {
@@ -835,7 +839,6 @@ public class AccountService extends Service {
         }
 
         Calendar calendar = Calendar.getInstance();
-
         if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
             subscription.setTrialStartDate(calendar.getTime());
 
@@ -1045,14 +1048,13 @@ public class AccountService extends Service {
 
         List<SubscriptionResources> result = new ArrayList<>();
         for (SubscriptionService subscriptionService : subscriptionServices) {
-            List<Subscription> activeSubscriptions = accountDao.getActiveSubscriptions(accountId, subscriptionService.getServiceId());
-            if (!activeSubscriptions.isEmpty()) {
+            Subscription activeSubscription = accountDao.getActiveSubscription(accountId, subscriptionService.getServiceId());
+            if (activeSubscription != null) {
                 //For now account can have only one subscription for each service
-                Subscription subscription = activeSubscriptions.get(0);
-                AccountResources accountResources = subscriptionService.getAccountResources(subscription);
+                AccountResources accountResources = subscriptionService.getAccountResources(activeSubscription);
                 result.add(DtoFactory.getInstance().createDto(SubscriptionResources.class)
                                      .withUsed(accountResources.getUsed())
-                                     .withSubscriptionReference(toReference(subscription)));
+                                     .withSubscriptionReference(toReference(activeSubscription)));
             }
         }
 

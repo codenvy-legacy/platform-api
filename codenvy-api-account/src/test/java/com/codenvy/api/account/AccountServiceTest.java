@@ -94,7 +94,6 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoMoreInteractions;
-import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 import static org.testng.Assert.assertEqualsNoOrder;
@@ -435,7 +434,7 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetSubscriptionsOfSpecificAccount() throws Exception {
         Subscription expectedSubscription = createSubscription();
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, null)).thenReturn(Arrays.asList(expectedSubscription));
+        when(accountDao.getActiveSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(expectedSubscription));
         prepareSecurityContext("system/admin");
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
@@ -446,13 +445,13 @@ public class AccountServiceTest {
             subscription.setLinks(null);
         }
         assertEquals(subscriptions, Collections.singletonList(convertToDescriptor(expectedSubscription)));
-        verify(accountDao).getActiveSubscriptions(ACCOUNT_ID, null);
+        verify(accountDao).getActiveSubscriptions(ACCOUNT_ID);
     }
 
     @Test
     public void shouldBeAbleToGetSubscriptionsOfSpecificAccountWithSpecifiedServiceId() throws Exception {
         Subscription subscription = createSubscription();
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, SERVICE_ID)).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscription(ACCOUNT_ID, SERVICE_ID)).thenReturn(subscription);
         prepareSecurityContext("system/admin");
 
         ContainerResponse response =
@@ -464,12 +463,12 @@ public class AccountServiceTest {
             subscriptionDescriptor.setLinks(null);
         }
         assertEquals(subscriptions, Collections.singletonList(convertToDescriptor(subscription)));
-        verify(accountDao).getActiveSubscriptions(ACCOUNT_ID, SERVICE_ID);
+        verify(accountDao).getActiveSubscription(ACCOUNT_ID, SERVICE_ID);
     }
 
     @Test
     public void shouldReturnNoSubscriptionIfThereIsNoSubscriptionWithGivenServiceIdOnGetSubscriptions() throws Exception {
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, SERVICE_ID)).thenReturn(Collections.<Subscription>emptyList());
+        when(accountDao.getActiveSubscription(ACCOUNT_ID, SERVICE_ID)).thenReturn(null);
         prepareSecurityContext("system/admin");
 
         ContainerResponse response =
@@ -478,7 +477,7 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
         @SuppressWarnings("unchecked") List<SubscriptionDescriptor> subscriptions = (List<SubscriptionDescriptor>)response.getEntity();
         assertEquals(subscriptions.size(), 0);
-        verify(accountDao).getActiveSubscriptions(ACCOUNT_ID, SERVICE_ID);
+        verify(accountDao).getActiveSubscription(ACCOUNT_ID, SERVICE_ID);
     }
 
     @Test
@@ -1501,7 +1500,7 @@ public class AccountServiceTest {
         Subscription subscription = new Subscription().withAccountId(ACCOUNT_ID)
                                                       .withServiceId("Saas")
                                                       .withProperties(accountSubscription);
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscription(ACCOUNT_ID, "Saas")).thenReturn(subscription);
 
         ContainerResponse response = makeRequest(HttpMethod.POST, SERVICE_PATH + "/" + ACCOUNT_ID + "/resources",
                                                  MediaType.APPLICATION_JSON,
@@ -1533,7 +1532,7 @@ public class AccountServiceTest {
         accountSubscription.put("RAM", "2GB");
         accountSubscription.put("Package", "Enterprise");
         Subscription subscription = createSubscription().withServiceId("Saas").withProperties(accountSubscription);
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, "Saas")).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscription(ACCOUNT_ID, "Saas")).thenReturn(subscription);
 
         prepareSecurityContext("account/owner");
 
@@ -1555,7 +1554,7 @@ public class AccountServiceTest {
         when(subscriptionService.getAccountResources((Subscription)anyObject()))
                 .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
         when(serviceRegistry.getAll()).thenReturn(new HashSet<>(Arrays.asList(subscriptionService)));
-        when(accountDao.getActiveSubscriptions(anyString(), anyString()))
+        when(accountDao.getActiveSubscriptions(anyString()))
                 .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/resources", null, null);
@@ -1567,7 +1566,7 @@ public class AccountServiceTest {
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
-        verify(accountDao).getActiveSubscriptions(anyString(), anyString());
+        verify(accountDao).getActiveSubscriptions(anyString());
         verify(subscriptionService).getAccountResources((Subscription)anyObject());
     }
 
@@ -1578,7 +1577,7 @@ public class AccountServiceTest {
 
         when(serviceRegistry.get(anyString())).thenReturn(subscriptionService);
 
-        when(accountDao.getActiveSubscriptions(anyString(), anyString()))
+        when(accountDao.getActiveSubscriptions(anyString()))
                 .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
 
         ContainerResponse response =
@@ -1591,7 +1590,7 @@ public class AccountServiceTest {
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
-        verify(accountDao).getActiveSubscriptions(anyString(), anyString());
+        verify(accountDao).getActiveSubscriptions(anyString());
         verify(subscriptionService).getAccountResources((Subscription)anyObject());
     }
 
@@ -1736,7 +1735,7 @@ public class AccountServiceTest {
     }
 
     private SubscriptionDescriptor getDescriptor(Subscription subscription) throws Exception {
-        when(accountDao.getActiveSubscriptions(ACCOUNT_ID, null)).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscriptions(ACCOUNT_ID)).thenReturn(Arrays.asList(subscription));
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + ACCOUNT_ID + "/subscriptions", null, null);
 

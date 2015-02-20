@@ -123,16 +123,17 @@ public interface AccountDao {
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
     
     /**
+     * //TODO
      * Gets list of active existing in persistent layer subscriptions related to given account.
      * Returns subscriptions with given serviceId only if serviceId is not null.
      *
      * @param accountId
      *         account id
-     * @param serviceId
-     *         return subscription with provided service identifier
      * @return list of subscriptions, or empty list if no subscriptions found
      */
-    List<Subscription> getActiveSubscriptions(String accountId, String serviceId) throws NotFoundException, ServerException;
+    List<Subscription> getActiveSubscriptions(String accountId) throws NotFoundException, ServerException;
+
+    Subscription getActiveSubscription(String accountId, String serviceId) throws ServerException, NotFoundException;
 
     /**
      * Update existing subscription.

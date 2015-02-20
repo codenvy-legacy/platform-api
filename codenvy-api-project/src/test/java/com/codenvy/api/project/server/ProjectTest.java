@@ -10,7 +10,14 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
+import com.codenvy.api.project.server.handlers.ProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
+import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.ProjectType;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -23,13 +30,7 @@ import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
 import org.testng.annotations.Test;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedHashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * @author andrew00x
@@ -40,45 +41,50 @@ public class ProjectTest {
 
     private ProjectManager pm;
 
-    private List<String> calculateAttributeValueHolder;
+    private static List<String> calculateAttributeValueHolder = Collections.singletonList("hello");
 
     @BeforeMethod
     public void setUp() throws Exception {
-        ProjectTypeDescriptionRegistry ptdr = new ProjectTypeDescriptionRegistry("test");
-        final String projectType = "my_project_type";
-        final String category = "my_category";
-        Set<ValueProviderFactory> vpf = Collections.<ValueProviderFactory>singleton(new ValueProviderFactory() {
-            @Override
-            public String getName() {
-                return "calculated_attribute";
-            }
+
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
 
             @Override
-            public ValueProvider newInstance(Project project) {
+            public ValueProvider newInstance(FolderEntry projectFolder) {
                 return new ValueProvider() {
+
                     @Override
-                    public List<String> getValues() {
-                        return Collections.singletonList("hello");
+                    public List<String> getValues(String attributeName) {
+
+                        return calculateAttributeValueHolder;
+                        //Collections.singletonList("hello");
                     }
 
                     @Override
-                    public void setValues(List<String> value) {
+                    public void setValues(String attributeName, List<String> value) {
+
                         calculateAttributeValueHolder = value;
                     }
                 };
             }
-        });
-        ptdr.registerDescription(new ProjectTypeDescriptionExtension() {
-            @Override
-            public List<ProjectType> getProjectTypes() {
-                return Arrays.asList(new ProjectType(projectType, projectType, category));
+        };
+
+
+        ProjectType pt = new ProjectType("my_project_type", "my project type", true, false) {
+
+            {
+                addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
             }
 
-            @Override
-            public List<AttributeDescription> getAttributeDescriptions() {
-                return Arrays.asList(new AttributeDescription("calculated_attribute"));
-            }
-        });
+        };
+
+        Set <ProjectType> types = new HashSet<ProjectType>();
+        types.add(pt);
+        ProjectTypeRegistry ptRegistry = new ProjectTypeRegistry(types);
+
         final EventService eventService = new EventService();
         VirtualFileSystemRegistry vfsRegistry = new VirtualFileSystemRegistry();
 
@@ -91,10 +97,18 @@ public class ProjectTest {
                 }, vfsRegistry);
         MemoryMountPoint mmp = (MemoryMountPoint)memoryFileSystemProvider.getMountPoint(true);
         vfsRegistry.registerProvider("my_ws", memoryFileSystemProvider);
-        pm = new DefaultProjectManager(ptdr, vpf, vfsRegistry, eventService);
+
+
+        //ProjectGeneratorRegistry pgRegistry = new ProjectGeneratorRegistry(new HashSet<ProjectGenerator>());
+
+        ProjectHandlerRegistry phRegistry = new ProjectHandlerRegistry(new HashSet<ProjectHandler>());
+
+        pm = new DefaultProjectManager(vfsRegistry, eventService, ptRegistry, phRegistry);
+
         ((DefaultProjectManager)pm).start();
         VirtualFile myVfRoot = mmp.getRoot();
         myVfRoot.createFolder("my_project").createFolder(Constants.CODENVY_DIR).createFile(Constants.CODENVY_PROJECT_FILE, null, null);
+//        myVfRoot.createFolder("testEstimateProject");
     }
 
     @AfterMethod
@@ -112,27 +126,42 @@ public class ProjectTest {
     @Test
     public void testGetProjectDescriptor() throws Exception {
         Project myProject = pm.getProject("my_ws", "my_project");
-        Map<String, List<String>> attributes = new HashMap<>(2);
+        Map<String, List<String>> attributes = new HashMap<>(3);
+        //attributes.put("calculated_attribute", Arrays.asList("hello"));
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
         attributes.put("my_property_2", Arrays.asList("value_3", "value_4"));
-        new ProjectJson2().withType("my_project_type").withAttributes(attributes).save(myProject);
-        ProjectDescription myProjectDescription = myProject.getDescription();
-        Assert.assertEquals(myProjectDescription.getProjectType().getId(), "my_project_type");
-        Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
+        ProjectJson json = new ProjectJson();
+        json.withType("my_project_type").withAttributes(attributes).save(myProject);
+        //ProjectDescription myProjectDescription = myProject.getDescription();
 
-        Assert.assertEquals(myProjectDescription.getAttributes().size(), 3);
+        //System.out.println("JSON >> "+json.getAttributes());
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("calculated_attribute"));
-        Attribute attribute = myProjectDescription.getAttribute("calculated_attribute");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("hello"));
+        //System.out.println(">>    >>"+pm.getValueProviderFactories());
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("my_property_1"));
-        attribute = myProjectDescription.getAttribute("my_property_1");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("value_1", "value_2"));
+        ProjectConfig myConfig = myProject.getConfig();
+        Assert.assertEquals(myConfig.getTypeId(), "my_project_type");
+        //Assert.assertEquals(myProjectDescription.getProjectType().getName(), "my_project_type");
 
-        Assert.assertTrue(myProjectDescription.hasAttribute("my_property_2"));
-        attribute = myProjectDescription.getAttribute("my_property_2");
-        Assert.assertEquals(attribute.getValues(), Arrays.asList("value_3", "value_4"));
+        Assert.assertEquals(pm.getProjectTypeRegistry().getProjectType("my_project_type").getAttributes().size(), 3);
+
+
+        //System.out.println(">>>>"+myConfig.getAttribute("calculated_attribute"));
+
+        Assert.assertEquals(myConfig.getAttributes().size(), 3);
+
+        AttributeValue attributeVal;
+
+        Assert.assertNotNull(myConfig.getAttributes().get("calculated_attribute"));
+        attributeVal = myConfig.getAttributes().get("calculated_attribute");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("hello"));
+
+        Assert.assertNotNull(myConfig.getAttributes().get("my_property_1"));
+        attributeVal = myConfig.getAttributes().get("my_property_1");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("value_1", "value_2"));
+
+        Assert.assertNotNull(myConfig.getAttributes().get("my_property_2"));
+        attributeVal = myConfig.getAttributes().get("my_property_2");
+        Assert.assertEquals(attributeVal.getList(), Arrays.asList("value_3", "value_4"));
     }
 
     @Test
@@ -140,24 +169,28 @@ public class ProjectTest {
         Project myProject = pm.getProject("my_ws", "my_project");
         Map<String, List<String>> attributes = new HashMap<>(2);
         attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
-        ProjectJson2 projectJson = new ProjectJson2("my_project_type", attributes, null, null, "test project");
+        ProjectJson projectJson = new ProjectJson("my_project_type", attributes, null, null, "test project");
         projectJson.save(myProject);
-        ProjectDescription myProjectDescription = myProject.getDescription();
-        myProjectDescription.setProjectType(new ProjectType("new_project_type", "new_project_type", "new_category"));
-        myProjectDescription.getAttribute("calculated_attribute").setValue("updated calculated_attribute");
-        myProjectDescription.getAttribute("my_property_1").setValue("updated value 1");
-        myProjectDescription.setAttributes(Arrays.asList(new Attribute("new_my_property_2", "new value 2")));
 
-        myProject.updateDescription(myProjectDescription);
+        Map <String, AttributeValue> attrs = new HashMap<>();
+        attrs.put("calculated_attribute", new AttributeValue("updated calculated_attribute"));
+        attrs.put("my_property_1", new AttributeValue("updated value 1"));
+        // wont stored
+        attrs.put("new_my_property_2", new AttributeValue("new value 2"));
 
-        projectJson = ProjectJson2.load(myProject);
+        ProjectConfig myConfig = new ProjectConfig("descr", "my_project_type", attrs, null, null, null);
 
-        Assert.assertEquals(projectJson.getType(), "new_project_type");
+        myProject.updateConfig(myConfig);
+
+        projectJson = ProjectJson.load(myProject);
+
+        Assert.assertEquals(projectJson.getType(), "my_project_type");
         Assert.assertEquals(calculateAttributeValueHolder, Arrays.asList("updated calculated_attribute"));
         Map<String, List<String>> pm = projectJson.getAttributes();
-        Assert.assertEquals(pm.size(), 2);
+        // only stored (non-provided) attributes
+        Assert.assertEquals(pm.size(), 1);
         Assert.assertEquals(pm.get("my_property_1"), Arrays.asList("updated value 1"));
-        Assert.assertEquals(pm.get("new_my_property_2"), Arrays.asList("new value 2"));
+
     }
 
     @Test
@@ -169,4 +202,345 @@ public class ProjectTest {
         long modificationDate2 = myProject.getModificationDate();
         Assert.assertTrue(modificationDate2 > modificationDate1);
     }
+
+    @Test
+    public void testIfDefaultBuilderRunnerAppearsInProject() throws Exception {
+        Project myProject = pm.getProject("my_ws", "my_project");
+        Map<String, List<String>> attributes = new HashMap<>(2);
+        attributes.put("my_property_1", Arrays.asList("value_1", "value_2"));
+        ProjectJson projectJson = new ProjectJson("my_project_type", attributes, null , null, "test project");
+        projectJson.save(myProject);
+
+        Assert.assertNotNull(myProject.getConfig().getRunners());
+        Assert.assertEquals(myProject.getConfig().getRunners().getDefault(), "system:/runner/runner1");
+
+        Assert.assertNotNull(myProject.getConfig().getBuilders());
+        Assert.assertEquals(myProject.getConfig().getBuilders().getDefault(), "builder1");
+    }
+
+    @Test
+    public void testEstimateProject() throws Exception {
+
+        VirtualFile root = pm.getVirtualFileSystemRegistry().getProvider("my_ws").getMountPoint(false).getRoot();
+        root.createFolder("testEstimateProjectGood").createFolder("check");
+        root.createFolder("testEstimateProjectBad");
+
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("check");
+                       } catch (ForbiddenException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        } catch (ServerException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+
+                        if(file == null)
+                            throw new ValueStorageException("Check not found");
+                       return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) {
+
+                        //calculateAttributeValueHolder = value;
+                    }
+                };
+            }
+        };
+
+
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type", true, false) {
+
+            {
+                addVariableDefinition("calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
+            }
+
+        };
+
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+        Map<String, AttributeValue> attrs = pm.estimateProject("my_ws", "testEstimateProjectGood", "testEstimateProjectPT");
+        Assert.assertEquals(attrs.size(), 1);
+        Assert.assertNotNull(attrs.get("calculated_attribute"));
+        Assert.assertEquals(attrs.get("calculated_attribute").getString(), "checked");
+
+
+        try {
+            pm.estimateProject("my_ws", "testEstimateProjectBad", "testEstimateProjectPT");
+            Assert.fail("ValueStorageException should be thrown");
+        } catch (ValueStorageException e) {
+
+        }
+    }
+
+
+    @Test
+    public void testPTConstraints() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixinAndPrimary", "my type", true, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {});
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testAbstract", "my type", false, false) {});
+
+        pm.createProject("my_ws", "all", new ProjectConfig("proj", "testMixinAndPrimary"), null, null);
+        pm.createProject("my_ws", "prim", new ProjectConfig("proj", "testPrimary"), null, null);
+
+
+        // not possible to create Project with wrong PT
+        try {
+            pm.createProject("my_ws", "mix", new ProjectConfig("proj", "testMixin"), null, null);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) { }
+        try {
+            pm.createProject("my_ws", "abstr", new ProjectConfig("proj", "testAbstract"), null, null);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) {  }
+
+        ProjectConfig config = pm.getProject("my_ws", "all").getConfig();
+        config.getMixinTypes().add("testMixin");
+        pm.getProject("my_ws", "all").updateConfig(config);
+
+        // not possible to add wrong mixin PT
+        config.getMixinTypes().add("testAbstract");
+        try {
+            pm.getProject("my_ws", "all").updateConfig(config);
+            Assert.fail("ProjectTypeConstraintException expected");
+        } catch (ProjectTypeConstraintException e) {}
+
+
+    }
+
+    @Test
+    public void testAddMixin() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {
+
+            {
+                addConstantDefinition("c1", "","c1");
+            }
+
+        });
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {
+            {
+                addConstantDefinition("m1", "","m1");
+            }
+        });
+
+        pm.createProject("my_ws", "p1", new ProjectConfig("proj", "testPrimary"), null, null);
+//        pm.createProject("my_ws", "p2", new ProjectConfig("proj", "testPrimary"), null, null);
+
+
+        ProjectConfig config = pm.getProject("my_ws", "p1").getConfig();
+        Assert.assertEquals(config.getMixinTypes().size(), 0);
+        Assert.assertEquals(config.getAttributes().size(), 1);
+        config.getMixinTypes().add("testMixin");
+        pm.getProject("my_ws", "p1").updateConfig(config);
+        config = pm.getProject("my_ws", "p1").getConfig();
+        Assert.assertEquals(config.getMixinTypes().size(), 1);
+        Assert.assertEquals("testMixin", config.getMixinTypes().get(0));
+        Assert.assertEquals(config.getAttributes().size(), 2);
+
+
+        // add same mixin as existed
+        config.getMixinTypes().add("testMixin");
+        try {
+            pm.getProject("my_ws", "p1").updateConfig(config);
+            Assert.fail("ProjectTypeConstraintException (duplicated attributes) expected");
+        } catch (ProjectTypeConstraintException e) { }
+        //config = pm.getProject("my_ws", "p1").getConfig();
+        //Assert.assertEquals(config.getMixinTypes().size(), 1);
+
+    }
+
+
+    @Test
+    public void testAddMixinWithProvidedAttrs() throws Exception {
+
+        final ValueProviderFactory vpfPrimary = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = checkFolder();
+
+                        if(file == null)
+                            throw new ValueStorageException("Primary folder not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) throws ValueStorageException {
+                        if(checkFolder() == null) {
+                            try {
+                                projectFolder.createFolder("primary");
+                            } catch (Exception e) {
+                                throw new ValueStorageException(e.getMessage());
+                            }
+                        }
+
+                    }
+
+                    private VirtualFileEntry checkFolder() throws ValueStorageException {
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("primary");
+                        } catch (Exception e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+                        return file;
+                    }
+
+
+                };
+            }
+        };
+
+
+        final ValueProviderFactory vpfMixin = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = checkFolder();
+
+                        if(file == null)
+                            throw new ValueStorageException("Mixin folder not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) throws ValueStorageException {
+                        if(checkFolder() == null) {
+                            try {
+                                projectFolder.createFolder("mixin");
+                            } catch (Exception e) {
+                                throw new ValueStorageException(e.getMessage());
+                            }
+                        }
+                    }
+
+                    private VirtualFileEntry checkFolder() throws ValueStorageException {
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("mixin");
+                        } catch (Exception e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+                        return file;
+                    }
+
+
+                };
+            }
+        };
+
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testPrimary", "my type", true, false) {
+
+            {
+                addVariableDefinition("p.calculate", "", true, vpfPrimary);
+            }
+
+        });
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testMixin", "my type", false, true) {
+            {
+                addVariableDefinition("m.calculate", "", true, vpfMixin);
+            }
+        });
+
+        Map <String, AttributeValue> attrs = new HashMap<>();
+        attrs.put("p.calculate", new AttributeValue(""));
+        ProjectConfig config = new ProjectConfig("proj", "testPrimary", attrs, null, null, null);
+        Project proj = pm.createProject("my_ws", "provided", config , null, null);
+
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 0);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("p.calculate").getString(), "checked");
+
+        config.getMixinTypes().add("testMixin");
+        config.getAttributes().put("m.calculate", new AttributeValue(""));
+        proj.updateConfig(config);
+
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 1);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("m.calculate").getString(), "checked");
+
+        // reread it in case
+        proj = pm.getProject("my_ws", "provided");
+        Assert.assertEquals(proj.getConfig().getMixinTypes().size(), 1);
+        Assert.assertEquals(proj.getConfig().getAttributes().get("p.calculate").getString(), "checked");
+        Assert.assertEquals(proj.getConfig().getAttributes().get("m.calculate").getString(), "checked");
+
+
+    }
+
+
+    @Test
+    public void testAddModule() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testModule", "my type", true, false) {
+        });
+
+        Project myProject = pm.getProject("my_ws", "my_project");
+        myProject.updateConfig(new ProjectConfig("my proj", "testModule"));
+
+        Assert.assertEquals(myProject.getModules().get().size(), 0);
+
+        pm.addModule("my_ws", "my_project", "test", new ProjectConfig("descr", "testModule"), null, null);
+
+        Assert.assertEquals(myProject.getModules().get().size(), 1);
+        Assert.assertEquals(myProject.getModules().get().iterator().next(), "test");
+
+    }
+
+    @Test
+    public void testAddFolderAndProjectAsAModule() throws Exception {
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testAddFolderAsAModule", "my type", true, false) {
+        });
+
+        Project parent = pm.getProject("my_ws", "my_project");
+        parent.updateConfig(new ProjectConfig("my proj", "testAddFolderAsAModule"));
+
+        Assert.assertEquals(parent.getModules().get().size(), 0);
+
+        parent.getBaseFolder().createFolder("module");
+
+
+        pm.addModule("my_ws", "my_project", "module", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 1);
+        Assert.assertEquals(parent.getModules().get().iterator().next(), "module");
+
+
+        Project module2 = pm.createProject("my_ws", "module2", new ProjectConfig("my proj", "testAddFolderAsAModule"), null, null);
+        pm.addModule("my_ws", "my_project", "/module2", null, null, null);
+
+        Assert.assertEquals(parent.getModules().get().size(), 2);
+
+    }
+
 }
+

@@ -8,16 +8,14 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.server.handlers;
+
+import com.codenvy.api.project.server.VirtualFileEntry;
 
 /**
- * Factory for {@link ValueProvider}.
- *
- * @author andrew00x
+ * @author gazarenkov
  */
-public interface ValueProviderFactory {
+public interface GetItemHandler extends ProjectHandler {
 
-    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project.
-     * @param projectFolder*/
-    ValueProvider newInstance(FolderEntry projectFolder);
+    void onGetItem(VirtualFileEntry virtualFile);
 }

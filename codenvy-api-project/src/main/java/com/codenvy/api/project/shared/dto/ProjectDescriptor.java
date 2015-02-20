@@ -67,7 +67,16 @@ public interface ProjectDescriptor extends Hyperlinks {
 
     ProjectDescriptor withTypeName(String name);
 
-    //
+
+    @ApiModelProperty(value = "Mixins of current project", position = 12)
+    List<String> getMixins();
+
+    /** Sets permissions of current user on this project. */
+    void setMixins(List<String> mixins);
+
+    ProjectDescriptor withMixins(List<String> mixins);
+
+
 
     /** Gets id of workspace which projects belongs to. */
     @ApiModelProperty(value = "Workspace ID", position = 5)

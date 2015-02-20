@@ -10,14 +10,19 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-/**
- * Factory for {@link ValueProvider}.
- *
- * @author andrew00x
- */
-public interface ValueProviderFactory {
+import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.rest.shared.dto.ServiceError;
 
-    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project.
-     * @param projectFolder*/
-    ValueProvider newInstance(FolderEntry projectFolder);
+/**
+ * @author gazarenkov
+ */
+public class ProjectTypeConstraintException extends ConflictException {
+
+    public ProjectTypeConstraintException(String message) {
+        super(message);
+    }
+
+    public ProjectTypeConstraintException(ServiceError serviceError) {
+        super(serviceError);
+    }
 }

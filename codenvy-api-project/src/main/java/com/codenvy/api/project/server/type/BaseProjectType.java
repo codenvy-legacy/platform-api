@@ -8,16 +8,21 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.server.type;
+
+import javax.inject.Singleton;
 
 /**
- * Factory for {@link ValueProvider}.
- *
- * @author andrew00x
+ * @author gazarenkov
  */
-public interface ValueProviderFactory {
+@Singleton
+public class BaseProjectType extends ProjectType {
 
-    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project.
-     * @param projectFolder*/
-    ValueProvider newInstance(FolderEntry projectFolder);
+    public static final String ID = "blank";
+
+    public BaseProjectType() {
+        super(ID, "Blank", true, false);
+        //addVariableDefinition("vcs", "VCS", false);
+    }
+
 }

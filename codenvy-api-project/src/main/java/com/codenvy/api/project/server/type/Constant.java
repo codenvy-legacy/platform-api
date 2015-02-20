@@ -10,21 +10,29 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.type;
 
-import com.codenvy.api.project.server.ProjectTypeDescriptionExtension;
-import com.codenvy.api.project.server.ProjectTypeExtension;
-import com.codenvy.api.project.server.ProjectType;
-
-import java.util.ArrayList;
-import java.util.List;
-
 /**
  * @author gazarenkov
  */
-public abstract class SingleProjectTypeExtension implements ProjectTypeExtension, ProjectTypeDescriptionExtension {
-    @Override
-    public final List<ProjectType> getProjectTypes() {
-        final List<ProjectType> list = new ArrayList<>(1);
-        list.add(this.getProjectType());
-        return list;
+
+public final class Constant extends Attribute {
+
+
+    private final AttributeValue value;
+
+    public Constant(String projectType, String name, String description, AttributeValue value) {
+        super(projectType, name, description, true, false);
+        this.value = value;
     }
+
+    public Constant(String projectType, String name, String description, final String str) {
+
+        super(projectType, name, description, true, false);
+        this.value = new AttributeValue(str);
+    }
+
+
+    public AttributeValue getValue() {
+        return value;
+    }
+
 }

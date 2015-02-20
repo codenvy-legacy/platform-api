@@ -10,6 +10,7 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
+import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.dto.BuilderConfiguration;
 import com.codenvy.api.project.shared.dto.BuildersDescriptor;
 import com.codenvy.commons.lang.NameGenerator;

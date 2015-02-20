@@ -10,14 +10,21 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-/**
- * Factory for {@link ValueProvider}.
- *
- * @author andrew00x
- */
-public interface ValueProviderFactory {
+import com.codenvy.api.project.server.type.BaseProjectType;
+import com.codenvy.api.project.server.type.ProjectType;
+import com.google.inject.AbstractModule;
+import com.google.inject.multibindings.Multibinder;
 
-    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project.
-     * @param projectFolder*/
-    ValueProvider newInstance(FolderEntry projectFolder);
+/**
+ * @author gazarenkov
+ */
+public class ProjectApiModule extends AbstractModule {
+
+    @Override
+    protected void configure() {
+
+        Multibinder<ProjectType> projectTypesMultibinder = Multibinder.newSetBinder(binder(), ProjectType.class);
+        projectTypesMultibinder.addBinding().to(BaseProjectType.class);
+
+    }
 }

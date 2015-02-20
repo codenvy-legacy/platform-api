@@ -12,11 +12,18 @@ package com.codenvy.api.project.server;
 
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
+import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.notification.EventService;
 import com.codenvy.api.core.notification.EventSubscriber;
+import com.codenvy.api.project.server.handlers.CreateModuleHandler;
+import com.codenvy.api.project.server.handlers.CreateProjectHandler;
+import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
+import com.codenvy.api.project.server.type.*;
+import com.codenvy.api.project.shared.dto.GeneratorDescription;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
+
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
@@ -31,12 +38,7 @@ import javax.inject.Singleton;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Properties;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -54,25 +56,28 @@ public final class DefaultProjectManager implements ProjectManager {
     private final Lock[]                                     miscLocks;
     private final Cache<Pair<String, String>, ProjectMisc>[] miscCaches;
 
-    private final ProjectTypeDescriptionRegistry    typeDescriptionRegistry;
-    private final Map<String, ValueProviderFactory> valueProviderFactories;
     private final VirtualFileSystemRegistry         fileSystemRegistry;
     private final EventService                      eventService;
     private final EventSubscriber<VirtualFileEvent> vfsSubscriber;
+    private final ProjectTypeRegistry projectTypeRegistry;
+    private final ProjectHandlerRegistry handlers;
+
+
 
     @Inject
     @SuppressWarnings("unchecked")
-    public DefaultProjectManager(ProjectTypeDescriptionRegistry typeDescriptionRegistry,
-                                 Set<ValueProviderFactory> valueProviderFactories,
-                                 VirtualFileSystemRegistry fileSystemRegistry,
-                                 EventService eventService) {
-        this.typeDescriptionRegistry = typeDescriptionRegistry;
+    public DefaultProjectManager(VirtualFileSystemRegistry fileSystemRegistry,
+                                 EventService eventService,
+                                 ProjectTypeRegistry projectTypeRegistry,
+                                 ProjectHandlerRegistry handlers) {
+
         this.fileSystemRegistry = fileSystemRegistry;
-        this.valueProviderFactories = new HashMap<>();
         this.eventService = eventService;
-        for (ValueProviderFactory valueProviderFactory : valueProviderFactories) {
-            this.valueProviderFactories.put(valueProviderFactory.getName(), valueProviderFactory);
-        }
+        this.projectTypeRegistry = projectTypeRegistry;
+        //this.handler = handler;
+        this.handlers = handlers;
+
+
         this.miscCaches = new Cache[CACHE_NUM];
         this.miscLocks = new Lock[CACHE_NUM];
         for (int i = 0; i < CACHE_NUM; i++) {
@@ -130,7 +135,15 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
 
-    @Override
+    /**
+     * Gets the list of projects in {@code workspace}.
+     *
+     * @param workspace
+     *         id of workspace
+     * @return the list of projects in specified workspace.
+     * @throws ServerException
+     *         if an error occurs
+     */
     public List<Project> getProjects(String workspace) throws ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final List<Project> projects = new ArrayList<>();
@@ -142,7 +155,19 @@ public final class DefaultProjectManager implements ProjectManager {
         return projects;
     }
 
-    @Override
+    /**
+     * Gets single project by id of workspace and project's path in this workspace.
+     *
+     * @param workspace
+     *         id of workspace
+     * @param projectPath
+     *         project's path
+     * @return requested project or {@code null} if project was not found
+     * @throws ForbiddenException
+     *         if user which perform operation doesn't have access to the requested project
+     * @throws ServerException
+     *         if other error occurs
+     */
     public Project getProject(String workspace, String projectPath) throws ForbiddenException, ServerException {
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final VirtualFileEntry child = myRoot.getChild(projectPath.startsWith("/") ? projectPath.substring(1) : projectPath);
@@ -152,23 +177,201 @@ public final class DefaultProjectManager implements ProjectManager {
         return null;
     }
 
-    @Override
-    public Project createProject(String workspace, String name, ProjectDescription projectDescription)
-            throws ConflictException, ForbiddenException, ServerException {
+
+    /**
+     *
+     * Creates new project.
+     *
+     * @param workspace
+     *         id of workspace
+     * @param name
+     *         project's name
+     * @param projectConfig
+     *         project description
+     * @return newly created project
+     * @throws ConflictException
+     *         if operation causes conflict, e.g. name conflict if project with specified name already exists
+     * @throws ForbiddenException
+     *         if user which perform operation doesn't have required permissions
+     * @throws ServerException
+     *         if other error occurs
+     */
+    public Project createProject(String workspace, String name, ProjectConfig projectConfig, Map<String, String> options,
+                                 String visibility)
+            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException {
+
+
         final FolderEntry myRoot = getProjectsRoot(workspace);
         final FolderEntry projectFolder = myRoot.createFolder(name);
         final Project project = new Project(projectFolder, this);
-        project.updateDescription(projectDescription);
-        getProjectMisc(project).setCreationDate(System.currentTimeMillis());
+
+        final CreateProjectHandler generator = handlers.getCreateProjectHandler(projectConfig.getTypeId());
+
+        if (generator != null) {
+            generator.onCreateProject(project.getBaseFolder(),
+                    projectConfig.getAttributes(), options);
+        }
+
+        project.updateConfig(projectConfig);
+
+        final ProjectMisc misc = project.getMisc();
+        misc.setCreationDate(System.currentTimeMillis());
+        misc.save(); // Important to save misc!!
+
+        if (visibility != null) {
+            project.setVisibility(visibility);
+        }
+
         return project;
     }
 
-    @Override
+    /**
+     * Adds module to parent project. If module does not exist creates it before.
+     * @param workspace
+     * @param projectPath - parent project path
+     * @param modulePath - path for the module to add
+     * @param moduleConfig - module configuration (optional, needed only if module does not exist)
+     * @param options - options for module creation (optional, same as moduleConfig)
+     * @param visibility - visibility for the module (optional, same as moduleConfig)
+     * @return
+     * @throws ConflictException
+     * @throws ForbiddenException
+     * @throws ServerException
+     * @throws NotFoundException
+     */
+    public Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
+            String> options, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException {
+
+        Project parentProject = getProject(workspace, projectPath);
+        if(parentProject == null)
+            throw new NotFoundException("Parent Project not found "+projectPath);
+
+        if (!projectPath.startsWith("/")) {
+            projectPath = "/" + projectPath;
+        }
+        String absModulePath = modulePath.startsWith("/")?modulePath:projectPath+"/"+modulePath;
+
+        VirtualFileEntry moduleFolder = getProjectsRoot(workspace).getChild(absModulePath);
+        if(moduleFolder != null && moduleFolder.isFile())
+            throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
+
+        Project module;
+        // there are no source folder for module
+        // create folder and make it project and update config
+        if(moduleFolder == null) {
+            if(moduleConfig == null)
+                throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
+            String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
+            String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
+            final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
+            if(parentFolder == null || parentFolder.isFile())
+                throw new NotFoundException("Parent Folder not found "+parentPath);
+
+            // create folder for module
+            moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
+
+            module = new Project((FolderEntry)moduleFolder, this);
+
+            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+            if (generator != null) {
+                generator.onCreateProject(module.getBaseFolder(), moduleConfig.getAttributes(), options);
+            }
+
+            module.updateConfig(moduleConfig);
+
+            final ProjectMisc misc = module.getMisc();
+            misc.setCreationDate(System.currentTimeMillis());
+            misc.save(); // Important to save misc!!
+
+            if (visibility != null) {
+                module.setVisibility(visibility);
+            }
+        } else if(!((FolderEntry)moduleFolder).isProjectFolder()) {
+        //  folder exists but is not a project, just update config
+            if(moduleConfig == null)
+                throw new ConflictException("Folder at "+absModulePath+" is not a project and module configuration is not defined");
+            module = new Project((FolderEntry)moduleFolder, this);
+            module.updateConfig(moduleConfig);
+        } else {
+        // project module exists
+            module = getProject(workspace, absModulePath);
+        }
+
+        // finally adds the module to parent
+        parentProject.getModules().add(modulePath);
+
+        CreateModuleHandler moduleHandler = this.getHandlers().getCreateModuleHandler(parentProject.getConfig().getTypeId());
+        if (moduleHandler != null) {
+            moduleHandler.onCreateModule(parentProject.getBaseFolder(), absModulePath, module.getConfig(), options);
+        }
+        return module;
+
+
+//        if(module == null) {
+//
+//            if(moduleConfig == null)
+//                throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
+//
+//            String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
+//            String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
+//            final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
+//            if(parentFolder == null || parentFolder.isFile())
+//                throw new NotFoundException("Parent Folder not found "+parentPath);
+//
+//            VirtualFileEntry moduleFolder = ((FolderEntry)parentFolder).getChild(name);
+//            if(moduleFolder == null)
+//                moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
+//            else if(moduleFolder.isFile())
+//                throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
+//
+//            module = new Project((FolderEntry)moduleFolder, this);
+//
+//
+//            module.updateConfig(moduleConfig);
+//
+//            final ProjectMisc misc = module.getMisc();
+//            misc.setCreationDate(System.currentTimeMillis());
+//            misc.save(); // Important to save misc!!
+//
+//            if (visibility != null) {
+//                module.setVisibility(visibility);
+//            }
+//
+//            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
+//            if (generator != null) {
+//                generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
+//            }
+//
+//        }
+
+
+
+    }
+
+    /**
+     * Gets root folder od project tree.
+     *
+     * @param workspace
+     *         id of workspace
+     * @return root folder
+     * @throws ServerException
+     *         if an error occurs
+     */
     public FolderEntry getProjectsRoot(String workspace) throws ServerException {
         return new FolderEntry(workspace, fileSystemRegistry.getProvider(workspace).getMountPoint(true).getRoot());
     }
 
-    @Override
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @return ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     public ProjectMisc getProjectMisc(Project project) throws ServerException {
         final String workspace = project.getWorkspace();
         final String path = project.getPath();
@@ -208,7 +411,17 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-    @Override
+    /**
+     * Gets ProjectMisc.
+     *
+     * @param project
+     *         project
+     * @param misc
+     *         ProjectMisc
+     * @throws ServerException
+     *         if an error occurs
+     * @see ProjectMisc
+     */
     public void saveProjectMisc(Project project, ProjectMisc misc) throws ServerException {
         if (misc.isUpdated()) {
             final String workspace = project.getWorkspace();
@@ -261,20 +474,7 @@ public final class DefaultProjectManager implements ProjectManager {
         }
     }
 
-    @Override
-    public ProjectTypeDescriptionRegistry getTypeDescriptionRegistry() {
-        return typeDescriptionRegistry;
-    }
 
-    @Override
-    public Map<String, ValueProviderFactory> getValueProviderFactories() {
-        return valueProviderFactories;
-    }
-
-    @Override
-    public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
-        return fileSystemRegistry;
-    }
 
     @PostConstruct
     void start() {
@@ -292,5 +492,56 @@ public final class DefaultProjectManager implements ProjectManager {
                 miscLocks[i].unlock();
             }
         }
+    }
+
+
+    public VirtualFileSystemRegistry getVirtualFileSystemRegistry() {
+        return fileSystemRegistry;
+    }
+
+    public ProjectTypeRegistry getProjectTypeRegistry() {
+        return this.projectTypeRegistry;
+    }
+
+    public ProjectHandlerRegistry getHandlers() {
+        return handlers;
+    }
+
+    public Map<String, AttributeValue> estimateProject(String workspace, String path, String projectTypeId)
+            throws ServerException, ForbiddenException, NotFoundException, ValueStorageException,
+            ProjectTypeConstraintException {
+
+
+        ProjectType projectType = projectTypeRegistry.getProjectType(projectTypeId);
+        if(projectType == null)
+            throw new NotFoundException("Project Type "+projectTypeId+" not found.");
+
+        final VirtualFileEntry baseFolder = getProjectsRoot(workspace).getChild(path.startsWith("/") ? path.substring(1) : path);
+        if (!baseFolder.isFolder()) {
+            throw new NotFoundException("Not a folder: "+path);
+        }
+
+        Map<String, AttributeValue> attributes = new HashMap<>();
+
+        for (Attribute attr : projectType.getAttributes()) {
+
+            if (attr.isVariable() && ((Variable) attr).getValueProviderFactory() != null) {
+
+                Variable var = (Variable) attr;
+
+                try {
+                    attributes.put(attr.getName(), var.getValue((FolderEntry) baseFolder));
+                } catch (ValueStorageException e) {
+                    if(var.isRequired())
+                        throw e;
+                    else
+                        attributes.put(attr.getName(), null);
+                }
+            }
+
+        }
+
+        return attributes;
+
     }
 }

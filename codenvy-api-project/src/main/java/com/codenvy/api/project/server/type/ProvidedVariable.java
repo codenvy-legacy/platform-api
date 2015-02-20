@@ -8,16 +8,20 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package com.codenvy.api.project.server;
+package com.codenvy.api.project.server.type;
+
+import com.codenvy.api.project.server.ValueProviderFactory;
 
 /**
- * Factory for {@link ValueProvider}.
- *
- * @author andrew00x
+ * @author gazarenkov
  */
-public interface ValueProviderFactory {
+public class ProvidedVariable extends Variable {
 
-    /** Create new instance of ValueProvider2. Project is used for access to low-level information about project.
-     * @param projectFolder*/
-    ValueProvider newInstance(FolderEntry projectFolder);
+    protected ValueProviderFactory valueProviderFactory = null;
+
+    public ProvidedVariable(String projectType, String name, String description, boolean required,
+                    ValueProviderFactory valueProviderFactory) {
+        super(projectType, name, description, required);
+        this.valueProviderFactory = valueProviderFactory;
+    }
 }

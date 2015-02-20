@@ -1554,8 +1554,8 @@ public class AccountServiceTest {
         when(subscriptionService.getAccountResources((Subscription)anyObject()))
                 .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
         when(serviceRegistry.getAll()).thenReturn(new HashSet<>(Arrays.asList(subscriptionService)));
-        when(accountDao.getActiveSubscriptions(anyString()))
-                .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
+        when(accountDao.getActiveSubscription(anyString(), anyString()))
+                .thenReturn(new Subscription().withId("subscriptionId"));
 
         ContainerResponse response = makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/resources", null, null);
 
@@ -1566,7 +1566,7 @@ public class AccountServiceTest {
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
-        verify(accountDao).getActiveSubscriptions(anyString());
+        verify(accountDao).getActiveSubscription(anyString(), anyString());
         verify(subscriptionService).getAccountResources((Subscription)anyObject());
     }
 
@@ -1577,8 +1577,8 @@ public class AccountServiceTest {
 
         when(serviceRegistry.get(anyString())).thenReturn(subscriptionService);
 
-        when(accountDao.getActiveSubscriptions(anyString()))
-                .thenReturn(Arrays.asList(new Subscription().withId("subscriptionId")));
+        when(accountDao.getActiveSubscription(anyString(), anyString()))
+                .thenReturn(new Subscription().withId("subscriptionId"));
 
         ContainerResponse response =
                 makeRequest(HttpMethod.GET, SERVICE_PATH + "/" + account.getId() + "/resources?serviceId=Saas", null, null);
@@ -1590,7 +1590,7 @@ public class AccountServiceTest {
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
-        verify(accountDao).getActiveSubscriptions(anyString());
+        verify(accountDao).getActiveSubscription(anyString(), anyString());
         verify(subscriptionService).getAccountResources((Subscription)anyObject());
     }
 

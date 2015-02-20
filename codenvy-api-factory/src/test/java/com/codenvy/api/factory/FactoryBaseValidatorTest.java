@@ -108,7 +108,7 @@ public class FactoryBaseValidatorTest {
                 .withServiceId("Factory")
                 .withProperties(Collections.singletonMap("Package", "Tracked"));
         member = new Member().withUserId("userid").withRoles(Arrays.asList("account/owner"));
-        when(accountDao.getActiveSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
+        when(accountDao.getActiveSubscription(ID, "Factory")).thenReturn(subscription);
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(member));
         when(userDao.getById("userid")).thenReturn(user);
         when(profileDao.getById(anyString())).thenReturn(new Profile());

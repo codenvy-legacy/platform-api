@@ -615,7 +615,10 @@ public class AccountService extends Service {
         if (serviceId == null || serviceId.isEmpty()) {
             subscriptions.addAll(accountDao.getActiveSubscriptions(accountId));
         } else {
-            subscriptions.add(accountDao.getActiveSubscription(accountId, serviceId));
+            final Subscription activeSubscription = accountDao.getActiveSubscription(accountId, serviceId);
+            if (activeSubscription != null) {
+                subscriptions.add(activeSubscription);
+            }
         }
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
@@ -891,7 +894,7 @@ public class AccountService extends Service {
 
         accountDao.addSubscription(subscription);
 
-        //TODO This is awfully
+        //TODO Rework it
         try {
             service.afterCreateSubscription(subscription);
         } catch (Exception e) {

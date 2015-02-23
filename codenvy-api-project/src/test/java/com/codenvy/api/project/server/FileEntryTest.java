@@ -174,4 +174,12 @@ public class FileEntryTest {
         Assert.assertFalse(myVfFile.exists());
         Assert.assertNull(myVfProject.getChild(name));
     }
+
+//    @Test
+//    public void testGetItem() throws Exception {
+//        String name = myFile.getName();
+//        myFile.getAttributes();
+//        Assert.assertFalse(myVfFile.exists());
+//        Assert.assertNull(myVfProject.getChild(name));
+//    }
 }

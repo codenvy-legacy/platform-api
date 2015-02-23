@@ -26,7 +26,7 @@ public interface ValueProvider {
     /**
      * Sets value.
      * The method should also takes care about creating persistent storage for values if needed.
-     * For instance create file for properties if not found etc.
+     * For instance create file for attributes if not found etc.
      *
      **/
     void setValues(String attributeName, List<String> value) throws ValueStorageException, InvalidValueException;

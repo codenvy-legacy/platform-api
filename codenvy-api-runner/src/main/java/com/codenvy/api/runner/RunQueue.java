@@ -556,7 +556,7 @@ public class RunQueue {
         final List<String> recipesUrls = new LinkedList<>();
         for (ItemReference recipe : getProjectRunnerRecipes(projectDescriptor, envName)) {
             // interesting only about files!!
-            if ("file".equals(recipe.getType())) {
+            if ("file".equals(recipe.getItemType())) {
                 // TODO: Need improve that but it's OK for now since we have just docker for user's defined environments.
                 if (recipe.getName().equals("Dockerfile")) {
                     request.setRunner("docker");

@@ -754,7 +754,7 @@ public class ProjectServiceTest {
                                                       null);
         Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
         ItemReference fileItem = (ItemReference)response.getEntity();
-        Assert.assertEquals(fileItem.getType(), "file");
+        Assert.assertEquals(fileItem.getItemType(), "file");
         Assert.assertEquals(fileItem.getMediaType(), "text/plain");
         Assert.assertEquals(fileItem.getName(), "test.txt");
         Assert.assertEquals(fileItem.getPath(), "/my_project/test.txt");
@@ -909,7 +909,7 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
         ItemReference fileItem = (ItemReference)response.getEntity();
-        Assert.assertEquals(fileItem.getType(), "folder");
+        Assert.assertEquals(fileItem.getItemType(), "folder");
         Assert.assertEquals(fileItem.getMediaType(), "text/directory");
         Assert.assertEquals(fileItem.getName(), "test");
         Assert.assertEquals(fileItem.getPath(), "/my_project/test");
@@ -1843,7 +1843,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
 
         ItemReference result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getType(), "folder");
+        Assert.assertEquals(result.getItemType(), "folder");
         Assert.assertEquals(result.getName(), "b");
 
         response = launcher.service("GET",
@@ -1852,7 +1852,7 @@ public class ProjectServiceTest {
                 "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getType(), "file");
+        Assert.assertEquals(result.getItemType(), "file");
         Assert.assertEquals(result.getMediaType(), "text/plain");
 
     }
@@ -1867,14 +1867,14 @@ public class ProjectServiceTest {
         final Project myProject = pm.getProject(workspace, "my_project");
 
 
-        final Map <String, String> attrs = new HashMap<>();
-        attrs.put("my", "myValue");
+//        final Map <String, String> attrs = new HashMap<>();
+//        attrs.put("my", "myValue");
 
         GetItemHandler myHandler = new GetItemHandler() {
             @Override
             public void onGetItem(VirtualFileEntry virtualFile) {
 
-                virtualFile.setAttributes(attrs);
+                virtualFile.getAttributes().put("my", "myValue");
                 if(virtualFile.isFile())
                     virtualFile.getAttributes().put("file", "a");
             }
@@ -1896,8 +1896,10 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
 
         ItemReference result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getType(), "folder");
+        Assert.assertEquals(result.getItemType(), "folder");
         Assert.assertEquals(result.getName(), "b");
+        Assert.assertNotNull(result.getCreated());
+        Assert.assertNotNull(result.getModified());
         Assert.assertEquals(result.getAttributes().size(), 1);
 
         response = launcher.service("GET",
@@ -1906,9 +1908,14 @@ public class ProjectServiceTest {
                 "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getType(), "file");
+        Assert.assertEquals(result.getItemType(), "file");
         Assert.assertEquals(result.getMediaType(), "text/plain");
+        Assert.assertNotNull(result.getContentLength());
         Assert.assertEquals(result.getAttributes().size(), 2);
+
+//        System.out.println(">>>>> "+result);
+//
+//        System.out.println(">>>>> "+new Date(new Long(result.getAttributes().get("created"))));
 
     }
 
@@ -2107,6 +2114,26 @@ public class ProjectServiceTest {
                                                               "http://localhost:8080/api/project/%s/search/my_project?text=test&name=test&mediatype=text/plain",
                                                               workspace),
                                                       "http://localhost:8080/api", null, null, null);
+        Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        List<ItemReference> result = (List<ItemReference>)response.getEntity();
+        Assert.assertEquals(result.size(), 1);
+        Assert.assertTrue(result.get(0).getPath().equals("/my_project/c/test"));
+    }
+
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testSearchFromWSRoot() throws Exception {
+        Project myProject = pm.getProject(workspace, "my_project");
+        myProject.getBaseFolder().createFolder("a/b").createFile("test.txt", "test".getBytes(), "text/plain");
+        myProject.getBaseFolder().createFolder("x/y").createFile("test.txt", "test".getBytes(), "text/*");
+        myProject.getBaseFolder().createFolder("c").createFile("test", "test".getBytes(), "text/plain");
+
+        ContainerResponse response = launcher.service("GET",
+                String.format(
+                        "http://localhost:8080/api/project/%s/search/?text=test&name=test&mediatype=text/plain",
+                        workspace),
+                "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         List<ItemReference> result = (List<ItemReference>)response.getEntity();
         Assert.assertEquals(result.size(), 1);

@@ -230,9 +230,12 @@ public class DtoConverter {
         return DtoFactory.getInstance().createDto(ItemReference.class)
                          .withName(file.getName())
                          .withPath(file.getPath())
-                         .withType("file")
+                         .withItemType("file")
                          .withMediaType(file.getMediaType())
                          .withAttributes(file.getAttributes())
+                         .withCreated(file.getCreated())
+                         .withModified(file.getModified())
+                         .withContentLength(file.getVirtualFile().getLength())
                          .withLinks(generateFileLinks(file, uriBuilder));
     }
 
@@ -240,9 +243,11 @@ public class DtoConverter {
         return DtoFactory.getInstance().createDto(ItemReference.class)
                          .withName(folder.getName())
                          .withPath(folder.getPath())
-                         .withType(folder.isProjectFolder() ? "project" : "folder")
+                         .withItemType(folder.isProjectFolder() ? "project" : "folder")
                          .withMediaType("text/directory")
                          .withAttributes(folder.getAttributes())
+                         .withCreated(folder.getCreated())
+                         .withModified(folder.getModified())
                          .withLinks(generateFolderLinks(folder, uriBuilder));
     }
 
@@ -469,13 +474,6 @@ public class DtoConverter {
             final ProjectConfig projectConfig = project.getConfig();
             dto.withDescription(projectConfig.getDescription()).withType(projectConfig.getTypeId());
 
-
-            //final ProjectType projectType = projectConfig.getTypeId();
-
-//            final ProjectDescription projectDescription = project.getDescription();
-//            dto.withDescription(projectDescription.getDescription());
-//            final ProjectType projectType = projectDescription.getProjectType();
-//            dto.withType(projectType.getId()).withTypeName(projectType.getName());
         } catch (ServerException | ValueStorageException | ProjectTypeConstraintException e) {
             dto.withType("blank").withTypeName("blank");
             dto.getProblems().add(createProjectProblem(dtoFactory, e));

@@ -1635,6 +1635,7 @@ public class AccountServiceTest {
         rels.add(Constants.LINK_REL_GET_ACCOUNTS);
         rels.add(Constants.LINK_REL_GET_SUBSCRIPTIONS);
         rels.add(Constants.LINK_REL_GET_ACCOUNT_BY_ID);
+        rels.add(Constants.LINK_REL_GET_ACCOUNT_RESOURCES);
         switch (role) {
             case "system/admin":
                 rels.add(Constants.LINK_REL_REMOVE_ACCOUNT);

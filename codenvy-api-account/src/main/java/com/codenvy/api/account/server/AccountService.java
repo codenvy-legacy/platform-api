@@ -1127,6 +1127,14 @@ public class AccountService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          Constants.LINK_REL_GET_ACCOUNT_BY_ID));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getResources")
+                                                   .build(account.getId())
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_ACCOUNT_RESOURCES));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
             links.add(LinksHelper.createLink(HttpMethod.GET,
                                              uriBuilder.clone()

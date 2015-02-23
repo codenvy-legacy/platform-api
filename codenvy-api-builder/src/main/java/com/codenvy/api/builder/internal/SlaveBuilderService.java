@@ -286,7 +286,7 @@ public final class SlaveBuilderService extends Service {
                 final String upHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "listDirectory")
                                                        .replaceQueryParam("path", workDirPath.relativize(parentPath))
                                                        .build(task.getBuilder(), task.getId()).toString();
-                final ItemReference up = dtoFactory.createDto(ItemReference.class).withName("..").withPath("..").withItemType("folder");
+                final ItemReference up = dtoFactory.createDto(ItemReference.class).withName("..").withPath("..").withType("folder");
                 up.getLinks().add(dtoFactory.createDto(Link.class).withRel("children").withHref(upHref).withMethod("GET")
                                             .withProduces(MediaType.APPLICATION_JSON));
                 result.add(up);
@@ -306,7 +306,7 @@ public final class SlaveBuilderService extends Service {
                                                                      .build(task.getBuilder(), task.getId()).toString();
                         final ItemReference fileItem =
                                 dtoFactory.createDto(ItemReference.class).withName(name).withPath("/" + filePath.toString())
-                                          .withItemType("file");
+                                          .withType("file");
                         final List<Link> links = fileItem.getLinks();
                         final String contentType = ContentTypeGuesser.guessContentType(file);
                         links.add(dtoFactory.createDto(Link.class).withRel("view").withHref(openHref).withMethod("GET")
@@ -329,7 +329,7 @@ public final class SlaveBuilderService extends Service {
                         }
                         final ItemReference folderItem =
                                 dtoFactory.createDto(ItemReference.class).withName(name).withPath("/" + filePath.toString())
-                                          .withItemType("folder");
+                                          .withType("folder");
 
                         if (children == null || children.length != 0) {
                             final String childrenHref = serviceUriBuilder.clone().path(SlaveBuilderService.class, "listDirectory")

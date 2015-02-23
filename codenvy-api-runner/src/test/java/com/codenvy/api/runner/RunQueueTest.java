@@ -376,7 +376,7 @@ public class RunQueueTest {
         doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
         doNothing().when(runQueue).checkResources(eq(workspace), any(RunRequest.class));
 
-        ItemReference recipe = dto(ItemReference.class).withName("Dockerfile").withItemType("file");
+        ItemReference recipe = dto(ItemReference.class).withName("Dockerfile").withType("file");
         String recipeUrl = String.format("http://localhost:8080/api/project/%s/.codenvy/runners/environments/%s", wsId,
                                          envName);
         recipe.getLinks().add(dto(Link.class).withRel(com.codenvy.api.project.server.Constants.LINK_REL_GET_CONTENT).withHref(recipeUrl));

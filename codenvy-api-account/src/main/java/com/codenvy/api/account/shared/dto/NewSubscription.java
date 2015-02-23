@@ -52,11 +52,4 @@ public interface NewSubscription {
     void setUsePaymentSystem(Boolean usePaymentSystem);
 
     NewSubscription withUsePaymentSystem(Boolean usePaymentSystem);
-
-    @ApiModelProperty(value = "Token for payment system")
-    String getPaymentToken();
-
-    void setPaymentToken(String paymentToken);
-
-    NewSubscription withPaymentToken(String paymentToken);
 }

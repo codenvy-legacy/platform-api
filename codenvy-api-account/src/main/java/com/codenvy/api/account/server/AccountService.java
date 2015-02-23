@@ -821,12 +821,13 @@ public class AccountService extends Service {
             throw new ForbiddenException("User not authorized to add this subscription, please contact support");
         }
 
+        //TODO Add Checking of credit card
+
         //create new subscription
         Subscription subscription = new Subscription()
                 .withId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH))
                 .withAccountId(newSubscription.getAccountId())
                 .withUsePaymentSystem(newSubscription.getUsePaymentSystem())
-                .withPaymentToken(newSubscription.getPaymentToken())
                 .withServiceId(plan.getServiceId())
                 .withPlanId(plan.getId())
                 .withProperties(plan.getProperties())

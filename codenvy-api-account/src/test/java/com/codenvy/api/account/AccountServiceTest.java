@@ -207,8 +207,7 @@ public class AccountServiceTest {
                                     .withAccountId(ACCOUNT_ID)
                                     .withPlanId(PLAN_ID)
                                     .withTrialDuration(7)
-                                    .withUsePaymentSystem(true)
-                                    .withPaymentToken("token");
+                                    .withUsePaymentSystem(true);
 
         when(environmentContext.get(SecurityContext.class)).thenReturn(securityContext);
         when(securityContext.getUserPrincipal()).thenReturn(new SimplePrincipal(USER_EMAIL));
@@ -1709,7 +1708,6 @@ public class AccountServiceTest {
                 .withState(SubscriptionState.ACTIVE)
                 .withDescription("description")
                 .withUsePaymentSystem(true)
-                .withPaymentToken("token")
                 .withStartDate(new Date())
                 .withEndDate(new Date())
                 .withTrialStartDate(new Date())

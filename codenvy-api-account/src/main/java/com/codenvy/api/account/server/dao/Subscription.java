@@ -44,7 +44,6 @@ public class Subscription {
     private BillingCycleType    billingCycleType;
     private Integer             billingContractTerm;
     private String              description;
-    private String              paymentToken;
 
     public Subscription() {
     }
@@ -68,7 +67,6 @@ public class Subscription {
         this.billingCycleType = other.billingCycleType;
         this.billingContractTerm = other.billingContractTerm;
         this.description = other.description;
-        this.paymentToken = other.paymentToken;
     }
 
     public String getId() {
@@ -308,19 +306,6 @@ public class Subscription {
         return this;
     }
 
-    public String getPaymentToken() {
-        return paymentToken;
-    }
-
-    public void setPaymentToken(String paymentToken) {
-        this.paymentToken = paymentToken;
-    }
-
-    public Subscription withPaymentToken(String paymentToken) {
-        this.paymentToken = paymentToken;
-        return this;
-    }
-
     @Override
     public int hashCode() {
         int hash = 7;
@@ -342,7 +327,6 @@ public class Subscription {
         hash = 31 * hash + Objects.hashCode(billingCycleType);
         hash = 31 * hash + Objects.hashCode(billingContractTerm);
         hash = 31 * hash + Objects.hashCode(description);
-        hash = 31 * hash + Objects.hashCode(paymentToken);
         return hash;
     }
 
@@ -372,7 +356,6 @@ public class Subscription {
                Objects.equals(billingCycle, other.billingCycle) &&
                Objects.equals(billingCycleType, other.billingCycleType) &&
                Objects.equals(billingContractTerm, other.billingContractTerm) &&
-               Objects.equals(description, other.description) &&
-               Objects.equals(paymentToken, other.paymentToken);
+               Objects.equals(description, other.description);
     }
 }

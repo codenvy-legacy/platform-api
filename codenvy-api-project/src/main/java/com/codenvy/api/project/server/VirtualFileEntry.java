@@ -17,6 +17,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.vfs.server.MountPoint;
 import com.codenvy.api.vfs.server.VirtualFile;
 
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -27,11 +28,28 @@ import java.util.Map;
 public abstract class VirtualFileEntry {
     private final String      workspace;
     private       VirtualFile virtualFile;
-    private Map<String, String> attributes;
+    protected Map<String, String> attributes;
 
     public VirtualFileEntry(String workspace, VirtualFile virtualFile) {
         this.workspace = workspace;
         this.virtualFile = virtualFile;
+        this.attributes = new HashMap<>();
+    }
+
+    /**
+     *
+     * @return creation date
+     */
+    public long getCreated() {
+        return virtualFile.getCreationDate();
+    }
+
+    /**
+     *
+     * @return last modification date
+     */
+    public long getModified() {
+        return virtualFile.getLastModificationDate();
     }
 
     /** Gets id of workspace which file belongs to. */
@@ -158,10 +176,6 @@ public abstract class VirtualFileEntry {
 
     public Map<String, String> getAttributes() {
         return attributes;
-    }
-
-    public void setAttributes(Map<String, String> attributes) {
-        this.attributes = attributes;
     }
 
     void setVirtualFile(VirtualFile virtualFile) {

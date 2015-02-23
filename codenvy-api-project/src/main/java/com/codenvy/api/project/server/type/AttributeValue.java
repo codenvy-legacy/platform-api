@@ -55,6 +55,6 @@ public class AttributeValue {
         return false;
     }
 
-    //ValueType getType();
+    //ValueType getItemType();
 
 }

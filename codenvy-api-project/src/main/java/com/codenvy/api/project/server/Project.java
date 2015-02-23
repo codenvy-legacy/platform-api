@@ -160,27 +160,6 @@ public class Project {
 
         ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
 
-        // init Provided attributes if any
-//        if(ProjectJson.isReadable(this)) {
-//            ProjectJson oldJson = ProjectJson.load(this);
-//            ProjectTypes oldTypes = new ProjectTypes(oldJson.getType(), oldJson.getMixinTypes());
-//
-//            for(ProjectType t : types.all) {
-//                if(!oldTypes.all.contains(t)) {
-//                    for(ValueProviderFactory f : t.getProvidedFactories()) {
-//                        f.newInstance(this.baseFolder).setValues();
-//                    }
-//                }
-//            }
-//        } else {
-//            for (ProjectType t : types.all) {
-//                for (ValueProviderFactory f : t.getProvidedFactories()) {
-//                    f.newInstance(this.baseFolder).init();
-//                }
-//
-//            }
-//        }
-
         projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
         projectJson.setRunners(update.getRunners());

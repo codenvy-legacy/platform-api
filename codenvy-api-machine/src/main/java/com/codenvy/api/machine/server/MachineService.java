@@ -93,12 +93,20 @@ public class MachineService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
+    public MachineDescriptor createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
             throws ForbiddenException, NotFoundException, ServerException {
         // todo how to check access rights?
         final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
-        machineManager.create(createMachineRequest.getSnapshotId(), EnvironmentContext.getCurrent().getUser().getId(), lineConsumer);
+        final MachineImpl machine = machineManager.create(createMachineRequest.getSnapshotId(),
+                                                          EnvironmentContext.getCurrent().getUser().getId(),
+                                                          lineConsumer);
+
+        return toDescriptor(machine.getId(),
+                            machine.getType(),
+                            machine.getOwner(),
+                            machine.getWorkspaceId(),
+                            Collections.<ProjectBinding>emptySet()); // TODO restore project binding?
     }
 
     @Path("/{machineId}")
@@ -189,7 +197,7 @@ public class MachineService {
     @Path("/snapshot/{snapshotId}")
     @DELETE
     @RolesAllowed("user")
-    public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException {
+    public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, MachineException {
         final Snapshot snapshot = machineManager.getSnapshot(snapshotId);
         if (!EnvironmentContext.getCurrent().getUser().getId().equals(snapshot.getOwner())) {
             throw new ForbiddenException("Operation is not permitted");
@@ -287,7 +295,7 @@ public class MachineService {
         }
     }
 
-    private LineConsumer getLineConsumer(String outputChannel) {
+    LineConsumer getLineConsumer(String outputChannel) {
         final LineConsumer lineConsumer;
         if (outputChannel != null) {
             lineConsumer = new WebsocketLineConsumer(outputChannel);

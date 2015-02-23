@@ -427,7 +427,16 @@ public class MachineManager {
         return snapshotStorage.findSnapshots(owner, workspaceId, project);
     }
 
-    public void removeSnapshot(String snapshotId) throws NotFoundException {
+    public void removeSnapshot(String snapshotId) throws NotFoundException, MachineException {
+        final Snapshot snapshot = getSnapshot(snapshotId);
+        final String imageType = snapshot.getImageType();
+        final ImageProvider imageProvider = imageProviders.get(imageType);
+        if (imageProvider == null) {
+            throw new MachineException(
+                    String.format("Unable remove image from snapshot '%s', unsupported image type '%s'", snapshotId, imageType));
+        }
+        imageProvider.removeSnapshot(snapshot.getImageKey());
+
         snapshotStorage.removeSnapshot(snapshotId);
     }
 
@@ -441,10 +450,10 @@ public class MachineManager {
      * @param project
      *         project binding
      */
-    public void removeSnapshots(String owner, String workspaceId, ProjectBinding project) {
+    public void removeSnapshots(String owner, String workspaceId, ProjectBinding project) throws MachineException {
         for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, workspaceId, project)) {
             try {
-                snapshotStorage.removeSnapshot(snapshot.getId());
+                removeSnapshot(snapshot.getId());
             } catch (NotFoundException ignored) {
                 // This is not expected since we just get list of snapshots from DAO.
             }
@@ -493,6 +502,7 @@ public class MachineManager {
 
     public void destroy(final String machineId) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
+        machine.setState(MachineState.DESTROYING);
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -512,7 +522,6 @@ public class MachineManager {
     }
 
     private void destroy(MachineImpl machine) throws MachineException {
-        machine.setState(MachineState.DESTROYING);
         final Instance instance = machine.getInstance();
         if (instance != null) {
             instance.destroy();

@@ -72,4 +72,6 @@ public interface ImageProvider {
      *         if other errors occurs while restoring image
      */
     Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws NotFoundException, InvalidImageException, MachineException;
+
+    void removeSnapshot(ImageKey imageKey) throws MachineException;
 }

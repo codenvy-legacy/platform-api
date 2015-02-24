@@ -26,20 +26,7 @@ import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.notification.ProjectItemModifiedEvent;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.shared.EnvironmentId;
-import com.codenvy.api.project.shared.dto.GeneratorDescription;
-import com.codenvy.api.project.shared.dto.ImportProject;
-import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
-import com.codenvy.api.project.shared.dto.ItemReference;
-import com.codenvy.api.project.shared.dto.NewProject;
-import com.codenvy.api.project.shared.dto.ProjectDescriptor;
-import com.codenvy.api.project.shared.dto.ProjectProblem;
-import com.codenvy.api.project.shared.dto.ProjectReference;
-import com.codenvy.api.project.shared.dto.ProjectUpdate;
-import com.codenvy.api.project.shared.dto.RunnerEnvironment;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
-import com.codenvy.api.project.shared.dto.RunnerEnvironmentTree;
-import com.codenvy.api.project.shared.dto.RunnerSource;
-import com.codenvy.api.project.shared.dto.TreeElement;
+import com.codenvy.api.project.shared.dto.*;
 import com.codenvy.api.vfs.server.ContentStream;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemImpl;
@@ -205,18 +192,20 @@ public class ProjectService extends Service {
                                         @ApiParam(value = "Path to requested project", required = true)
                                         @PathParam("path") String path)
             throws NotFoundException, ForbiddenException, ServerException, ConflictException {
-        final Project project = projectManager.getProject(workspace, path);
+        Project project = projectManager.getProject(workspace, path);
         if (project == null) {
             FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
             VirtualFileEntry child = projectsRoot.getChild(path);
             if (child != null && child.isFolder() && child.getParent().isRoot()) {
-                NotValidProject notValidProject = new NotValidProject((FolderEntry)child, projectManager);
-                return DtoConverter.toDescriptorDto2(notValidProject, getServiceContext().getServiceUriBuilder(),
-                        projectManager.getProjectTypeRegistry());
+                project = new NotValidProject((FolderEntry)child, projectManager);
+//                project = notValidProject;
+//                return DtoConverter.toDescriptorDto2(notValidProject, getServiceContext().getServiceUriBuilder(),
+//                        projectManager.getProjectTypeRegistry());
             } else {
                 throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
             }
         }
+
         return DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
                 projectManager.getProjectTypeRegistry());
 
@@ -409,6 +398,23 @@ public class ProjectService extends Service {
         return attributes;
 
     }
+
+
+    @GET
+    @Path("/resolve/{path:.*}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SourceEstimation> resolveSources(@ApiParam(value = "ID of workspace to estimate projects", required = true)
+                                                     @PathParam("ws-id") String workspace,
+                                                     @ApiParam(value = "Path to requested project", required = true)
+                                                     @PathParam("path") String path)
+
+            throws NotFoundException, ForbiddenException, ServerException, ConflictException {
+
+        return projectManager.resolveSources(workspace, path, false);
+
+    }
+
+
 
     @ApiOperation(value = "Create file",
                   notes = "Create a new file in a project. If file type isn't specified the server will resolve its type.",

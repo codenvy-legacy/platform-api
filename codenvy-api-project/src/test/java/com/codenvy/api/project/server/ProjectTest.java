@@ -18,6 +18,7 @@ import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.shared.dto.SourceEstimation;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.VirtualFileSystemUser;
@@ -287,6 +288,83 @@ public class ProjectTest {
         }
     }
 
+
+    @Test
+    public void testResolveSources() throws Exception {
+
+        VirtualFile root = pm.getVirtualFileSystemRegistry().getProvider("my_ws").getMountPoint(false).getRoot();
+        root.createFolder("testEstimateProjectGood").createFolder("check");
+        root.createFolder("testEstimateProjectBad");
+
+        final ValueProviderFactory vpf1 = new ValueProviderFactory() {
+
+            @Override
+            public ValueProvider newInstance(final FolderEntry projectFolder) {
+                return new ValueProvider() {
+
+                    @Override
+                    public List<String> getValues(String attributeName) throws ValueStorageException {
+
+                        VirtualFileEntry file = null;
+                        try {
+                            file = projectFolder.getChild("check");
+                        } catch (ForbiddenException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        } catch (ServerException e) {
+                            throw new ValueStorageException(e.getMessage());
+                        }
+
+                        if(file == null)
+                            throw new ValueStorageException("Check not found");
+                        return Collections.singletonList("checked");
+
+                    }
+
+                    @Override
+                    public void setValues(String attributeName, List<String> value) {
+
+                        //calculateAttributeValueHolder = value;
+                    }
+                };
+            }
+        };
+
+
+        ProjectType pt = new ProjectType("testEstimateProjectPT", "my testEstimateProject type", true, false) {
+
+            {
+                addVariableDefinition("my_calculated_attribute", "attr description", true, vpf1);
+                addVariableDefinition("my_property_1", "attr description", true);
+                addVariableDefinition("my_property_2", "attr description", false);
+                setDefaultBuilder("builder1");
+                setDefaultRunner("system:/runner/runner1");
+            }
+
+        };
+
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+        List<SourceEstimation> estimations = pm.resolveSources("my_ws", "testEstimateProjectGood", false);
+
+
+        Assert.assertEquals(estimations.size(), 2);
+//        Assert.assertEquals(estimations.get(0).getAttributes().get("my_calculated_attribute").get(0), "checked");
+//        Assert.assertEquals(estimations.get(0).getType(), "testEstimateProjectPT");
+
+        estimations = pm.resolveSources("my_ws", "testEstimateProjectBad", false);
+        Assert.assertEquals(estimations.size(), 1);
+
+//        Assert.assertNotNull(attrs.get("calculated_attribute"));
+//        Assert.assertEquals(attrs.get("calculated_attribute").getString(), "checked");
+//
+//
+//        try {
+//            pm.estimateProject("my_ws", "testEstimateProjectBad", "testEstimateProjectPT");
+//            Assert.fail("ValueStorageException should be thrown");
+//        } catch (ValueStorageException e) {
+//
+//        }
+    }
 
     @Test
     public void testPTConstraints() throws Exception {

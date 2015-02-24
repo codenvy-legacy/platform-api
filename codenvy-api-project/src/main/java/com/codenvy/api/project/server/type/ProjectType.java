@@ -31,7 +31,19 @@ public abstract class ProjectType {
     private String defaultRunner  = null;
     private final boolean mixable;
     private final boolean primaryable;
-//    private final Set<ValueProviderFactory> providedFactories;
+    protected final boolean persisted;
+
+    protected ProjectType(String id, String displayName, boolean primaryable, boolean mixable, boolean persisted) {
+        this.id = id;
+        this.displayName = displayName;
+        this.attributes = new HashMap<>();
+        this.parents = new ArrayList<ProjectType>();
+        this.runnerCategories = new ArrayList<String>();
+        this.builderCategories = new ArrayList<String>();
+        this.mixable = mixable;
+        this.primaryable = primaryable;
+        this.persisted = persisted;
+    }
 
     /**
      *
@@ -41,15 +53,9 @@ public abstract class ProjectType {
      * @param mixable - whether the projectType can be used as Mixin
      */
     protected ProjectType(String id, String displayName, boolean primaryable, boolean mixable) {
-        this.id = id;
-        this.displayName = displayName;
-        this.attributes = new HashMap<>();
-        this.parents = new ArrayList<ProjectType>();
-        this.runnerCategories = new ArrayList<String>();
-        this.builderCategories = new ArrayList<String>();
-        this.mixable = mixable;
-        this.primaryable = primaryable;
-//        providedFactories = new HashSet<>();
+
+        this(id, displayName, primaryable, mixable, true);
+
     }
 
 //    /**
@@ -62,6 +68,10 @@ public abstract class ProjectType {
 //        this(id, displayName, true, true);
 //    }
 
+
+    public boolean isPersisted() {
+        return persisted;
+    }
 
     public String getId() {
         return id;

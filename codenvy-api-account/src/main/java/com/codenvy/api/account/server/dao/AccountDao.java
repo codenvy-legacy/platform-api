@@ -15,7 +15,6 @@ import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 
-import java.util.Date;
 import java.util.List;
 
 /**
@@ -121,11 +120,9 @@ public interface AccountDao {
      *         when subscription doesn't exist
      */
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
-    
+
     /**
-     * //TODO
      * Gets list of active existing in persistent layer subscriptions related to given account.
-     * Returns subscriptions with given serviceId only if serviceId is not null.
      *
      * @param accountId
      *         account id
@@ -133,6 +130,15 @@ public interface AccountDao {
      */
     List<Subscription> getActiveSubscriptions(String accountId) throws NotFoundException, ServerException;
 
+    /**
+     * Gets active existing in persistent layer subscription with given service related to given account.
+     *
+     * @param accountId
+     *         account id
+     * @param serviceId
+     *         service id
+     * @return subscription or {@code null} if no subscription found
+     */
     Subscription getActiveSubscription(String accountId, String serviceId) throws ServerException, NotFoundException;
 
     /**
@@ -172,9 +178,9 @@ public interface AccountDao {
     SubscriptionQueryBuilder getSubscriptionQueryBuilder();
 
     /**
-     * Get all SAAS community accounts which are locked after RAM runner resources was exceeded.
+     * Get all accounts which are locked after RAM runner resources was exceeded.
      *
-     * @return all locked SAAS community accounts
+     * @return all locked accounts
      */
-    List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException;
+    List<Account> getLockedAccounts() throws ServerException, ForbiddenException;
 }

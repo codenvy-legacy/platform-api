@@ -404,7 +404,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public List<Account> getLockedCommunityAccounts() throws ServerException, ForbiddenException {
+    public List<Account> getLockedAccounts() throws ServerException, ForbiddenException {
         List<Account> lockedAccounts = new LinkedList<>();
         for (Account account : accounts) {
             if (account.getAttributes().containsKey("codenvy:locked") &&

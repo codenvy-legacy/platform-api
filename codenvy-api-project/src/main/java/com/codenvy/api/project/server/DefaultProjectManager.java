@@ -21,6 +21,7 @@ import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.*;
 import com.codenvy.api.project.shared.dto.GeneratorDescription;
+import com.codenvy.api.project.shared.dto.SourceEstimation;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.codenvy.api.vfs.server.observation.VirtualFileEvent;
 
@@ -28,6 +29,7 @@ import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
 
+import com.codenvy.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -529,19 +531,62 @@ public final class DefaultProjectManager implements ProjectManager {
 
                 Variable var = (Variable) attr;
 
-                try {
-                    attributes.put(attr.getName(), var.getValue((FolderEntry) baseFolder));
-                } catch (ValueStorageException e) {
-                    if(var.isRequired())
-                        throw e;
-                    else
-                        attributes.put(attr.getName(), null);
-                }
+//                try {
+                // throws ValueStorageException
+                attributes.put(attr.getName(), var.getValue((FolderEntry) baseFolder));
+//                } catch (ValueStorageException e) {
+//                    if(var.isRequired())
+//                        throw e;
+//                    else
+//                        attributes.put(attr.getName(), null);
+//                }
             }
 
         }
 
         return attributes;
 
+    }
+
+    // ProjectSuggestion
+    public List<SourceEstimation> resolveSources(String workspace, String path, boolean transientOnly) throws ServerException, ForbiddenException, NotFoundException,
+            ProjectTypeConstraintException {
+        final List<SourceEstimation> estimations = new ArrayList<>();
+
+        for(ProjectType type : projectTypeRegistry.getProjectTypes(ProjectTypeRegistry.CHILD_TO_PARENT_COMPARATOR)) {
+
+            if(transientOnly && type.isPersisted())
+                continue;
+
+            final HashMap<String, List<String>> attributes = new HashMap<>();
+
+
+            try {
+                for(Map.Entry<String, AttributeValue> attr : estimateProject(workspace, path, type.getId()).entrySet()) {
+                    attributes.put(attr.getKey(), attr.getValue().getList());
+                }
+
+                if(!attributes.isEmpty()) {
+                    estimations.add(
+                    DtoFactory.getInstance().createDto(SourceEstimation.class)
+                        .withType(type.getId())
+                        .withAttributes(attributes));
+
+                }
+
+            } catch (ValueStorageException e) {
+                // just not added
+                //e.printStackTrace();
+            }
+
+        }
+        if(estimations.isEmpty()) {
+            estimations.add(
+            DtoFactory.getInstance().createDto(SourceEstimation.class)
+                            .withType(BaseProjectType.ID));
+        }
+
+
+        return estimations;
     }
 }

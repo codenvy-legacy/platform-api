@@ -20,6 +20,7 @@ import com.codenvy.api.project.server.handlers.GetItemHandler;
 import com.codenvy.api.project.server.type.*;
 import com.codenvy.api.project.shared.Builders;
 import com.codenvy.api.project.shared.Runners;
+import com.codenvy.api.project.shared.dto.SourceEstimation;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
@@ -96,10 +97,11 @@ public class Project {
         final ProjectJson projectJson = ProjectJson.load(this);
 
         ProjectTypes types = new ProjectTypes(projectJson.getType(), projectJson.getMixinTypes());
+        types.addTransient();
 
         final Map<String, AttributeValue> attributes = new HashMap<>();
 
-        for(ProjectType t : types.all) {
+        for(ProjectType t : types.all.values()) {
 
             for (Attribute attr : t.getAttributes()) {
 
@@ -159,11 +161,13 @@ public class Project {
         final ProjectJson projectJson = new ProjectJson();
 
         ProjectTypes types = new ProjectTypes(update.getTypeId(), update.getMixinTypes());
+        types.removeTransient();
 
         projectJson.setType(types.primary.getId());
         projectJson.setBuilders(update.getBuilders());
         projectJson.setRunners(update.getRunners());
         projectJson.setDescription(update.getDescription());
+
 
         ArrayList <String> ms = new ArrayList<>();
         ms.addAll(types.mixins.keySet());
@@ -178,7 +182,7 @@ public class Project {
 
             // Try to Find definition in all the types
             Attribute definition = null;
-            for(ProjectType t : types.all) {
+            for(ProjectType t : types.all.values()) {
                 definition = t.getAttribute(attributeName);
                 if(definition != null)
                     break;
@@ -208,7 +212,7 @@ public class Project {
             }
         }
 
-        for(ProjectType t : types.all) {
+        for(ProjectType t : types.all.values()) {
             for(Attribute attr : t.getAttributes()) {
                 if(attr.isVariable()) {
                     // check if required variables initialized
@@ -441,7 +445,7 @@ public class Project {
 
         ProjectType primary;
         Map<String, ProjectType> mixins = new HashMap<>();
-        Set<ProjectType> all = new HashSet<>();
+        Map<String, ProjectType> all = new HashMap<>();
 
         ProjectTypes(String pt, List<String> mss) throws ProjectTypeConstraintException {
             if(pt == null)
@@ -452,7 +456,7 @@ public class Project {
                 throw new ProjectTypeConstraintException("No project type registered for "+pt);
             if(!primary.canBePrimary())
                 throw new ProjectTypeConstraintException("Project type "+primary.getId()+" is not allowable to be primary type");
-            all.add(primary);
+            all.put(primary.getId(), primary);
 
             if(mss == null)
                 mss = new ArrayList<>();
@@ -486,12 +490,46 @@ public class Project {
 
                     // Silently remove repeated items from mixins if any
                     mixins.put(m, mixin);
-                    all.add(mixin);
+                    all.put(m, mixin);
 
                 }
 
             }
 
+        }
+
+        void removeTransient() {
+
+            HashSet<String> toRemove = new HashSet<>();
+            for(ProjectType mt : all.values()) {
+                if(!mt.isPersisted())
+                    toRemove.add(mt.getId());
+            }
+
+            for(String id : toRemove) {
+                all.remove(id);
+                mixins.remove(id);
+            }
+
+        }
+
+        void addTransient() throws ServerException{
+            List<SourceEstimation> estimations;
+            try {
+                estimations = manager.resolveSources(baseFolder.getWorkspace(), baseFolder.getPath(), true);
+            } catch (Exception e) {
+                throw new ServerException(e);
+            }
+            for(SourceEstimation est : estimations) {
+                ProjectType type = manager.getProjectTypeRegistry().getProjectType(est.getType());
+
+                // NOTE: Only mixable types allowed
+                if(type.canBeMixin()) {
+                    all.put(type.getId(), type);
+                    mixins.put(type.getId(), type);
+                }
+
+            }
         }
 
 

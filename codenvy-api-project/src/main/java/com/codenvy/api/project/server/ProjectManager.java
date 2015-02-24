@@ -17,6 +17,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.shared.dto.SourceEstimation;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
 import com.google.inject.ImplementedBy;
 
@@ -144,4 +145,7 @@ public interface ProjectManager {
     Project addModule(String workspace, String projectPath, String modulePath, ProjectConfig moduleConfig, Map<String,
             String> options, String visibility)
             throws ConflictException, ForbiddenException, ServerException, NotFoundException;
+
+    List<SourceEstimation> resolveSources(String workspace, String path, boolean transientOnly) throws ServerException, ForbiddenException,
+            NotFoundException, ValueStorageException, ProjectTypeConstraintException;
 }

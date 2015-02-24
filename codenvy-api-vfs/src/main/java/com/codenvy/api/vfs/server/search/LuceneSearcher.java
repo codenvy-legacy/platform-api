@@ -19,14 +19,15 @@ import com.codenvy.api.vfs.server.VirtualFileFilter;
 import com.codenvy.api.vfs.server.util.MediaTypeFilter;
 
 import org.apache.lucene.analysis.Analyzer;
-import org.apache.lucene.analysis.SimpleAnalyzer;
+import org.apache.lucene.analysis.core.SimpleAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
-import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.queryParser.ParseException;
-import org.apache.lucene.queryParser.QueryParser;
+import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -35,7 +36,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.WildcardQuery;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.util.Version;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -91,8 +91,8 @@ public abstract class LuceneSearcher implements Searcher {
 
     protected final synchronized void doInit() throws ServerException {
         try {
-            luceneIndexWriter = new IndexWriter(makeDirectory(), makeAnalyzer(), IndexWriter.MaxFieldLength.UNLIMITED);
-            luceneIndexSearcher = new IndexSearcher(luceneIndexWriter.getReader());
+            luceneIndexWriter = new IndexWriter(makeDirectory(), new IndexWriterConfig(makeAnalyzer()));
+            luceneIndexSearcher = new IndexSearcher(DirectoryReader.open(luceneIndexWriter, true));
         } catch (IOException e) {
             throw new ServerException(e);
         }
@@ -130,14 +130,14 @@ public abstract class LuceneSearcher implements Searcher {
      * @throws java.io.IOException
      *         if an i/o error occurs
      */
-    public synchronized IndexSearcher getLuceneSearcher() throws IOException {
+    public synchronized IndexSearcher getLuceneSearcher() throws IOException, ServerException {
         maybeReopenIndexReader();
         luceneIndexSearcher.getIndexReader().incRef();
         return luceneIndexSearcher;
     }
 
     // MUST CALL UNDER LOCK
-    private void maybeReopenIndexReader() throws IOException {
+    private void maybeReopenIndexReader() throws IOException, ServerException {
         while (reopening) {
             try {
                 wait();
@@ -149,8 +149,9 @@ public abstract class LuceneSearcher implements Searcher {
 
         reopening = true;
         try {
-            IndexReader reader = luceneIndexSearcher.getIndexReader();
-            IndexReader newReader = luceneIndexSearcher.getIndexReader().reopen();
+            luceneIndexWriter = new IndexWriter(makeDirectory(), new IndexWriterConfig(makeAnalyzer()));
+            DirectoryReader reader = DirectoryReader.open(luceneIndexWriter, true);
+            DirectoryReader newReader = DirectoryReader.openIfChanged(reader);
             if (newReader != reader) {
                 luceneIndexSearcher = new IndexSearcher(newReader);
             }
@@ -190,7 +191,7 @@ public abstract class LuceneSearcher implements Searcher {
             luceneQuery.add(new TermQuery(new Term("mediatype", mediaType)), BooleanClause.Occur.MUST);
         }
         if (text != null) {
-            QueryParser qParser = new QueryParser(Version.LUCENE_29, "text", makeAnalyzer());
+            QueryParser qParser = new QueryParser("text", makeAnalyzer());
             try {
                 luceneQuery.add(qParser.parse(text), BooleanClause.Occur.MUST);
             } catch (ParseException e) {

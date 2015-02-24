@@ -81,7 +81,7 @@ public class MachineManager {
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
                           @Named("machine.logs_dir") File machineLogsDir,
-                          String apiEndPoint) {
+                          @Named("api.endpoint") String apiEndPoint) {
         this.snapshotStorage = snapshotStorage;
         this.machineLogsDir = machineLogsDir;
         this.imageProviders = new HashMap<>();
@@ -225,7 +225,7 @@ public class MachineManager {
      *         if any other exception occurs during starting
      */
     public MachineImpl create(final String snapshotId, final String owner, final LineConsumer machineLogsOutput)
-            throws NotFoundException, MachineException, InvalidImageException {
+            throws NotFoundException, ServerException {
         final Snapshot snapshot = snapshotStorage.getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
         final ImageProvider imageProvider = imageProviders.get(imageType);
@@ -305,13 +305,18 @@ public class MachineManager {
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
-        final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-        try {
-            Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
-        } catch (IOException e) {
-            throw new MachineException(e.getLocalizedMessage(), e);
+        for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+            if (projectBinding.getPath().equals(project.getPath())) {
+                final File projectsFolder = machine.getInstance().getHostProjectsFolder();
+                try {
+                    Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
+                } catch (IOException e) {
+                    throw new MachineException(e.getLocalizedMessage(), e);
+                }
+                machine.getProjectBindings().remove(project);
+            }
         }
-        machine.getProjectBindings().remove(project);
+        throw new NotFoundException(String.format("Binding of project %s in machine %s not found", project.getPath(), machineId));
     }
 
     private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
@@ -408,7 +413,7 @@ public class MachineManager {
         return NameGenerator.generate("snapshot-", 16);
     }
 
-    public Snapshot getSnapshot(String snapshotId) throws NotFoundException {
+    public Snapshot getSnapshot(String snapshotId) throws NotFoundException, ServerException {
         return snapshotStorage.getSnapshot(snapshotId);
     }
 
@@ -423,11 +428,11 @@ public class MachineManager {
      *         project binding
      * @return list of Snapshots
      */
-    public List<Snapshot> getSnapshots(String owner, String workspaceId, ProjectBinding project) {
+    public List<Snapshot> getSnapshots(String owner, String workspaceId, ProjectBinding project) throws ServerException {
         return snapshotStorage.findSnapshots(owner, workspaceId, project);
     }
 
-    public void removeSnapshot(String snapshotId) throws NotFoundException, MachineException {
+    public void removeSnapshot(String snapshotId) throws NotFoundException, ServerException {
         final Snapshot snapshot = getSnapshot(snapshotId);
         final String imageType = snapshot.getImageType();
         final ImageProvider imageProvider = imageProviders.get(imageType);
@@ -450,12 +455,14 @@ public class MachineManager {
      * @param project
      *         project binding
      */
-    public void removeSnapshots(String owner, String workspaceId, ProjectBinding project) throws MachineException {
+    public void removeSnapshots(String owner, String workspaceId, ProjectBinding project) throws ServerException {
         for (Snapshot snapshot : snapshotStorage.findSnapshots(owner, workspaceId, project)) {
             try {
                 removeSnapshot(snapshot.getId());
             } catch (NotFoundException ignored) {
                 // This is not expected since we just get list of snapshots from DAO.
+            } catch (ServerException e) {
+                LOG.error(e.getLocalizedMessage(), e);
             }
         }
     }

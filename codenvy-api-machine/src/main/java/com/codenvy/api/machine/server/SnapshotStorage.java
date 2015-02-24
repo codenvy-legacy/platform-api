@@ -10,7 +10,9 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.ServerException;
 import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.List;
@@ -19,11 +21,11 @@ import java.util.List;
  * @author andrew00x
  */
 public interface SnapshotStorage {
-    Snapshot getSnapshot(String snapshotId) throws NotFoundException;
+    Snapshot getSnapshot(String snapshotId) throws NotFoundException, ServerException;
 
-    void saveSnapshot(Snapshot snapshot);
+    void saveSnapshot(Snapshot snapshot) throws ServerException, ForbiddenException;
 
-    List<Snapshot> findSnapshots(String owner, String workspaceId, ProjectBinding project);
+    List<Snapshot> findSnapshots(String owner, String workspaceId, ProjectBinding project) throws ServerException;
 
-    void removeSnapshot(String snapshotId) throws NotFoundException;
+    void removeSnapshot(String snapshotId) throws NotFoundException, ServerException;
 }

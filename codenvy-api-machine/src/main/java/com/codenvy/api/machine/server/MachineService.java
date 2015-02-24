@@ -89,6 +89,7 @@ public class MachineService {
                             Collections.<ProjectBinding>emptySet());
     }
 
+    @Path("/snapshot")
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -167,7 +168,8 @@ public class MachineService {
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @PathParam("path") String path) {
+    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @PathParam("path") String path)
+            throws ServerException {
         final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
                                                                      workspaceId,
                                                                      new ProjectBindingImpl().withPath(path));
@@ -197,7 +199,7 @@ public class MachineService {
     @Path("/snapshot/{snapshotId}")
     @DELETE
     @RolesAllowed("user")
-    public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, MachineException {
+    public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
         final Snapshot snapshot = machineManager.getSnapshot(snapshotId);
         if (!EnvironmentContext.getCurrent().getUser().getId().equals(snapshot.getOwner())) {
             throw new ForbiddenException("Operation is not permitted");

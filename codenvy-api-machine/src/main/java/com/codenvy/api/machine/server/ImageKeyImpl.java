@@ -10,16 +10,29 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
-import com.codenvy.inject.DynaModule;
-import com.google.inject.AbstractModule;
+import com.codenvy.api.machine.server.spi.ImageKey;
+
+import java.util.Collections;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
- * @author andrew00x
+ * @author Alexander Garagatyi
  */
-@DynaModule
-public class MachineApiModule extends AbstractModule {
+public class ImageKeyImpl implements ImageKey {
+    private final Map<String, String> fields;
+
+    public ImageKeyImpl(Map<String, String> fields) {
+        this.fields = new LinkedHashMap<>(fields);
+    }
+
     @Override
-    protected void configure() {
-        bind(com.codenvy.api.machine.server.MachineService.class);
+    public Map<String, String> getFields() {
+        return Collections.unmodifiableMap(fields);
+    }
+
+    @Override
+    public String toJson() {
+        throw new UnsupportedOperationException();
     }
 }

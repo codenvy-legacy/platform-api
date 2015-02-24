@@ -141,9 +141,11 @@ public class Project {
         Builders builders = (projectJson.getBuilders() == null)?new Builders(types.primary.getDefaultBuilder()):projectJson.getBuilders();
         Runners runners = (projectJson.getRunners() == null)?new Runners(types.primary.getDefaultRunner()):projectJson.getRunners();
 
-        return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
-                attributes, runners, builders, projectJson.getMixinTypes());
+//        return new ProjectConfig(projectJson.getDescription(), projectJson.getType(),
+//                attributes, runners, builders, projectJson.getMixinTypes());
 
+        return new ProjectConfig(projectJson.getDescription(), types.primary.getId(),
+                attributes, runners, builders, types.mixinIds());
     }
 
 
@@ -530,6 +532,10 @@ public class Project {
                 }
 
             }
+        }
+
+        List <String> mixinIds() {
+            return new ArrayList<>(mixins.keySet());
         }
 
 

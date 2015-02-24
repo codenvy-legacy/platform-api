@@ -604,7 +604,7 @@ public class RunQueueTest {
         doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
         // limit memory
         workspace.getAttributes().put(Constants.RUNNER_MAX_MEMORY_SIZE, "1024");
-        workspace.getAttributes().put(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY, "true");
+        workspace.getAttributes().put(com.codenvy.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY, "true");
         doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
 
         try {

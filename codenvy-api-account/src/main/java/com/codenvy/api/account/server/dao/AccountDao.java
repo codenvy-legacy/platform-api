@@ -122,7 +122,7 @@ public interface AccountDao {
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
-     * Gets list of active existing in persistent layer subscriptions related to given account.
+     * Gets list of active subscriptions related to given account.
      *
      * @param accountId
      *         account id
@@ -131,7 +131,7 @@ public interface AccountDao {
     List<Subscription> getActiveSubscriptions(String accountId) throws NotFoundException, ServerException;
 
     /**
-     * Gets active existing in persistent layer subscription with given service related to given account.
+     * Gets active subscription with given service related to given account.
      *
      * @param accountId
      *         account id
@@ -182,5 +182,5 @@ public interface AccountDao {
      *
      * @return all locked accounts
      */
-    List<Account> getLockedAccounts() throws ServerException, ForbiddenException;
+    List<Account> getAccountsWithLockedResources() throws ServerException, ForbiddenException;
 }

@@ -31,12 +31,12 @@ public interface ItemReference extends Hyperlinks {
     ItemReference withName(String name);
 
     /** Get type of item, e.g. "file", "folder" or "project". */
-    String getItemType();
+    String getType();
 
     /** Set type of item, e.g. "file" or "folder" or "project". */
-    void setItemType(String type);
+    void setType(String type);
 
-    ItemReference withItemType(String type);
+    ItemReference withType(String type);
 
     /** Get mediatype. */
     String getMediaType();

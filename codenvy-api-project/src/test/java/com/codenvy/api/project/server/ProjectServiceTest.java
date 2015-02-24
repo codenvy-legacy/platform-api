@@ -754,7 +754,7 @@ public class ProjectServiceTest {
                                                       null);
         Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
         ItemReference fileItem = (ItemReference)response.getEntity();
-        Assert.assertEquals(fileItem.getItemType(), "file");
+        Assert.assertEquals(fileItem.getType(), "file");
         Assert.assertEquals(fileItem.getMediaType(), "text/plain");
         Assert.assertEquals(fileItem.getName(), "test.txt");
         Assert.assertEquals(fileItem.getPath(), "/my_project/test.txt");
@@ -909,7 +909,7 @@ public class ProjectServiceTest {
                                                       "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
         ItemReference fileItem = (ItemReference)response.getEntity();
-        Assert.assertEquals(fileItem.getItemType(), "folder");
+        Assert.assertEquals(fileItem.getType(), "folder");
         Assert.assertEquals(fileItem.getMediaType(), "text/directory");
         Assert.assertEquals(fileItem.getName(), "test");
         Assert.assertEquals(fileItem.getPath(), "/my_project/test");
@@ -1843,7 +1843,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
 
         ItemReference result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getItemType(), "folder");
+        Assert.assertEquals(result.getType(), "folder");
         Assert.assertEquals(result.getName(), "b");
 
         response = launcher.service("GET",
@@ -1852,7 +1852,7 @@ public class ProjectServiceTest {
                 "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getItemType(), "file");
+        Assert.assertEquals(result.getType(), "file");
         Assert.assertEquals(result.getMediaType(), "text/plain");
 
     }
@@ -1896,7 +1896,7 @@ public class ProjectServiceTest {
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
 
         ItemReference result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getItemType(), "folder");
+        Assert.assertEquals(result.getType(), "folder");
         Assert.assertEquals(result.getName(), "b");
         Assert.assertNotNull(result.getCreated());
         Assert.assertNotNull(result.getModified());
@@ -1908,7 +1908,7 @@ public class ProjectServiceTest {
                 "http://localhost:8080/api", null, null, null);
         Assert.assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
         result = (ItemReference)response.getEntity();
-        Assert.assertEquals(result.getItemType(), "file");
+        Assert.assertEquals(result.getType(), "file");
         Assert.assertEquals(result.getMediaType(), "text/plain");
         Assert.assertNotNull(result.getContentLength());
         Assert.assertEquals(result.getAttributes().size(), 2);

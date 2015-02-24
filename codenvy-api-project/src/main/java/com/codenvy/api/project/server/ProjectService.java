@@ -854,7 +854,7 @@ public class ProjectService extends Service {
                         try (InputStream in = new java.net.URL(runnerSourceLocation).openStream()) {
                             // Add file without mediatype to avoid creation useless metadata files on virtual file system level.
                             // Dockerfile add in list of known files, see com.codenvy.api.core.util.ContentTypeGuesser
-                            // and content-types.properties file.
+                            // and content-types.attributes file.
                             ((FolderEntry)environmentsFolder).createFolder(name).createFile("Dockerfile", in, null);
                         }
                     } else {
@@ -1120,7 +1120,10 @@ public class ProjectService extends Service {
                                       @ApiParam(value = "Skip count")
                                       @QueryParam("skipCount") int skipCount)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
-        final FolderEntry folder = asFolder(workspace, path);
+
+        // to search from workspace root path should end with "/" i.e /{ws}/search/?<query>
+        final FolderEntry folder = path.isEmpty()?projectManager.getProjectsRoot(workspace):asFolder(workspace, path);
+
         if (searcherProvider != null) {
             if (skipCount < 0) {
                 throw new ConflictException(String.format("Invalid 'skipCount' parameter: %d.", skipCount));

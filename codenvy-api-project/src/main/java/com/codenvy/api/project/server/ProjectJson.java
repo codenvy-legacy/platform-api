@@ -99,7 +99,7 @@ public class ProjectJson {
             if (projectFile != null) {
                 if (!projectFile.isFile()) {
                     throw new ServerException(String.format(
-                            "Unable to save the project's properties to the file system. Path %s/%s exists but is not a file.",
+                            "Unable to save the project's attributes to the file system. Path %s/%s exists but is not a file.",
                             baseFolder.getPath(), Constants.CODENVY_PROJECT_FILE_RELATIVE_PATH));
                 }
                 ((FileEntry)projectFile).updateContent(JsonHelper.toJson(this).getBytes(), null);
@@ -114,7 +114,7 @@ public class ProjectJson {
                     }
                 } else if (!codenvyDir.isFolder()) {
                     throw new ServerException(String.format(
-                            "Unable to save the project's properties to the file system. Path %s/%s exists but is not a folder.",
+                            "Unable to save the project's attributes to the file system. Path %s/%s exists but is not a folder.",
                             baseFolder.getPath(), Constants.CODENVY_DIR));
                 }
                 try {

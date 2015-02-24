@@ -533,7 +533,7 @@ public final class DefaultProjectManager implements ProjectManager {
 
 //                try {
                 // throws ValueStorageException
-                attributes.put(attr.getName(), var.getValue((FolderEntry) baseFolder));
+                attributes.put(attr.getName(), var.getValue((FolderEntry)baseFolder));
 //                } catch (ValueStorageException e) {
 //                    if(var.isRequired())
 //                        throw e;

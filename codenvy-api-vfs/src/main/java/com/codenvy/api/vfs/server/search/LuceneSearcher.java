@@ -149,10 +149,9 @@ public abstract class LuceneSearcher implements Searcher {
 
         reopening = true;
         try {
-            luceneIndexWriter = new IndexWriter(makeDirectory(), new IndexWriterConfig(makeAnalyzer()));
             DirectoryReader reader = DirectoryReader.open(luceneIndexWriter, true);
             DirectoryReader newReader = DirectoryReader.openIfChanged(reader);
-            if (newReader != reader) {
+            if (newReader != null) {
                 luceneIndexSearcher = new IndexSearcher(newReader);
             }
         } finally {

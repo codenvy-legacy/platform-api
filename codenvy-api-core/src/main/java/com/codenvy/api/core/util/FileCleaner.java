@@ -11,9 +11,9 @@
 package com.codenvy.api.core.util;
 
 import com.codenvy.commons.lang.IoUtil;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.inject.DynaModule;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.google.inject.AbstractModule;
 
 import org.slf4j.Logger;
@@ -42,7 +42,9 @@ public class FileCleaner {
     /** Number of attempts to delete file or directory before start write log error messages. */
     static int logAfterAttempts = 10;
 
-    private static ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("FileCleaner", true));
+    private static ScheduledExecutorService exec = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder()
+                                                                                                      .setNameFormat("FileCleaner")
+                                                                                                      .setDaemon(true).build());
 
     static {
         exec.scheduleAtFixedRate(new Runnable() {

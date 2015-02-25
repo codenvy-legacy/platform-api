@@ -57,7 +57,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import static com.codenvy.api.core.util.LinksHelper.createLink;
 import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_CURRENT_USER_PROFILE;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_CURRENT_USER_PROFILE;
 import static com.codenvy.api.user.server.Constants.LINK_REL_GET_USER_PROFILE_BY_ID;
@@ -65,8 +64,8 @@ import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_ATTRIBUTES;
 import static com.codenvy.api.user.server.Constants.LINK_REL_REMOVE_PREFERENCES;
 import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_PREFERENCES;
 import static com.codenvy.api.user.server.Constants.LINK_REL_UPDATE_USER_PROFILE_BY_ID;
-import static com.codenvy.commons.lang.Strings.nullToEmpty;
 
+import static com.google.common.base.Strings.nullToEmpty;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 
 /**

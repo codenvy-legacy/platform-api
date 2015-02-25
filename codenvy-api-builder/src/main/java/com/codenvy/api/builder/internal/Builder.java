@@ -28,8 +28,8 @@ import com.codenvy.api.core.util.ProcessUtil;
 import com.codenvy.api.core.util.StreamPump;
 import com.codenvy.api.core.util.Watchdog;
 import com.codenvy.commons.lang.IoUtil;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -161,7 +161,8 @@ public abstract class Builder {
             sourcesManager.start(); // TODO: guice must do this
             executor = new MyThreadPoolExecutor(numberOfWorkers <= 0 ? Runtime.getRuntime().availableProcessors() : numberOfWorkers,
                                                 queueSize);
-            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-BuilderSchedulerPool-", true));
+            scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat(
+                    getName() + "-BuilderSchedulerPool-").setDaemon(true).build());
             scheduler.scheduleAtFixedRate(new Runnable() {
                 public void run() {
                     int num = 0;
@@ -783,7 +784,7 @@ public abstract class Builder {
         private MyThreadPoolExecutor(int workerNumber, int queueSize) {
             super(workerNumber, workerNumber, 0L, TimeUnit.MILLISECONDS,
                   new LinkedBlockingQueue<Runnable>(queueSize),
-                  new NamedThreadFactory(Builder.this.getName() + "-Builder-", true),
+                  new ThreadFactoryBuilder().setNameFormat(Builder.this.getName() + "-Builder-").setDaemon(true).build(),
                   new ManyBuildTasksRejectedExecutionPolicy(new AbortPolicy()));
         }
 

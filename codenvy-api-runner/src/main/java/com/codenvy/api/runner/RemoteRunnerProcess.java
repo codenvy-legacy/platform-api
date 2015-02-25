@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.runner.dto.ApplicationProcessDescriptor;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
 
@@ -150,19 +151,15 @@ public class RemoteRunnerProcess {
                     httpOutput.addHttpHeader("Content-Disposition", contentDisposition);
                 }
             }
-            ByteStreams.copy(new InputSupplier<InputStream>() {
-                                 @Override
-                                 public InputStream getInput() throws IOException {
-                                     return conn.getInputStream();
-                                 }
-                             },
-                             new OutputSupplier<OutputStream>() {
-                                 @Override
-                                 public OutputStream getOutput() throws IOException {
-                                     return output.getOutputStream();
-                                 }
-                             }
-                            );
+            Closer closer = Closer.create();
+            try {
+                ByteStreams.copy(closer.register(conn.getInputStream()), closer.register(output.getOutputStream()));
+            } catch (Throwable e) {
+                throw closer.rethrow(e);
+            } finally {
+                closer.close();
+            }
+
         } finally {
             conn.disconnect();
         }

@@ -35,8 +35,8 @@ import com.codenvy.api.vfs.server.search.SearcherProvider;
 import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
 import com.wordnik.swagger.annotations.ApiParam;
@@ -109,7 +109,9 @@ public class ProjectService extends Service {
     private ProjectHandlerRegistry      projectHandlerRegistry;
 
     private final ExecutorService executor = Executors.newFixedThreadPool(1 + Runtime.getRuntime().availableProcessors(),
-                                                                          new NamedThreadFactory("ProjectService-IndexingThread-", true));
+                                                                          new ThreadFactoryBuilder()
+                                                                                  .setNameFormat("ProjectService-IndexingThread-")
+                                                                                  .setDaemon(true).build());
 
     @PreDestroy
     void stop() {
@@ -882,14 +884,6 @@ public class ProjectService extends Service {
         //TODO: bad solutions add this temporary because don't know how fix it in other way
         //TODO: will be fix soon. Don't remove this code
         //TODO: Vitalii Parfonov
-        if (importer.getId().equals("git") || importer.getId().equals("github")) {
-            ProjectConfig config = project.getConfig();
-            if (!config.getMixinTypes().contains("git")) {
-                config.getMixinTypes().add("git");
-                project.updateConfig(config);
-            }
-        }
-
         if(importer.getId().equals("subversion")){
             ProjectConfig config = project.getConfig();
             if (!config.getMixinTypes().contains("subversion")) {

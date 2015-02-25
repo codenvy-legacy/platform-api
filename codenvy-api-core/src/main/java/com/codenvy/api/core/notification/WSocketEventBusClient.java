@@ -10,8 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.core.notification;
 
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.everrest.websockets.client.BaseClientMessageListener;
 import org.everrest.websockets.client.WSClient;
@@ -108,7 +108,8 @@ public final class WSocketEventBusClient {
                     }
                 }
                 if (!cfg.isEmpty()) {
-                    executor = Executors.newCachedThreadPool(new NamedThreadFactory("WSocketEventBusClient", true));
+                    executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("WSocketEventBusClient")
+                                                                                       .setDaemon(true).build());
                     for (Map.Entry<URI, Set<String>> entry : cfg.entrySet()) {
                         executor.execute(new ConnectTask(entry.getKey(), entry.getValue()));
                     }

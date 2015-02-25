@@ -150,19 +150,7 @@ public class RemoteRunnerProcess {
                     httpOutput.addHttpHeader("Content-Disposition", contentDisposition);
                 }
             }
-            ByteStreams.copy(new InputSupplier<InputStream>() {
-                                 @Override
-                                 public InputStream getInput() throws IOException {
-                                     return conn.getInputStream();
-                                 }
-                             },
-                             new OutputSupplier<OutputStream>() {
-                                 @Override
-                                 public OutputStream getOutput() throws IOException {
-                                     return output.getOutputStream();
-                                 }
-                             }
-                            );
+            ByteStreams.copy(conn.getInputStream(), output.getOutputStream());
         } finally {
             conn.disconnect();
         }

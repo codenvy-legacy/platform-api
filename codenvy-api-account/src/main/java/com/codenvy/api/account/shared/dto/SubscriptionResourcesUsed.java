@@ -19,11 +19,14 @@ import java.util.List;
  * @author Sergii Leschenko
  */
 @DTO
-public interface AccountResources {
-    @ApiModelProperty(value = "Consumed resources during current billing period grouped by workspaces")
-    List<WorkspaceResources> getUsed();
+public interface SubscriptionResourcesUsed extends UsedAccountResources {
+    @ApiModelProperty(value = "Reference of subscription that provides resources")
+    SubscriptionReference getSubscriptionReference();
 
-    void setUsed(List<WorkspaceResources> used);
+    void setSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    AccountResources withUsed(List<WorkspaceResources> used);
+    SubscriptionResourcesUsed withSubscriptionReference(SubscriptionReference subscriptionReference);
+
+    @Override
+    SubscriptionResourcesUsed withUsed(List<WorkspaceResources> used);
 }

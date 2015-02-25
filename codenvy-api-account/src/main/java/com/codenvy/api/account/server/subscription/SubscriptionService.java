@@ -11,7 +11,7 @@
 package com.codenvy.api.account.server.subscription;
 
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.account.shared.dto.AccountResources;
+import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ServerException;
@@ -97,7 +97,7 @@ public abstract class SubscriptionService {
      * @param subscription
      *         subscription that provides resources
      */
-    public abstract AccountResources getAccountResources(Subscription subscription) throws ServerException;
+    public abstract UsedAccountResources getAccountResources(Subscription subscription) throws ServerException;
 
     /**
      * @return service identifier

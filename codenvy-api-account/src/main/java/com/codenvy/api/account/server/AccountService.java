@@ -19,7 +19,8 @@ import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
-import com.codenvy.api.account.shared.dto.AccountResources;
+import com.codenvy.api.account.shared.dto.SubscriptionResourcesUsed;
+import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
@@ -29,7 +30,6 @@ import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionReference;
-import com.codenvy.api.account.shared.dto.SubscriptionResources;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ApiException;
@@ -1035,7 +1035,7 @@ public class AccountService extends Service {
     @Path("/{id}/resources")
     @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
-    public List<SubscriptionResources> getResources(@ApiParam(value = "Account ID", required = true)
+    public List<SubscriptionResourcesUsed> getResources(@ApiParam(value = "Account ID", required = true)
                                                     @PathParam("id") String accountId,
                                                     @QueryParam("serviceId") String serviceId)
             throws ServerException, NotFoundException, ConflictException {
@@ -1050,14 +1050,14 @@ public class AccountService extends Service {
             subscriptionServices.add(subscriptionService);
         }
 
-        List<SubscriptionResources> result = new ArrayList<>();
+        List<SubscriptionResourcesUsed> result = new ArrayList<>();
         for (SubscriptionService subscriptionService : subscriptionServices) {
             Subscription activeSubscription = accountDao.getActiveSubscription(accountId, subscriptionService.getServiceId());
             if (activeSubscription != null) {
                 //For now account can have only one subscription for each service
-                AccountResources accountResources = subscriptionService.getAccountResources(activeSubscription);
-                result.add(DtoFactory.getInstance().createDto(SubscriptionResources.class)
-                                     .withUsed(accountResources.getUsed())
+                UsedAccountResources usedAccountResources = subscriptionService.getAccountResources(activeSubscription);
+                result.add(DtoFactory.getInstance().createDto(SubscriptionResourcesUsed.class)
+                                     .withUsed(usedAccountResources.getUsed())
                                      .withSubscriptionReference(toReference(activeSubscription)));
             }
         }

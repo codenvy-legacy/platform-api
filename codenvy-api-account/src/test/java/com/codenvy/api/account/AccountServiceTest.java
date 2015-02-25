@@ -23,7 +23,8 @@ import com.codenvy.api.account.server.dao.SubscriptionQueryBuilder.SubscriptionQ
 import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
-import com.codenvy.api.account.shared.dto.AccountResources;
+import com.codenvy.api.account.shared.dto.SubscriptionResourcesUsed;
+import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.BillingCycleType;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
@@ -32,7 +33,6 @@ import com.codenvy.api.account.shared.dto.NewSubscription;
 import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
-import com.codenvy.api.account.shared.dto.SubscriptionResources;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
 import com.codenvy.api.core.ConflictException;
@@ -1551,7 +1551,7 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetAccountResources() throws Exception {
         when(subscriptionService.getAccountResources((Subscription)anyObject()))
-                .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
+                .thenReturn(DtoFactory.getInstance().createDto(UsedAccountResources.class));
         when(serviceRegistry.getAll()).thenReturn(new HashSet<>(Arrays.asList(subscriptionService)));
         when(accountDao.getActiveSubscription(anyString(), anyString()))
                 .thenReturn(new Subscription().withId("subscriptionId"));
@@ -1561,7 +1561,7 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
 
         @SuppressWarnings("unchecked")
-        List<SubscriptionResources> result = (List<SubscriptionResources>)response.getEntity();
+        List<SubscriptionResourcesUsed> result = (List<SubscriptionResourcesUsed>)response.getEntity();
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");
@@ -1572,7 +1572,7 @@ public class AccountServiceTest {
     @Test
     public void shouldBeAbleToGetAccountResourcesByServiceId() throws Exception {
         when(subscriptionService.getAccountResources((Subscription)anyObject()))
-                .thenReturn(DtoFactory.getInstance().createDto(AccountResources.class));
+                .thenReturn(DtoFactory.getInstance().createDto(UsedAccountResources.class));
 
         when(serviceRegistry.get(anyString())).thenReturn(subscriptionService);
 
@@ -1585,7 +1585,7 @@ public class AccountServiceTest {
         assertEquals(response.getStatus(), Response.Status.OK.getStatusCode());
 
         @SuppressWarnings("unchecked")
-        List<SubscriptionResources> result = (List<SubscriptionResources>)response.getEntity();
+        List<SubscriptionResourcesUsed> result = (List<SubscriptionResourcesUsed>)response.getEntity();
 
         assertEquals(result.size(), 1);
         assertEquals(result.get(0).getSubscriptionReference().getSubscriptionId(), "subscriptionId");

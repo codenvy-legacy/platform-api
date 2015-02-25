@@ -241,7 +241,11 @@ public class RemoteTask {
             if (contentDisposition != null) {
                 output.addHttpHeader("Content-Disposition", contentDisposition);
             }
-            ByteStreams.copy(conn.getInputStream(), output.getOutputStream());
+            InputStream stream = conn.getErrorStream();
+            if (stream == null) {
+                stream = conn.getInputStream();
+            }
+            ByteStreams.copy(stream, output.getOutputStream());
         } finally {
             conn.disconnect();
         }

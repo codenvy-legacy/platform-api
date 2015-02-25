@@ -47,12 +47,14 @@ import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
 import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Files;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -428,9 +430,15 @@ public class MemoryVirtualFile implements VirtualFile {
             public void visit(final VirtualFile virtualFile) {
                 try {
                     if (virtualFile.isFile()) {
-                        final String hexHash = ByteSource.concat().hash(hashFunction).toString();
-
-                        hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
+                        try {
+                            final InputStream stream = virtualFile.getContent().getStream();
+                            final String hexHash = ByteSource.wrap(ByteStreams.toByteArray(stream)).hash(hashFunction).toString();
+                            hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
+                        } catch (ForbiddenException e) {
+                            e.printStackTrace();
+                        } catch (IOException e) {
+                            e.printStackTrace();
+                        }
                     } else {
                         final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
                         while (children.hasNext()) {
@@ -439,8 +447,6 @@ public class MemoryVirtualFile implements VirtualFile {
                     }
                 } catch (ServerException e) {
                     errorHolder.set(e);
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         });

@@ -241,23 +241,7 @@ public class RemoteTask {
             if (contentDisposition != null) {
                 output.addHttpHeader("Content-Disposition", contentDisposition);
             }
-            ByteStreams.copy(new InputSupplier<InputStream>() {
-                                 @Override
-                                 public InputStream getInput() throws IOException {
-                                     InputStream stream = conn.getErrorStream();
-                                     if (stream == null) {
-                                         stream = conn.getInputStream();
-                                     }
-                                     return stream;
-                                 }
-                             },
-                             new OutputSupplier<OutputStream>() {
-                                 @Override
-                                 public OutputStream getOutput() throws IOException {
-                                     return output.getOutputStream();
-                                 }
-                             }
-                            );
+            ByteStreams.copy(conn.getInputStream(), output.getOutputStream());
         } finally {
             conn.disconnect();
         }

@@ -15,11 +15,11 @@ import com.codenvy.api.core.util.ValueHolder;
 import com.codenvy.commons.json.JsonHelper;
 import com.codenvy.commons.json.JsonParseException;
 import com.codenvy.commons.lang.IoUtil;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.ZipUtils;
 import com.google.common.hash.Hashing;
 import com.google.common.io.CharStreams;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.apache.commons.fileupload.MultipartStream;
 import org.everrest.core.impl.header.HeaderParameterParser;
@@ -78,7 +78,8 @@ public class SourcesManagerImpl implements SourcesManager {
         this.directory = directory;
         tasks = new ConcurrentHashMap<>();
         projectKeyHolder = new AtomicReference<>();
-        executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getClass().getSimpleName() + "_FileCleaner", true));
+        executor = Executors.newSingleThreadScheduledExecutor(
+                new ThreadFactoryBuilder().setNameFormat(getClass().getSimpleName() + "_FileCleaner").setDaemon(true).build());
         listeners = new CopyOnWriteArraySet<>();
     }
 

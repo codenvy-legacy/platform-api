@@ -22,7 +22,6 @@ import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.CharStreams;
-import com.google.common.io.InputSupplier;
 
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
@@ -30,7 +29,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
@@ -446,12 +444,7 @@ public class HttpJsonHelper {
                         in = conn.getInputStream();
                     }
                     final InputStream fIn = in;
-                    final String str = CharStreams.toString(new InputSupplier<Reader>() {
-                        @Override
-                        public Reader getInput() throws IOException {
-                            return new InputStreamReader(fIn);
-                        }
-                    });
+                    final String str = CharStreams.toString(new InputStreamReader(fIn));
                     final String contentType = conn.getContentType();
                     if (contentType != null && contentType.startsWith("application/json")) {
                         final ServiceError serviceError = DtoFactory.getInstance().createDtoFromJson(str, ServiceError.class);
@@ -480,12 +473,7 @@ public class HttpJsonHelper {
                                           " Retry the request. If this issue continues, contact. support.");
                 }
 
-                return CharStreams.toString(new InputSupplier<Reader>() {
-                    @Override
-                    public Reader getInput() throws IOException {
-                        return new InputStreamReader(conn.getInputStream());
-                    }
-                });
+                return CharStreams.toString(new InputStreamReader(conn.getInputStream()));
             } finally {
                 conn.disconnect();
             }

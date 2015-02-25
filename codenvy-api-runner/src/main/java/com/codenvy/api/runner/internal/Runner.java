@@ -24,10 +24,10 @@ import com.codenvy.api.runner.RunnerException;
 import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerMetric;
 import com.codenvy.commons.lang.IoUtil;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.TarUtils;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -618,9 +618,11 @@ public abstract class Runner {
             if (!(deployDirectory.exists() || deployDirectory.mkdirs())) {
                 throw new IllegalStateException(String.format("Unable create directory %s", deployDirectory.getAbsolutePath()));
             }
-            executor = Executors.newCachedThreadPool(new NamedThreadFactory(getName() + "-Runner-", true));
+            executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat(getName() + "-Runner-")
+                                                                               .setDaemon(true).build());
             cleanScheduler =
-                    Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory(getName() + "-RunnerCleanSchedulerPool-", true));
+                    Executors.newSingleThreadScheduledExecutor(
+                            new ThreadFactoryBuilder().setNameFormat(getName() + "-RunnerCleanSchedulerPool-").setDaemon(true).build());
             cleanScheduler.scheduleAtFixedRate(new CleanupTask(), 1, 1, TimeUnit.MINUTES);
         } else {
             throw new IllegalStateException("Already started");

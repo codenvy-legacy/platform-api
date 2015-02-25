@@ -259,7 +259,6 @@ public class MachineManager {
             }
         });
         return machine;
-        // TODO recover projects bindings
     }
 
     private String generateMachineId() {
@@ -290,8 +289,13 @@ public class MachineManager {
         throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
-    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException, ConflictException {
         final MachineImpl machine = getMachine(machineId);
+        for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+            if (projectBinding.getPath().equals(project.getPath())) {
+                throw new ConflictException(String.format("Project %s is binded already to machine %s", project.getPath(), machineId));
+            }
+        }
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
         try {
             final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
@@ -308,12 +312,14 @@ public class MachineManager {
         for (ProjectBinding projectBinding : machine.getProjectBindings()) {
             if (projectBinding.getPath().equals(project.getPath())) {
                 final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-                try {
-                    Files.delete(Paths.get(projectsFolder.toString(), project.getPath()));
-                } catch (IOException e) {
-                    throw new MachineException(e.getLocalizedMessage(), e);
+                if (IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()))) {
+                    try {
+                        machine.getMachineLogsOutput().writeLine("[ERROR] Error occurred on removing of binding");
+                    } catch (IOException ignored) {
+                    }
                 }
                 machine.getProjectBindings().remove(project);
+                return;
             }
         }
         throw new NotFoundException(String.format("Binding of project %s in machine %s not found", project.getPath(), machineId));
@@ -364,9 +370,12 @@ public class MachineManager {
         final List<MachineImpl> result = new LinkedList<>();
         for (MachineImpl machine : machines.values()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
-                machine.getWorkspaceId().equals(workspaceId) &&
-                machine.getProjectBindings().contains(project)) {
-                result.add(machine);
+                machine.getWorkspaceId().equals(workspaceId)) {
+                for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+                    if (projectBinding.getPath().equals(project.getPath())) {
+                        result.add(machine);
+                    }
+                }
             }
         }
         return result;

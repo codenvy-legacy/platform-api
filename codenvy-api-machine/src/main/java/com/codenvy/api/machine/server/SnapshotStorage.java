@@ -18,6 +18,8 @@ import com.codenvy.api.machine.shared.ProjectBinding;
 import java.util.List;
 
 /**
+ * Stores metadata of snapshots
+ *
  * @author andrew00x
  */
 public interface SnapshotStorage {

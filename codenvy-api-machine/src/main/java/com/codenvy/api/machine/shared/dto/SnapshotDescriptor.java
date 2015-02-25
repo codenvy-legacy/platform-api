@@ -10,12 +10,17 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared.dto;
 
+import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
+import com.codenvy.api.core.rest.shared.dto.Link;
+import com.codenvy.dto.shared.DTO;
+
 import java.util.List;
 
 /**
  * @author Alexander Garagatyi
  */
-public interface SnapshotDescriptor {
+@DTO
+public interface SnapshotDescriptor extends Hyperlinks {
     String getId();
 
     void setId(String id);
@@ -57,4 +62,7 @@ public interface SnapshotDescriptor {
     void setProjects(List<ProjectBindingDescriptor> projects);
 
     SnapshotDescriptor withProjects(List<ProjectBindingDescriptor> projects);
+
+    @Override
+    SnapshotDescriptor withLinks(List<Link> links);
 }

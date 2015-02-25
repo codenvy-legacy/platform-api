@@ -13,6 +13,7 @@ package com.codenvy.api.machine.shared.dto;
 import com.codenvy.api.core.rest.shared.dto.Hyperlinks;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.machine.shared.Machine;
+import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
@@ -29,6 +30,12 @@ public interface MachineDescriptor extends Machine, Hyperlinks {
     void setType(String type);
 
     MachineDescriptor withType(String type);
+
+    MachineState getState();
+
+    void setState(MachineState state);
+
+    MachineDescriptor withState(MachineState state);
 
     void setOwner(String owner);
 

@@ -10,11 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server;
 
+import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
+import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromRecipe;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
@@ -32,7 +34,6 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -60,6 +61,7 @@ public class MachineService {
         this.dtoFactory = DtoFactory.getInstance();
     }
 
+    @Path("/recipe")
     @PUT
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
@@ -80,10 +82,10 @@ public class MachineService {
                                                           EnvironmentContext.getCurrent().getUser().getId(),
                                                           lineConsumer);
 
-        // TODO state?
         // TODO displayName? machine description?
         return toDescriptor(machine.getId(),
                             machine.getType(),
+                            machine.getState(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
                             Collections.<ProjectBinding>emptySet());
@@ -96,7 +98,9 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
             throws ForbiddenException, NotFoundException, ServerException {
-        // todo how to check access rights?
+        requiredNotNull(createMachineRequest.getSnapshotId(), "Snapshot id");
+        checkCurrentUserPermissionsForSnapshot(createMachineRequest.getSnapshotId());
+
         final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
         final MachineImpl machine = machineManager.create(createMachineRequest.getSnapshotId(),
@@ -105,9 +109,10 @@ public class MachineService {
 
         return toDescriptor(machine.getId(),
                             machine.getType(),
+                            machine.getState(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
-                            Collections.<ProjectBinding>emptySet()); // TODO restore project binding?
+                            Collections.<ProjectBinding>emptySet());
     }
 
     @Path("/{machineId}")
@@ -122,6 +127,7 @@ public class MachineService {
 
         return toDescriptor(machineId,
                             machine.getType(),
+                            machine.getState(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
                             machine.getProjectBindings());
@@ -143,6 +149,7 @@ public class MachineService {
         for (MachineImpl machine : machines) {
             machinesDescriptors.add(toDescriptor(machine.getId(),
                                                  machine.getType(),
+                                                 machine.getState(),
                                                  machine.getOwner(),
                                                  machine.getWorkspaceId(),
                                                  machine.getProjectBindings()));
@@ -156,10 +163,7 @@ public class MachineService {
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
-        final MachineImpl machine = machineManager.getMachine(machineId);
-        if (!EnvironmentContext.getCurrent().getUser().getId().equals(machine.getOwner())) {
-            throw new ForbiddenException("Operation is not permitted");
-        }
+        checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.destroy(machineId);
     }
@@ -188,10 +192,7 @@ public class MachineService {
     @RolesAllowed("user")
     public void saveSnapshot(@PathParam("machineId") String machineId, NewSnapshotDescriptor newSnapshotDescriptor)
             throws NotFoundException, ServerException, ForbiddenException {
-        final MachineImpl machine = machineManager.getMachine(machineId);
-        if (!EnvironmentContext.getCurrent().getUser().getId().equals(machine.getOwner())) {
-            throw new ForbiddenException("Operation is not permitted");
-        }
+        checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.save(machineId, EnvironmentContext.getCurrent().getUser().getId(), newSnapshotDescriptor.getDescription());
     }
@@ -200,10 +201,7 @@ public class MachineService {
     @DELETE
     @RolesAllowed("user")
     public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
-        final Snapshot snapshot = machineManager.getSnapshot(snapshotId);
-        if (!EnvironmentContext.getCurrent().getUser().getId().equals(snapshot.getOwner())) {
-            throw new ForbiddenException("Operation is not permitted");
-        }
+        checkCurrentUserPermissionsForSnapshot(snapshotId);
 
         machineManager.removeSnapshot(snapshotId);
     }
@@ -214,9 +212,7 @@ public class MachineService {
     @RolesAllowed("user")
     public void executeCommandInMachine(@PathParam("machineId") String machineId, final CommandDescriptor command)
             throws NotFoundException, ServerException, ForbiddenException {
-        final MachineImpl machine = machineManager.getMachine(machineId);
-
-        checkCurrentUserPermissionsForMachine(machine.getOwner());
+        checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         final LineConsumer lineConsumer = getLineConsumer(command.getOutputChannel());
 
@@ -229,9 +225,7 @@ public class MachineService {
     @RolesAllowed("user")
     public List<ProcessDescriptor> getProcesses(@PathParam("machineId") String machineId)
             throws NotFoundException, ServerException, ForbiddenException {
-        final MachineImpl machine = machineManager.getMachine(machineId);
-
-        checkCurrentUserPermissionsForMachine(machine.getOwner());
+        checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         final List<ProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (ProcessImpl process : machineManager.getProcesses(machineId)) {
@@ -247,25 +241,24 @@ public class MachineService {
     public void stopProcess(@PathParam("machineId") String machineId,
                             @PathParam("processId") int processId)
             throws NotFoundException, ForbiddenException, ServerException {
-        final MachineImpl machine = machineManager.getMachine(machineId);
-
-        checkCurrentUserPermissionsForMachine(machine.getOwner());
+        checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.stopProcess(machineId, processId);
     }
 
-    @Path("/{machineId}/bind/{path:.*}")
-    @POST
+    @Path("/{machineId}/binding/{path:.*}")
+    @PUT
     @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
-                            @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
+                            @PathParam("path") String path)
+            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.bindProject(machineId, new ProjectBindingImpl().withPath(path));
     }
 
-    @Path("/{machineId}/unbind/{path:.*}")
-    @POST
+    @Path("/{machineId}/binding/{path:.*}")
+    @DELETE
     @RolesAllowed("user")
     public void unbindProject(@PathParam("machineId") String machineId,
                               @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
@@ -274,10 +267,17 @@ public class MachineService {
         machineManager.unbindProject(machineId, new ProjectBindingImpl().withPath(path));
     }
 
+    private void checkCurrentUserPermissionsForSnapshot(String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
+        final Snapshot snapshot = machineManager.getSnapshot(snapshotId);
+        if (!EnvironmentContext.getCurrent().getUser().getId().equals(snapshot.getOwner())) {
+            throw new ForbiddenException("You are not the owner of this snapshot");
+        }
+    }
+
     private void checkCurrentUserPermissionsForMachine(String machineOwner) throws ForbiddenException {
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
         if (!userId.equals(machineOwner)) {
-            throw new ForbiddenException("Operation is not permitted");
+            throw new ForbiddenException("You are not the owner of this machine");
         }
     }
 
@@ -297,6 +297,7 @@ public class MachineService {
         }
     }
 
+    // make it package private for testing purposes
     LineConsumer getLineConsumer(String outputChannel) {
         final LineConsumer lineConsumer;
         if (outputChannel != null) {
@@ -309,6 +310,7 @@ public class MachineService {
 
     private MachineDescriptor toDescriptor(String id,
                                            String machineType,
+                                           MachineState machineState,
                                            String machineOwner,
                                            String workspaceId,
                                            Set<ProjectBinding> projects)
@@ -323,6 +325,7 @@ public class MachineService {
         return dtoFactory.createDto(MachineDescriptor.class)
                          .withId(id)
                          .withType(machineType)
+                         .withState(machineState)
                          .withOwner(machineOwner)
                          .withWorkspaceId(workspaceId)
                          .withProjects(projectDescriptors)
@@ -341,7 +344,7 @@ public class MachineService {
         for (ProjectBinding projectBinding : snapshot.getProjects()) {
             projectDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)
                                              .withPath(projectBinding.getPath())
-                                             .withLinks(null)); // TODO
+                                             .withLinks(null));
         }
 
         return dtoFactory.createDto(SnapshotDescriptor.class)
@@ -351,6 +354,7 @@ public class MachineService {
                          .withDescription(snapshot.getDescription())
                          .withCreationDate(snapshot.getCreationDate())
                          .withWorkspaceId(snapshot.getWorkspaceId())
-                         .withProjects(projectDescriptors);
+                         .withProjects(projectDescriptors)
+                         .withLinks(null);// TODO
     }
 }

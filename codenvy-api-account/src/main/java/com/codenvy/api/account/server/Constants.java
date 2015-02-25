@@ -35,7 +35,8 @@ public final class Constants {
     public static final String LINK_REL_REMOVE_ATTRIBUTE      = "remove attribute";
     public static final String LINK_REL_GET_ACCOUNT_RESOURCES = "account resources";
     public static final int    ID_LENGTH                      = 16;
-    public static final String LOCKED_PROPERTY                = "codenvy:locked";
+    public static final String RESOURCES_LOCKED_PROPERTY      = "codenvy:resources_locked";
+    public static final String PAYMENT_LOCKED_PROPERTY        = "codenvy:payment_locked";
 
     private Constants() {
     }

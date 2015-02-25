@@ -291,7 +291,7 @@ public class BuildQueue {
             throws BuilderException {
         checkStarted();
         final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
-        if (workspace.getAttributes().containsKey(com.codenvy.api.account.server.Constants.LOCKED_PROPERTY)) {
+        if (workspace.getAttributes().containsKey(com.codenvy.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY)) {
             throw new BuilderException("Build action for this workspace is locked");
         }
 

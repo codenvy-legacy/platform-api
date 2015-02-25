@@ -57,7 +57,6 @@ public interface ItemReference extends Hyperlinks {
     ItemReference withLinks(List<Link> links);
 
     /**
-     *
      * Attributes
      */
     Map<String, String> getAttributes();
@@ -65,4 +64,29 @@ public interface ItemReference extends Hyperlinks {
     void setAttributes(Map<String, String> attributes);
 
     ItemReference withAttributes(Map<String, String> attributes);
+
+
+    /** creating date. */
+    long getCreated();
+
+    void setCreated(long created);
+
+    ItemReference withCreated(long created);
+
+
+    /** last modified date. */
+    long getModified();
+
+    void setModified(long modified);
+
+    ItemReference withModified(long modified);
+
+
+    /** content length for file */
+    long getContentLength();
+
+    void setContentLength(long length);
+
+    ItemReference withContentLength(long length);
+
 }

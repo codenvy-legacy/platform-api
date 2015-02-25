@@ -82,9 +82,9 @@ public class ProjectTypeRegistry {
         return projectTypes.values();
     }
 
-    public List <ProjectType> getProjectTypes(Comparator<ProjectType> comparator) {
 
-        //List<ProjectType> list = new ArrayList<>(projectTypes.values());
+
+    public List <ProjectType> getProjectTypes(Comparator<ProjectType> comparator) {
 
         List<ProjectType> list = new ArrayList<>();
 

@@ -47,12 +47,12 @@ import com.codenvy.api.runner.internal.RunnerEvent;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.lang.Size;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
@@ -241,7 +241,7 @@ public class RunQueue {
     public void start() {
         if (started.compareAndSet(false, true)) {
             executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
-                                              new NamedThreadFactory("RunQueue-", true)) {
+                                              new ThreadFactoryBuilder().setNameFormat("RunQueue-").setDaemon(true).build()) {
                 @Override
                 protected void afterExecute(Runnable runnable, Throwable error) {
                     super.afterExecute(runnable, error);
@@ -281,7 +281,8 @@ public class RunQueue {
                     }
                 }
             };
-            cleanScheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("RunQueueScheduler-", true));
+            cleanScheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("RunQueueScheduler-")
+                                                                                                  .setDaemon(true).build());
             cleanScheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

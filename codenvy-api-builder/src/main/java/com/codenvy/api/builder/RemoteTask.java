@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.HttpOutputMessage;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.ByteStreams;
+import com.google.common.io.Closer;
 import com.google.common.io.InputSupplier;
 import com.google.common.io.OutputSupplier;
 
@@ -47,7 +48,8 @@ public class RemoteTask {
     private final Long   taskId;
     private final long   created;
 
-    /* Package visibility, not expected to be created by api users. They should use RemoteBuilder instead and get an instance of remote task. */
+    /* Package visibility, not expected to be created by api users. They should use RemoteBuilder instead and get an instance of remote
+    task. */
     RemoteTask(String baseUrl, String builder, Long taskId) {
         this.baseUrl = baseUrl;
         this.builder = builder;
@@ -241,7 +243,19 @@ public class RemoteTask {
             if (contentDisposition != null) {
                 output.addHttpHeader("Content-Disposition", contentDisposition);
             }
-            ByteStreams.copy(conn.getInputStream(), output.getOutputStream());
+
+
+            Closer closer = Closer.create();
+            try {
+                InputStream errorStream = closer.register(conn.getErrorStream());
+                InputStream in = errorStream != null ? errorStream : closer.register(conn.getInputStream());
+                ByteStreams.copy(in, closer.register(output.getOutputStream()));
+            } catch (Throwable e) {
+                throw closer.rethrow(e);
+            } finally {
+                closer.close();
+            }
+
         } finally {
             conn.disconnect();
         }

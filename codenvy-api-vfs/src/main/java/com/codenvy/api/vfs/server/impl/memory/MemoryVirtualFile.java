@@ -428,9 +428,14 @@ public class MemoryVirtualFile implements VirtualFile {
             public void visit(final VirtualFile virtualFile) {
                 try {
                     if (virtualFile.isFile()) {
-                        final String hexHash = ByteSource.concat().hash(hashFunction).toString();
-
-                        hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
+                        try (InputStream stream = virtualFile.getContent().getStream()) {
+                            final String hexHash = ByteSource.wrap(ByteStreams.toByteArray(stream)).hash(hashFunction).toString();
+                            hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
+                        } catch (ForbiddenException e) {
+                            throw new ServerException(e.getServiceError());
+                        } catch (IOException e) {
+                            throw new ServerException(e);
+                        }
                     } else {
                         final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
                         while (children.hasNext()) {
@@ -439,8 +444,6 @@ public class MemoryVirtualFile implements VirtualFile {
                     }
                 } catch (ServerException e) {
                     errorHolder.set(e);
-                } catch (IOException e) {
-                    e.printStackTrace();
                 }
             }
         });

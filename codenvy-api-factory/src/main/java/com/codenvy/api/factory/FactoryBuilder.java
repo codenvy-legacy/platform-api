@@ -20,7 +20,6 @@ import com.codenvy.api.factory.dto.FactoryV2_0;
 import com.codenvy.api.factory.dto.FactoryV2_1;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.vfs.shared.dto.ReplacementSet;
-import com.codenvy.commons.lang.Strings;
 import com.codenvy.commons.lang.URLEncodedUtils;
 import com.codenvy.dto.server.DtoFactory;
 import com.codenvy.dto.shared.DTO;
@@ -63,6 +62,7 @@ import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_PARA
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.UNPARSABLE_FACTORY_MESSAGE;
+import static com.google.common.base.Strings.emptyToNull;
 import static java.lang.String.format;
 
 /**
@@ -199,7 +199,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             default:
                 throw new ConflictException(INVALID_VERSION_MESSAGE);
         }
-        accountId = Strings.emptyToNull(accountId);
+        accountId = emptyToNull(accountId);
 
         validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, sourceFormat, accountId, "");
     }

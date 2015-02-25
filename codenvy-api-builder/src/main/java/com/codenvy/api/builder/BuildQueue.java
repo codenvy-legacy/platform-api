@@ -38,13 +38,13 @@ import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.lang.CollectionUtils;
-import com.codenvy.commons.lang.NamedThreadFactory;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
 import com.codenvy.commons.lang.cache.SynchronizedCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
@@ -564,7 +564,7 @@ public class BuildQueue {
     public void start() {
         if (started.compareAndSet(false, true)) {
             executor = new ThreadPoolExecutor(0, Integer.MAX_VALUE, 60L, TimeUnit.SECONDS, new SynchronousQueue<Runnable>(),
-                                              new NamedThreadFactory("BuildQueue-", true)) {
+                                              new ThreadFactoryBuilder().setNameFormat("BuildQueue-").setDaemon(true).build()) {
                 @Override
                 protected void afterExecute(Runnable runnable, Throwable error) {
                     super.afterExecute(runnable, error);
@@ -581,7 +581,8 @@ public class BuildQueue {
                     }
                 }
             };
-            scheduler = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("BuildQueueScheduler-", true));
+            scheduler = Executors.newSingleThreadScheduledExecutor(new ThreadFactoryBuilder().setNameFormat("BuildQueueScheduler-")
+                                                                                             .setDaemon(true).build());
             scheduler.scheduleAtFixedRate(new Runnable() {
                 @Override
                 public void run() {

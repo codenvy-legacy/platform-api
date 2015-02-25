@@ -45,8 +45,8 @@ import com.codenvy.commons.lang.Pair;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import com.google.common.io.ByteSource;
 import com.google.common.io.ByteStreams;
-import com.google.common.io.InputSupplier;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -428,21 +428,9 @@ public class MemoryVirtualFile implements VirtualFile {
             public void visit(final VirtualFile virtualFile) {
                 try {
                     if (virtualFile.isFile()) {
-                        try {
-                            final InputStream stream = virtualFile.getContent().getStream();
-                            final String hexHash = ByteStreams.hash(new InputSupplier<InputStream>() {
-                                @Override
-                                public InputStream getInput() throws IOException {
-                                    return stream;
-                                }
-                            }, hashFunction).toString();
+                        final String hexHash = ByteSource.concat().hash(hashFunction).toString();
 
-                            hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
-                        } catch (ForbiddenException e) {
-                            throw new ServerException(e.getServiceError());
-                        } catch (IOException e) {
-                            throw new ServerException(e);
-                        }
+                        hashes.add(Pair.of(hexHash, virtualFile.getPath().substring(trimPathLength)));
                     } else {
                         final LazyIterator<VirtualFile> children = virtualFile.getChildren(VirtualFileFilter.ALL);
                         while (children.hasNext()) {
@@ -451,6 +439,8 @@ public class MemoryVirtualFile implements VirtualFile {
                     }
                 } catch (ServerException e) {
                     errorHolder.set(e);
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
         });

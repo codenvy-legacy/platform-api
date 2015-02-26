@@ -10,6 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.builder;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
 import com.codenvy.api.builder.dto.BaseBuilderRequest;
 import com.codenvy.api.builder.dto.BuildOptions;
 import com.codenvy.api.builder.dto.BuildRequest;
@@ -37,13 +39,16 @@ import com.codenvy.api.project.shared.dto.ProjectDescriptor;
 import com.codenvy.api.workspace.server.WorkspaceService;
 import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.commons.env.EnvironmentContext;
-import com.codenvy.commons.lang.CollectionUtils;
+//import com.codenvy.commons.lang.CollectionUtils;
 import com.codenvy.commons.lang.cache.Cache;
 import com.codenvy.commons.lang.cache.SLRUCache;
 import com.codenvy.commons.lang.cache.SynchronizedCache;
 import com.codenvy.commons.lang.concurrent.ThreadLocalPropagateContext;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.base.MoreObjects;
+import com.google.common.base.Objects;
+import com.google.common.base.Preconditions;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.everrest.core.impl.provider.json.JsonUtils;
@@ -62,6 +67,7 @@ import javax.ws.rs.core.UriBuilder;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
@@ -424,15 +430,19 @@ public class BuildQueue {
                 //if builder not set in request we will use builder that set in ProjectDescriptor
                 request.setBuilder(builder);
                 //fill build configuration from ProjectDescriptor for default builder
-                fillBuildConfig(request, builder, builders.getConfigs());
+                fillBuildConfig(request,
+                                builder,
+                                firstNonNull(builders.getConfigs(), Collections.<String, BuilderConfiguration>emptyMap()));
             }
             if (builder == null) {
                 throw new BuilderException("Name of builder is not specified, be sure corresponded property of project is set");
             }
 
-        } else if (builder == null) {
+        } else {
             //fill build configuration from ProjectDescriptor for builder from request
-            fillBuildConfig(request, builder, builders.getConfigs());
+            fillBuildConfig(request,
+                            builder,
+                            firstNonNull(builders.getConfigs(), Collections.<String, BuilderConfiguration>emptyMap()));
         }
         request.setProjectDescriptor(descriptor);
         request.setProjectUrl(descriptor.getBaseUrl());
@@ -446,13 +456,10 @@ public class BuildQueue {
 
     private void fillBuildConfig(BaseBuilderRequest request, String builder, Map<String, BuilderConfiguration> buildersConfigs) {
         //here we going to check is ProjectDescriptor have some setting for giving builder form ProjectDescriptor
-        if (CollectionUtils.isNotEmpty(buildersConfigs) && buildersConfigs.containsKey(builder)) {
-            if (CollectionUtils.isEmpty(request.getOptions())) {
-                request.setOptions(buildersConfigs.get(builder).getOptions());
-            }
-            if (CollectionUtils.isEmpty(request.getTargets())) {
-                request.setTargets(buildersConfigs.get(builder).getTargets());
-            }
+        BuilderConfiguration builderConfig = buildersConfigs.get(builder);
+        if (builderConfig != null) {
+            request.setOptions(firstNonNull(builderConfig.getOptions(), Collections.<String, String>emptyMap()));
+            request.setTargets(firstNonNull(builderConfig.getTargets(), Collections.<String>emptyList()));
         }
     }
 

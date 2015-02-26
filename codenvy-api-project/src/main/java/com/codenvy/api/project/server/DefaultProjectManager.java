@@ -575,11 +575,7 @@ public final class DefaultProjectManager implements ProjectManager {
         if(projectConfig != null) {
             project.updateConfig(projectConfig);
         } else {  // try to get config (it will throw exception in case config is not valid)
-            try {
-                project.getConfig();
-            } catch (Exception e) {
-                // TODO add problems
-            }
+            project.getConfig();
         }
 
 

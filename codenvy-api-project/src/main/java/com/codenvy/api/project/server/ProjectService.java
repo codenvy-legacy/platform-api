@@ -25,6 +25,8 @@ import com.codenvy.api.core.util.LineConsumerFactory;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.notification.ProjectItemModifiedEvent;
 import com.codenvy.api.project.server.type.AttributeValue;
+import com.codenvy.api.project.server.type.ProjectType;
+import com.codenvy.api.project.server.type.ProjectTypeRegistry;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.*;
 import com.codenvy.api.vfs.server.ContentStream;
@@ -36,6 +38,7 @@ import com.codenvy.api.vfs.shared.dto.AccessControlEntry;
 import com.codenvy.api.vfs.shared.dto.Principal;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
+import com.google.common.base.Objects;
 import com.google.common.util.concurrent.ThreadFactoryBuilder;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -70,6 +73,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -79,6 +83,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
 
 /**
  * @author andrew00x
@@ -732,21 +738,20 @@ public class ProjectService extends Service {
     @Path("/import/{path:.*}")
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public ProjectDescriptor importProject(@ApiParam(value = "Workspace ID", required = true)
-                                           @PathParam("ws-id") String workspace,
-                                           @ApiParam(value = "Path in the project", required = true)
-                                           @PathParam("path") String path,
-                                           @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
-                                           @QueryParam("force") boolean force,
-                                           ImportProject importProject)
+    public ImportResponse importProject(@ApiParam(value = "Workspace ID", required = true)
+                                        @PathParam("ws-id") String workspace,
+                                        @ApiParam(value = "Path in the project", required = true)
+                                        @PathParam("path") String path,
+                                        @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
+                                        @QueryParam("force") boolean force,
+                                        ImportProject importProject)
             throws ConflictException, ForbiddenException, UnauthorizedException, IOException, ServerException, NotFoundException {
-
 
         final ImportSourceDescriptor projectSource = importProject.getSource().getProject();
         final ProjectImporter importer = importers.getImporter(projectSource.getType());
         if (importer == null) {
             throw new ServerException(String.format("Unable import sources project from '%s'. Sources type '%s' is not supported.",
-                    projectSource.getLocation(), projectSource.getType()));
+                                                    projectSource.getLocation(), projectSource.getType()));
         }
         // Preparing websocket output publisher to broadcast output of import process to the ide clients while importing
         final String fWorkspace = workspace;
@@ -778,75 +783,62 @@ public class ProjectService extends Service {
         final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
         importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
 
-        // Use resolver only if project type not set
-        ProjectProblem problem = null;
+        //project source already imported going to configure project
+        ImportResponse importResponse = DtoFactory.getInstance().createDto(ImportResponse.class);
+        ProjectTypeRegistry projectTypeRegistry = projectManager.getProjectTypeRegistry();
+        Project project;
+        ProjectDescriptor projectDescriptor;
+        ProjectConfig projectConfig = null;
         String visibility = null;
-        Project project = projectManager.getProject(workspace, path);
-
-        if (importProject.getProject() != null || project == null) {
-            String projectType = null;
-            if (importProject.getProject() != null) {
-                visibility = importProject.getProject().getVisibility();
-                 projectType = importProject.getProject().getType();
+        NewProject newProject = importProject.getProject();
+        //try convert folder to project with giving config
+        try {
+            if (newProject != null) {
+                projectConfig = DtoConverter.fromDto2(newProject, projectTypeRegistry);
+                visibility = newProject.getVisibility();
             }
-            Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-            for (ProjectTypeResolver resolver : resolvers) {
-                if (resolver.resolve((FolderEntry)virtualFile)) {
-                    problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(300)
-                            .withMessage("Project type detected via ProjectResolver");
-                    break;
-                }
-            }
-
-            // try to get project again after trying to resolve it
-            project = projectManager.getProject(workspace, path);
-
-            if (importProject.getProject() != null && projectType != null && !projectType.isEmpty()) {
-
-                final ProjectConfig providedConfig = DtoConverter.fromDto2(importProject.getProject(), projectManager.getProjectTypeRegistry());
-
-                if (project == null) {
-                    project = new Project(baseProjectFolder, projectManager);
-                }
-
-                Map<String, AttributeValue> estimateProject = projectManager.estimateProject(workspace, path, projectType);
-                if (estimateProject != null /*&& providedConfig.getAttributes().isEmpty()*/) {
-                    providedConfig.getAttributes().putAll(estimateProject);
-                }
-                project.updateConfig(providedConfig);
-
-            } else if (project == null) {
-                // create BLANK project type
-                project = new Project(baseProjectFolder, projectManager);
-                project.updateConfig(new ProjectConfig());
-                problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(301)
-                        .withMessage("Project type not detect so we set it as blank");
-
-            }
+            project = projectManager.convertFolderToProject(workspace,
+                                                            baseProjectFolder.getPath(),
+                                                            projectConfig,
+                                                            visibility);
+            projectDescriptor = DtoConverter.toDescriptorDto2(project,
+                                                              getServiceContext().getServiceUriBuilder(),
+                                                              projectManager.getProjectTypeRegistry());
+        } catch (ConflictException | ForbiddenException | ServerException | NotFoundException e) {
+            project = new NotValidProject(baseProjectFolder, projectManager);
+            projectDescriptor = DtoConverter.toDescriptorDto2(project,
+                                                              getServiceContext().getServiceUriBuilder(),
+                                                              projectManager.getProjectTypeRegistry());
+            ProjectProblem problem = DtoFactory.getInstance().createDto(ProjectProblem.class).withCode(1).withMessage(e.getMessage());
+            projectDescriptor.setProblems(Arrays.asList(problem));
         }
+        importResponse.setProjectDescriptor(projectDescriptor);
+        //we will add project type estimations any way
+        List<SourceEstimation> sourceEstimations = projectManager.resolveSources(workspace, baseProjectFolder.getPath(), false);
+        importResponse.setSourceEstimations(sourceEstimations);
+        reindexProject(creationDate, baseProjectFolder, project);
+        importRunnerEnvironment(importProject, baseProjectFolder);
+        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
+        logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
+        return importResponse;
+    }
 
-        // Some importers don't use virtual file system API and changes are not indexed.
-        // Force searcher to reindex project to fix such issues.
-        final VirtualFile file = project.getBaseFolder().getVirtualFile();
-        executor.execute(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
-                } catch (Exception e) {
-                    LOG.error(e.getMessage());
-                }
-            }
-        });
-        if (creationDate > 0) {
-            final ProjectMisc misc = project.getMisc();
-            misc.setCreationDate(creationDate);
-        }
-
+    /**
+     * Import runner environment tha configure in ImportProject
+     *
+     * @param importProject
+     * @param baseProjectFolder
+     * @throws ForbiddenException
+     * @throws ServerException
+     * @throws ConflictException
+     * @throws IOException
+     */
+    private void importRunnerEnvironment(ImportProject importProject, FolderEntry baseProjectFolder)
+            throws ForbiddenException, ServerException, ConflictException, IOException {
         VirtualFileEntry environmentsFolder = baseProjectFolder.getChild(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
         if (environmentsFolder != null && environmentsFolder.isFile()) {
             throw new ConflictException(String.format("Unable import runner environments. File with the name '%s' already exists.",
-                    Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR));
+                                                      Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR));
         } else if (environmentsFolder == null) {
             environmentsFolder = baseProjectFolder.createFolder(Constants.CODENVY_RUNNER_ENVIRONMENTS_DIR);
         }
@@ -868,45 +860,40 @@ public class ProjectService extends Service {
                     } else {
                         LOG.warn(
                                 "ProjectService.importProject :: not valid runner source location available only http or https scheme but" +
-                                        " we get :" +
-                                        runnerSourceLocation);
+                                " we get :" +
+                                runnerSourceLocation);
                     }
 
                 }
             }
         }
+    }
 
-        //set project visibility if needed
-        if (visibility != null) {
-            project.setVisibility(visibility);
-        }
 
-        //TODO: bad solutions add this temporary because don't know how fix it in other way
-        //TODO: will be fix soon. Don't remove this code
-        //TODO: Vitalii Parfonov
-        if(importer.getId().equals("subversion")){
-            ProjectConfig config = project.getConfig();
-            if (!config.getMixinTypes().contains("subversion")) {
-                config.getMixinTypes().add("subversion");
-                project.updateConfig(config);
+    /**
+     * Some importers don't use virtual file system API and changes are not indexed.
+     * Force searcher to reindex project to fix such issues.
+     * @param creationDate
+     * @param baseProjectFolder
+     * @param project
+     * @throws ServerException
+     */
+    private void reindexProject(long creationDate, FolderEntry baseProjectFolder, Project project) throws ServerException {
+        final VirtualFile file = baseProjectFolder.getVirtualFile();
+        executor.execute(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    searcherProvider.getSearcher(file.getMountPoint(), true).add(file);
+                } catch (Exception e) {
+                    LOG.error(e.getMessage());
+                }
             }
+        });
+        if (creationDate > 0) {
+            final ProjectMisc misc = project.getMisc();
+            misc.setCreationDate(creationDate);
         }
-
-        eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
-
-
-        final ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto2(project,
-                getServiceContext().getServiceUriBuilder(), projectManager.getProjectTypeRegistry());
-       
-
-        logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
-
-        if (problem != null) {
-            List<ProjectProblem> projectProblems = projectDescriptor.getProblems();
-            projectProblems.add(problem);
-            projectDescriptor.setProblems(projectProblems);
-        }
-        return projectDescriptor;
     }
 
     @ApiOperation(value = "Import zip",

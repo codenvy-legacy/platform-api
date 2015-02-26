@@ -310,45 +310,6 @@ public final class DefaultProjectManager implements ProjectManager {
         return module;
 
 
-//        if(module == null) {
-//
-//            if(moduleConfig == null)
-//                throw new ConflictException("Module not found on "+absModulePath+" and module configuration is not defined");
-//
-//            String parentPath = com.codenvy.api.vfs.server.Path.fromString(absModulePath).getParent().toString();
-//            String name = com.codenvy.api.vfs.server.Path.fromString(modulePath).getName();
-//            final VirtualFileEntry parentFolder = getProjectsRoot(workspace).getChild(parentPath);
-//            if(parentFolder == null || parentFolder.isFile())
-//                throw new NotFoundException("Parent Folder not found "+parentPath);
-//
-//            VirtualFileEntry moduleFolder = ((FolderEntry)parentFolder).getChild(name);
-//            if(moduleFolder == null)
-//                moduleFolder = ((FolderEntry)parentFolder).createFolder(name);
-//            else if(moduleFolder.isFile())
-//                throw new ConflictException("Item exists on "+absModulePath+" but is not a folder or project");
-//
-//            module = new Project((FolderEntry)moduleFolder, this);
-//
-//
-//            module.updateConfig(moduleConfig);
-//
-//            final ProjectMisc misc = module.getMisc();
-//            misc.setCreationDate(System.currentTimeMillis());
-//            misc.save(); // Important to save misc!!
-//
-//            if (visibility != null) {
-//                module.setVisibility(visibility);
-//            }
-//
-//            final CreateProjectHandler generator = this.getHandlers().getCreateProjectHandler(moduleConfig.getTypeId());
-//            if (generator != null) {
-//                generator.onCreateProject(module.getBaseFolder(), module.getConfig().getAttributes(), options);
-//            }
-//
-//        }
-
-
-
     }
 
     /**
@@ -530,16 +491,8 @@ public final class DefaultProjectManager implements ProjectManager {
             if (attr.isVariable() && ((Variable) attr).getValueProviderFactory() != null) {
 
                 Variable var = (Variable) attr;
-
-//                try {
-                // throws ValueStorageException
+                // getValue throws ValueStorageException if not valid
                 attributes.put(attr.getName(), var.getValue((FolderEntry)baseFolder));
-//                } catch (ValueStorageException e) {
-//                    if(var.isRequired())
-//                        throw e;
-//                    else
-//                        attributes.put(attr.getName(), null);
-//                }
             }
 
         }
@@ -589,4 +542,57 @@ public final class DefaultProjectManager implements ProjectManager {
 
         return estimations;
     }
+
+
+    /**
+     * Converts existed Folder to Project
+     *  - using projectConfig if it is not null or use internal metainformation (/.codenvy)
+     * @param workspace
+     * @param name
+     * @param projectConfig
+     * @param options
+     * @param visibility
+     * @return
+     * @throws ConflictException
+     * @throws ForbiddenException
+     * @throws ServerException
+     * @throws ProjectTypeConstraintException
+     */
+    public Project convertFolderToProject(String workspace, String path, ProjectConfig projectConfig,
+                                 String visibility)
+            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException, NotFoundException {
+
+
+        final VirtualFileEntry projectEntry = getProjectsRoot(workspace).getChild(path);
+        if(projectEntry == null || !projectEntry.isFolder())
+            throw new NotFoundException("Not found or not a folder "+path);
+
+        FolderEntry projectFolder = (FolderEntry) projectEntry;
+
+        final Project project = new Project(projectFolder, this);
+
+        // Update config
+        if(projectConfig != null) {
+            project.updateConfig(projectConfig);
+        } else {  // try to get config (it will throw exception in case config is not valid)
+            try {
+                project.getConfig();
+            } catch (Exception e) {
+                // TODO add problems
+            }
+        }
+
+
+        final ProjectMisc misc = project.getMisc();
+        misc.setCreationDate(System.currentTimeMillis());
+        misc.save(); // Important to save misc!!
+
+        if (visibility != null) {
+            project.setVisibility(visibility);
+        }
+
+        return project;
+    }
+
+
 }

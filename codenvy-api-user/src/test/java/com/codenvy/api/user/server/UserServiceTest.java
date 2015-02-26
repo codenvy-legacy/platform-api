@@ -13,6 +13,7 @@ package com.codenvy.api.user.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
 import com.codenvy.api.user.server.dao.UserProfileDao;
@@ -64,18 +65,21 @@ public class UserServiceTest {
     private final String SERVICE_PATH = BASE_URI + "/user";
 
     @Mock
-    private UserProfileDao     userProfileDao;
+    UserProfileDao     userProfileDao;
     @Mock
-    private UserDao            userDao;
+    UserDao            userDao;
     @Mock
-    private TokenValidator     tokenValidator;
+    TokenValidator     tokenValidator;
     @Mock
-    private UriInfo            uriInfo;
+    UriInfo            uriInfo;
     @Mock
-    private EnvironmentContext environmentContext;
+    EnvironmentContext environmentContext;
     @Mock
-    private SecurityContext    securityContext;
-    private ResourceLauncher   launcher;
+    PreferenceDao      preferenceDao;
+    @Mock
+    SecurityContext    securityContext;
+
+    ResourceLauncher launcher;
 
     @BeforeMethod
     public void setUp() throws Exception {
@@ -84,6 +88,7 @@ public class UserServiceTest {
         dependencies.addComponent(UserProfileDao.class, userProfileDao);
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(TokenValidator.class, tokenValidator);
+        dependencies.addComponent(PreferenceDao.class, preferenceDao);
         resources.addResource(UserService.class, null);
         EverrestProcessor processor = new EverrestProcessor(resources,
                                                             new ApplicationProviderBinder(),

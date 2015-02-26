@@ -13,8 +13,8 @@ package com.codenvy.api.factory;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
 
 import org.mockito.Mock;
 import org.mockito.testng.MockitoTestNGListener;
@@ -36,7 +36,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
     private UserDao userDao;
 
     @Mock
-    private UserProfileDao profileDao;
+    private PreferenceDao preferenceDao;
 
     @Mock
     private Factory factoryUrl;
@@ -47,8 +47,8 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        acceptValidator = new FactoryAcceptValidatorImpl(accountDao, userDao, profileDao, false);
-        createValidator = new FactoryCreateValidatorImpl(accountDao, userDao, profileDao, false);
+        acceptValidator = new FactoryAcceptValidatorImpl(accountDao, userDao, preferenceDao, false);
+        createValidator = new FactoryCreateValidatorImpl(accountDao, userDao, preferenceDao, false);
     }
 
     @Test

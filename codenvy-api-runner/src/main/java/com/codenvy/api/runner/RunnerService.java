@@ -325,7 +325,7 @@ public class RunnerService extends Service {
     @GET
     @Path("/recipe")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getRecipe(@PathParam("id") final String id) throws Exception {
+    public String getRecipe(@QueryParam("id") final String id) throws Exception {
         java.nio.file.Path dockerParentPath = Paths.get(dockerfilesRepository);
         if (dockerfilesRepository == null || !Files.exists(dockerParentPath) || !Files.isDirectory(dockerParentPath)) {
             throw new NotFoundException("The configuration of docker repository wasn't found or " +

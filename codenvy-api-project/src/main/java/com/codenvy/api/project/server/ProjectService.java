@@ -22,6 +22,7 @@ import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.LineConsumerFactory;
+import com.codenvy.api.project.server.handlers.PostImportProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.notification.ProjectItemModifiedEvent;
 import com.codenvy.api.project.server.type.AttributeValue;
@@ -802,6 +803,11 @@ public class ProjectService extends Service {
             projectDescriptor = DtoConverter.toDescriptorDto2(project,
                                                               getServiceContext().getServiceUriBuilder(),
                                                               projectManager.getProjectTypeRegistry());
+            PostImportProjectHandler postImportProjectHandler =
+                    projectHandlerRegistry.getPostImportProjectHandler(projectDescriptor.getType());
+            if (postImportProjectHandler != null) {
+                postImportProjectHandler.onProjectImported(project.getBaseFolder());
+            }
         } catch (ConflictException | ForbiddenException | ServerException | NotFoundException e) {
             project = new NotValidProject(baseProjectFolder, projectManager);
             projectDescriptor = DtoConverter.toDescriptorDto2(project,

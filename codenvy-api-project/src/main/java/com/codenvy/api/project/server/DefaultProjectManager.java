@@ -548,9 +548,7 @@ public final class DefaultProjectManager implements ProjectManager {
      * Converts existed Folder to Project
      *  - using projectConfig if it is not null or use internal metainformation (/.codenvy)
      * @param workspace
-     * @param name
      * @param projectConfig
-     * @param options
      * @param visibility
      * @return
      * @throws ConflictException
@@ -558,9 +556,9 @@ public final class DefaultProjectManager implements ProjectManager {
      * @throws ServerException
      * @throws ProjectTypeConstraintException
      */
-    public Project convertFolderToProject(String workspace, String path, ProjectConfig projectConfig,
-                                 String visibility)
-            throws ConflictException, ForbiddenException, ServerException, ProjectTypeConstraintException, NotFoundException {
+    @Override
+    public Project convertFolderToProject(String workspace, String path, ProjectConfig projectConfig, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException {
 
 
         final VirtualFileEntry projectEntry = getProjectsRoot(workspace).getChild(path);
@@ -573,6 +571,9 @@ public final class DefaultProjectManager implements ProjectManager {
 
         // Update config
         if(projectConfig != null) {
+            //TODO: need add checking for concurebcy attributes name in giving config and in estimation
+            Map<String, AttributeValue> estimateProject = estimateProject(workspace, path, projectConfig.getTypeId());
+            projectConfig.getAttributes().putAll(estimateProject);
             project.updateConfig(projectConfig);
         } else {  // try to get config (it will throw exception in case config is not valid)
             project.getConfig();

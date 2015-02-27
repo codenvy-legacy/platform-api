@@ -91,30 +91,28 @@ public class DtoConverter {
     }
 
     public static ProjectConfig fromDto2(ProjectUpdate dto, ProjectTypeRegistry typeRegistry) throws ServerException,
-            ProjectTypeConstraintException, InvalidValueException, ValueStorageException {
+                                                                                                     ProjectTypeConstraintException,
+                                                                                                     InvalidValueException,
+                                                                                                     ValueStorageException {
         final String typeId = dto.getType();
         ProjectType projectType;
         if (typeId == null) {
-            // Treat type as blank type if type is not set in .codenvy/project.json
-            projectType = new BaseProjectType();
+            throw new ProjectTypeConstraintException("Project Type not found in giving config");
         } else {
             projectType = typeRegistry.getProjectType(typeId);
             if (projectType == null) {
-                throw new ProjectTypeConstraintException("Project Type not found "+typeId);
+                throw new ProjectTypeConstraintException("Project Type not found " + typeId);
             }
         }
 
-
-
         final Map<String, List<String>> updateAttributes = dto.getAttributes();
-        final HashMap <String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
-
+        final HashMap<String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
 
         if (!updateAttributes.isEmpty()) {
             for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
 
                 Attribute attr = projectType.getAttribute(e.getKey());
-                if(attr != null)  {
+                if (attr != null) {
                     attributes.put(attr.getName(), new AttributeValue(e.getValue()));
 
                 }
@@ -122,7 +120,7 @@ public class DtoConverter {
         }
 
         return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
-                fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
+                                 fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
     }
 
 

@@ -31,10 +31,9 @@ import com.codenvy.api.factory.dto.Workspace;
 import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
 import com.codenvy.api.project.shared.dto.NewProject;
 import com.codenvy.api.project.shared.dto.Source;
-import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.collect.ImmutableMap;
 
@@ -74,7 +73,7 @@ public class FactoryBaseValidatorTest {
     private UserDao userDao;
 
     @Mock
-    private UserProfileDao profileDao;
+    private PreferenceDao preferenceDao;
 
     @Mock
     private FactoryBuilder builder;
@@ -112,9 +111,8 @@ public class FactoryBaseValidatorTest {
         when(accountDao.getSubscriptions(ID, "Factory")).thenReturn(Arrays.asList(subscription));
         when(accountDao.getMembers(anyString())).thenReturn(Arrays.asList(member));
         when(userDao.getById("userid")).thenReturn(user);
-        when(profileDao.getById(anyString())).thenReturn(new Profile());
 
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
     }
 
     @Test
@@ -491,7 +489,7 @@ public class FactoryBaseValidatorTest {
                                        .withRefererHostname("codenvy.com"))
                .withActions(dtoFactory.createDto(Actions.class)
                                       .withWelcome(dtoFactory.createDto(WelcomePage.class)));
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, true);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, true);
 
         validator.validateAccountId(factory);
         validator.validateTrackedFactoryAndParams(factory);
@@ -501,7 +499,7 @@ public class FactoryBaseValidatorTest {
           expectedExceptions = ConflictException.class,
           expectedExceptionsMessageRegExp = "(?s)You do not have a valid accountId. Your Factory configuration has a parameter that.*")
     public void shouldNotValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesFalse(Factory factory) throws Exception {
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
 
         validator.validateTrackedFactoryAndParams(dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId(null)));
     }
@@ -509,7 +507,7 @@ public class FactoryBaseValidatorTest {
 
     @Test(dataProvider = "trackedFactoryParameterWithoutValidAccountId")
     public void shouldNotFailValidateTrackedParamsIfOrgIdIsMissingAndOnPremisesTrue(Factory factory) throws Exception {
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, true);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, true);
 
         validator.validateTrackedFactoryAndParams(dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId(null)));
     }
@@ -518,7 +516,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateTrackedParamsIfSubscriptionIsMissing() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
         when(accountDao.getSubscriptions(eq("accountId-1243"), eq("Factory"))).thenReturn(Collections.<Subscription>emptyList());
         //when
@@ -528,7 +526,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateTrackedParamsIfSubscriptionIsNotFound() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         Factory factoryWithAccountId = dto.clone(factory).withCreator(dto.createDto(Author.class).withAccountId("accountId-1243"));
         when(accountDao.getSubscriptions(eq("accountId-1243"), eq("Factory"))).thenThrow(NotFoundException.class);
         //when
@@ -538,7 +536,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateOpenfileActionIfInWrongSectionOnAppClosed() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
         Ide ide = dto.createDto(Ide.class).withOnAppClosed(dto.createDto(OnAppClosed.class).withActions(actions));
         Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
@@ -549,7 +547,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateFindReplaceActionIfInWrongSectionOnAppLoaded() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("findReplace"));
         Ide ide = dto.createDto(Ide.class).withOnAppLoaded(dto.createDto(OnAppLoaded.class).withActions(actions));
         Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
@@ -560,7 +558,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateIfOpenfileActionInsufficientParams() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile"));
         Ide ide = dto.createDto(Ide.class).withOnProjectOpened(dto.createDto(OnProjectOpened.class).withActions(actions));
         Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
@@ -571,7 +569,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateIfOpenWelcomePageActionInsufficientParams() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openWelcomePage"));
         Ide ide = dto.createDto(Ide.class).withOnAppLoaded((dto.createDto(OnAppLoaded.class).withActions(actions)));
         Factory factoryWithAccountId = dto.clone(factory).withIde(ide);
@@ -582,7 +580,7 @@ public class FactoryBaseValidatorTest {
     @Test(expectedExceptions = ConflictException.class)
     public void shouldNotValidateIfFindReplaceActionInsufficientParams() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         Map<String, String> params = new HashMap<>();
         params.put("in", "pom.xml");
         // find is missing!
@@ -598,7 +596,7 @@ public class FactoryBaseValidatorTest {
     @Test
     public void shouldValidateFindReplaceAction() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         Map<String, String> params = new HashMap<>();
         params.put("in", "pom.xml");
         params.put("find", "123");
@@ -614,7 +612,7 @@ public class FactoryBaseValidatorTest {
     @Test
     public void shouldValidateOpenfileAction() throws Exception {
         //given
-        validator = new TestFactoryBaseValidator(accountDao, userDao, profileDao, false);
+        validator = new TestFactoryBaseValidator(accountDao, userDao, preferenceDao, false);
         Map<String, String> params = new HashMap<>();
         params.put("file", "pom.xml");
         List<Action> actions = Arrays.asList(dto.createDto(Action.class).withId("openFile").withProperties(params));

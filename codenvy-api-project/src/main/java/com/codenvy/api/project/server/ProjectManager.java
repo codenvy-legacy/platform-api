@@ -148,4 +148,7 @@ public interface ProjectManager {
 
     List<SourceEstimation> resolveSources(String workspace, String path, boolean transientOnly) throws ServerException, ForbiddenException,
             NotFoundException, ValueStorageException, ProjectTypeConstraintException;
+
+    Project convertFolderToProject(String workspace, String path, ProjectConfig projectConfig, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException;
 }

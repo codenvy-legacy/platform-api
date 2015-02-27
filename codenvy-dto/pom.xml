@@ -49,6 +49,10 @@
                     <artifactId>dom4j</artifactId>
                     <groupId>dom4j</groupId>
                 </exclusion>
+                <exclusion>
+                    <artifactId>guava</artifactId>
+                    <groupId>com.google.guava</groupId>
+                </exclusion>
             </exclusions>
         </dependency>
         <dependency>

@@ -14,7 +14,6 @@ package com.codenvy.api.workspace.server;
 import com.codenvy.api.account.server.dao.Account;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.account.server.dao.Subscription;
-import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
@@ -27,6 +26,7 @@ import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.util.LinksHelper;
 import com.codenvy.api.project.server.ProjectService;
 import com.codenvy.api.user.server.UserService;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -42,7 +42,6 @@ import com.codenvy.api.workspace.shared.dto.WorkspaceDescriptor;
 import com.codenvy.api.workspace.shared.dto.WorkspaceReference;
 import com.codenvy.api.workspace.shared.dto.WorkspaceUpdate;
 import com.codenvy.commons.env.EnvironmentContext;
-import com.codenvy.commons.lang.NameGenerator;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.Api;
 import com.wordnik.swagger.annotations.ApiOperation;
@@ -88,6 +87,7 @@ import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_GET_WORKSPACE_MEMBERS;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE;
 import static com.codenvy.api.workspace.server.Constants.LINK_REL_REMOVE_WORKSPACE_MEMBER;
+import static com.codenvy.commons.lang.NameGenerator.generate;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
@@ -112,6 +112,7 @@ public class WorkspaceService extends Service {
     private final MemberDao      memberDao;
     private final UserProfileDao profileDao;
     private final AccountDao     accountDao;
+    private final PreferenceDao  preferenceDao;
     private final boolean        isOrgAddonEnabledByDefault;
 
     @Inject
@@ -120,12 +121,14 @@ public class WorkspaceService extends Service {
                             MemberDao memberDao,
                             UserProfileDao profileDao,
                             AccountDao accountDao,
+                            PreferenceDao preferenceDao,
                             @Named("subscription.orgaddon.enabled") String isOrgAddonEnabledByDefault) {
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
         this.profileDao = profileDao;
         this.accountDao = accountDao;
+        this.preferenceDao = preferenceDao;
         this.isOrgAddonEnabledByDefault = parseBoolean(isOrgAddonEnabledByDefault);
     }
 
@@ -202,7 +205,7 @@ public class WorkspaceService extends Service {
             newWorkspace.getAttributes().put("codenvy:role", "extra");
         }
 
-        final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
+        final Workspace workspace = new Workspace().withId(generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(false)
                                                    .withAccountId(newWorkspace.getAccountId())
@@ -265,7 +268,7 @@ public class WorkspaceService extends Service {
         if (newWorkspace.getAttributes() != null) {
             validateAttributes(newWorkspace.getAttributes());
         }
-        final Workspace workspace = new Workspace().withId(NameGenerator.generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
+        final Workspace workspace = new Workspace().withId(generate(Workspace.class.getSimpleName().toLowerCase(), ID_LENGTH))
                                                    .withName(newWorkspace.getName())
                                                    .withTemporary(true)
                                                    .withAccountId(newWorkspace.getAccountId())
@@ -873,19 +876,21 @@ public class WorkspaceService extends Service {
     }
 
     private User createTemporaryUser() throws ConflictException, ServerException, NotFoundException {
-        final User user = new User().withId(NameGenerator.generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH));
+        final String id = generate("tmp_user", com.codenvy.api.user.server.Constants.ID_LENGTH);
+
+        //creating user
+        final User user = new User().withId(id);
         userDao.create(user);
-        try {
-            final Map<String, String> attributes = new HashMap<>(4);
-            attributes.put("temporary", String.valueOf(true));
-            attributes.put("codenvy:created", Long.toString(System.currentTimeMillis()));
-            profileDao.create(new Profile().withId(user.getId())
-                                           .withUserId(user.getId())
-                                           .withAttributes(attributes));
-        } catch (ApiException e) {
-            userDao.remove(user.getId());
-            throw e;
-        }
+
+        //creating profile for it
+        profileDao.create(new Profile().withId(id).withUserId(id));
+
+        //storing preferences
+        final Map<String, String> preferences = new HashMap<>(4);
+        preferences.put("temporary", String.valueOf(true));
+        preferences.put("codenvy:created", Long.toString(System.currentTimeMillis()));
+        preferenceDao.setPreferences(id, preferences);
+
         return user;
     }
 

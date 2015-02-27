@@ -38,7 +38,9 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.CheckForNull;
 import javax.inject.Inject;
+import javax.inject.Named;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -49,9 +51,19 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.FileVisitor;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.attribute.BasicFileAttributes;
+import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+
+import static java.nio.file.FileVisitResult.CONTINUE;
+import static java.nio.file.FileVisitResult.TERMINATE;
 
 /**
  * RESTful API for RunQueue.
@@ -63,10 +75,16 @@ import java.util.List;
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")
 public class RunnerService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+    private static final String DOCKERFILES_REPO = "runner.docker.dockerfiles_repo";
+    private static final Logger LOG              = LoggerFactory.getLogger(RunnerService.class);
 
     @Inject
     private RunQueue runQueue;
+    @Inject
+    @Named(DOCKERFILES_REPO)
+    @CheckForNull
+    private String   dockerfilesRepository;
+
 
     @ApiOperation(value = "Run project",
                   notes = "Run selected project",
@@ -295,4 +313,59 @@ public class RunnerService extends Service {
         // Response write directly to the servlet request stream
         runQueue.getTask(id).readRecipeFile(new HttpServletProxyResponse(httpServletResponse));
     }
+
+    @ApiOperation(value = "Get recipe",
+                  notes = "Get content of a Dockerfile",
+                  position = 9)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GenerateLink(rel = Constants.LINK_REL_GET_RECIPE)
+    @GET
+    @Path("/recipe")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getRecipe(@PathParam("id") final String id) throws Exception {
+        java.nio.file.Path dockerParentPath = Paths.get(dockerfilesRepository);
+        if (dockerfilesRepository == null || !Files.exists(dockerParentPath) || !Files.isDirectory(dockerParentPath)) {
+            throw new NotFoundException("The configuration of docker repository wasn't found or " +
+                                        "some problem with configuration was found.");
+        }
+
+        final StringBuilder content = new StringBuilder();
+        Files.walkFileTree(dockerParentPath, new FileVisitor<java.nio.file.Path>() {
+            @Override
+            public FileVisitResult preVisitDirectory(java.nio.file.Path dir, BasicFileAttributes attrs) throws IOException {
+                return CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
+                if (file.endsWith(id)) {
+                    content.append(Arrays.toString(Files.readAllBytes(file)));
+                    return TERMINATE;
+                } else {
+                    return CONTINUE;
+                }
+            }
+
+            @Override
+            public FileVisitResult visitFileFailed(java.nio.file.Path file, IOException exc) throws IOException {
+                return CONTINUE;
+            }
+
+            @Override
+            public FileVisitResult postVisitDirectory(java.nio.file.Path dir, IOException exc) throws IOException {
+                return CONTINUE;
+            }
+        });
+
+        String result = content.toString();
+        if (result.isEmpty()) {
+            throw new NotFoundException("The content of file wasn't found. Probably you put in incorrect id of configuration etc");
+        }
+
+        return result;
+    }
+
 }

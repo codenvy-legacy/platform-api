@@ -24,6 +24,7 @@ import com.codenvy.api.core.util.ValueHolder;
 
 import com.codenvy.api.project.server.handlers.CreateProjectHandler;
 import com.codenvy.api.project.server.handlers.GetItemHandler;
+import com.codenvy.api.project.server.handlers.GetModulesHandler;
 import com.codenvy.api.project.server.handlers.PostImportProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandler;
 import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
@@ -283,6 +284,66 @@ public class ProjectServiceTest {
         assertNotNull(result);
 
         assertEquals(result.size(), 1);
+        ProjectDescriptor moduleDescriptor = result.get(0);
+        assertEquals(moduleDescriptor.getDescription(), "my test module");
+        assertEquals(moduleDescriptor.getType(), "testGetModules");
+        //Assert.assertEquals(moduleDescriptor.getTypeName(), "my module type");
+        assertEquals(moduleDescriptor.getVisibility(), "public");
+        validateProjectLinks(moduleDescriptor);
+    }
+
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void testGetModulesWithHandler() throws Exception {
+
+        ProjectType pt = new ProjectType("testGetModules", "my module type", true, false) {
+
+            {
+                addConstantDefinition("my_module_attribute", "attr description", "attribute value 1");
+            }
+
+        };
+        pm.getProjectTypeRegistry().registerProjectType(pt);
+
+        Project myProject = pm.getProject(workspace, "my_project");
+
+        ProjectConfig config = new ProjectConfig("my test module", pt.getId());
+
+        FolderEntry moduleFolder = myProject.getBaseFolder().createFolder("my_module");
+        Project module = new Project(moduleFolder, pm);
+        module.updateConfig(config);
+        myProject.getModules().add("my_module");
+
+        //create other module but not add to modules should be added to response by handler
+        final FolderEntry moduleFolder2 = myProject.getBaseFolder().createFolder("my_module2");
+        Project module2 = new Project(moduleFolder2, pm);
+        module2.updateConfig(config);
+
+        phRegistry.register(new GetModulesHandler() {
+            @Override
+            public void onGetModules(FolderEntry parentProjectFolder, final List<String> modulesPath)
+                    throws ForbiddenException, ServerException, NotFoundException, IOException {
+                FolderEntry child = (FolderEntry)parentProjectFolder.getChild("my_module2");
+                if (child.isProjectFolder()) {
+                    modulesPath.add(child.getPath());
+                }
+            }
+
+            @Override
+            public String getProjectType() {
+                return "my_project_type";
+            }
+        });
+
+        ContainerResponse response = launcher.service("GET",
+                                                      String.format("http://localhost:8080/api/project/%s/modules/my_project", workspace),
+                                                      "http://localhost:8080/api", null, null, null);
+        assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
+        List<ProjectDescriptor> result = (List<ProjectDescriptor>)response.getEntity();
+        assertNotNull(result);
+
+        assertEquals(result.size(), 2);
         ProjectDescriptor moduleDescriptor = result.get(0);
         assertEquals(moduleDescriptor.getDescription(), "my test module");
         assertEquals(moduleDescriptor.getType(), "testGetModules");
@@ -676,8 +737,6 @@ public class ProjectServiceTest {
                                                       DtoFactory.getInstance().toJson(descriptor).getBytes(),
                                                       null);
         assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-
-        ProjectDescriptor desc = (ProjectDescriptor)response.getEntity();
 
         Project project = pm.getProject(workspace, "testUpdateProject");
         assertNotNull(project);
@@ -1686,146 +1745,6 @@ public class ProjectServiceTest {
         Assert.assertTrue(environments.isFolder());
     }
 
-//    @Test
-    public void testImportNotConfigProjectWithoutResolvers() throws Exception {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ZipOutputStream zipOut = new ZipOutputStream(bout);
-        zipOut.putNextEntry(new ZipEntry("folder1/"));
-        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
-        zipOut.write("to be or not to be".getBytes());
-        zipOut.close();
-        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
-        final String importType = "_123_";
-        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
-        Set<ProjectTypeResolver> resolvers = resolverRegistry.getResolvers();
-        for (ProjectTypeResolver resolver : resolvers) {//unregistered all resolvers
-            resolverRegistry.unregister(resolver);
-        }
-
-        importerRegistry.register(new ProjectImporter() {
-            @Override
-            public String getId() {
-                return importType;
-            }
-
-
-            @Override
-            public boolean isInternal() {
-                return false;
-            }
-
-            @Override
-            public String getDescription() {
-                return "Chuck importer";
-            }
-
-            @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
-                    throws ConflictException, ServerException, ForbiddenException {
-                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
-            }
-
-            @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
-                                      LineConsumerFactory importOutputConsumerFactory)
-                    throws ConflictException, ServerException, ForbiddenException {
-                // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true, 0);
-                folderHolder.set(baseFolder);
-            }
-
-
-            @Override
-            public ImporterCategory getCategory() {
-                return ImporterCategory.ARCHIVE;
-            }
-        });
-
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"source\":{\"project\":{\"location\":null,\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}}", importType).getBytes();
-        ContainerResponse response = launcher.service("POST",
-                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
-                                                      "http://localhost:8080/api", headers, b, null);
-        assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        ImportResponse importResponse = (ImportResponse)response.getEntity();
-        assertEquals(importResponse.getProjectDescriptor().getType(), "blank");
-        Project newProject = pm.getProject(workspace, "new_project");
-        assertNotNull(newProject);
-        assertNotNull(newProject.getConfig());
-        assertEquals("blank", newProject.getConfig().getTypeId());
-    }
-
-
-
-
-//    @Test
-    public void testProjectTypeResolver() throws Exception {
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ZipOutputStream zipOut = new ZipOutputStream(bout);
-        zipOut.putNextEntry(new ZipEntry("folder1/"));
-        zipOut.putNextEntry(new ZipEntry("folder1/file1.txt"));
-        zipOut.write("to be or not to be".getBytes());
-        zipOut.close();
-        final InputStream zip = new ByteArrayInputStream(bout.toByteArray());
-        final String importType = "_123_";
-        final ValueHolder<FolderEntry> folderHolder = new ValueHolder<>();
-        importerRegistry.register(new ProjectImporter() {
-            @Override
-            public String getId() {
-                return importType;
-            }
-
-
-            @Override
-            public boolean isInternal() {
-                return false;
-            }
-
-            @Override
-            public String getDescription() {
-                return "Chuck importer";
-            }
-
-            @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters)
-                    throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
-                importSources(baseFolder, location, parameters, LineConsumerFactory.NULL);
-            }
-
-            @Override
-            public void importSources(FolderEntry baseFolder, String location, Map<String, String> parameters,
-                                      LineConsumerFactory importOutputConsumerFactory)
-                    throws ForbiddenException, ConflictException, UnauthorizedException, IOException, ServerException {
-                // Don't really use location in this test.
-                baseFolder.getVirtualFile().unzip(zip, true, 0);
-                folderHolder.set(baseFolder);
-            }
-
-
-            @Override
-            public ImporterCategory getCategory() {
-                return ImporterCategory.ARCHIVE;
-            }
-        });
-
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/json"));
-        byte[] b = String.format("{\"source\":{\"project\":{\"location\":null,\"type\":\"%s\",\"parameters\":{}},\"runners\":{}}}", importType).getBytes();
-        ContainerResponse response = launcher.service("POST",
-                                                      String.format("http://localhost:8080/api/project/%s/import/new_project", workspace),
-                                                      "http://localhost:8080/api", headers, b, null);
-        assertEquals(response.getStatus(), 200, "Error: " + response.getEntity());
-        ProjectDescriptor descriptor = (ProjectDescriptor)response.getEntity();
-        assertEquals(descriptor.getType(), "my_project_type");
-        assertNotNull(descriptor.getProblems());
-        Assert.assertTrue(descriptor.getProblems().size()>0);
-        assertEquals(300, descriptor.getProblems().get(0).getCode());
-        Project newProject = pm.getProject(workspace, "new_project");
-        assertNotNull(newProject);
-    }
-
-
     @Test
     public void testImportZip() throws Exception {
         Project myProject = pm.getProject(workspace, "my_project");
@@ -1850,33 +1769,6 @@ public class ProjectServiceTest {
         assertNotNull(myProject.getBaseFolder().getChild("a/b/folder1/file1.txt"));
     }
 
-
-    public void testImportZipWithSkipFirstLevel() throws Exception {
-        Project myProject = pm.getProject(workspace, "my_project");
-        myProject.getBaseFolder().createFolder("a/b");
-
-
-        ByteArrayOutputStream bout = new ByteArrayOutputStream();
-        ZipOutputStream zipOut = new ZipOutputStream(bout);
-        zipOut.putNextEntry(new ZipEntry("folder1/"));
-        zipOut.putNextEntry(new ZipEntry("folder1/folder2/"));
-        zipOut.putNextEntry(new ZipEntry("folder1/folder2/file1.txt"));
-        zipOut.write("to be or not to be".getBytes());
-        zipOut.close();
-        byte[] zip = bout.toByteArray();
-        Map<String, List<String>> headers = new HashMap<>();
-        headers.put("Content-Type", Arrays.asList("application/zip"));
-        ContainerResponse response = launcher.service("POST",
-                                                      String.format("http://localhost:8080/api/project/%s/import/my_project/a/b?skipFirstLevel=true",
-                                                                    workspace),
-                                                      "http://localhost:8080/api", headers, zip, null);
-        assertEquals(response.getStatus(), 201, "Error: " + response.getEntity());
-        assertEquals(response.getHttpHeaders().getFirst("Location"),
-                     URI.create(String.format("http://localhost:8080/api/project/%s/children/my_project/a/b", workspace)));
-        Assert.assertNull(myProject.getBaseFolder().getChild("a/b/folder1/"));
-        assertNotNull(myProject.getBaseFolder().getChild("a/b/folder2/"));
-        assertNotNull(myProject.getBaseFolder().getChild("a/b/folder2/file1.txt"));
-    }
 
     @Test
     public void testImportZipWithoutSkipFirstLevel() throws Exception {
@@ -2527,7 +2419,7 @@ public class ProjectServiceTest {
                     @Override
                     public List<String> getValues(String attributeName) throws ValueStorageException {
 
-                        VirtualFileEntry file = null;
+                        VirtualFileEntry file;
                         try {
                             file = projectFolder.getChild("check");
                         } catch (ForbiddenException e) {

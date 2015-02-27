@@ -10,18 +10,20 @@
  *******************************************************************************/
 package com.codenvy.api.project.server.handlers;
 
-import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.project.server.FolderEntry;
 
 import java.io.IOException;
+import java.util.List;
 
 /**
  * @author Vitaly Parfonov
  */
-public interface PostImportProjectHandler extends ProjectHandler {
+public interface GetModulesHandler extends ProjectHandler {
 
-    void onProjectImported(FolderEntry projectFolder) throws ForbiddenException, ConflictException, ServerException, IOException, NotFoundException;
+    void onGetModules(FolderEntry parentProjectFolder, List<String> modulesPath)
+            throws ForbiddenException, ServerException, NotFoundException, IOException;
+
 }

@@ -13,8 +13,8 @@ package com.codenvy.api.factory;
 import com.codenvy.api.account.server.dao.AccountDao;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.factory.dto.Factory;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
 
 import javax.inject.Inject;
 import javax.inject.Named;
@@ -28,9 +28,8 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
     @Inject
     public FactoryAcceptValidatorImpl(AccountDao accountDao,
                                       UserDao userDao,
-                                      UserProfileDao profileDao) {
-
-        super(accountDao, userDao, profileDao);
+                                      PreferenceDao preferenceDao) {
+        super(accountDao,userDao, preferenceDao);
     }
 
     @Override

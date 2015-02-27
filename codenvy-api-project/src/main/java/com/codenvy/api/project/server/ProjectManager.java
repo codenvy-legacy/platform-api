@@ -67,8 +67,6 @@ public interface ProjectManager {
      *         id of workspace
      * @param name
      *         project's name
-     * @param projectDescription
-     *         project description
      * @return newly created project
      * @throws ConflictException
      *         if operation causes conflict, e.g. name conflict if project with specified name already exists
@@ -148,4 +146,7 @@ public interface ProjectManager {
 
     List<SourceEstimation> resolveSources(String workspace, String path, boolean transientOnly) throws ServerException, ForbiddenException,
             NotFoundException, ValueStorageException, ProjectTypeConstraintException;
+
+    Project convertFolderToProject(String workspace, String path, ProjectConfig projectConfig, String visibility)
+            throws ConflictException, ForbiddenException, ServerException, NotFoundException;
 }

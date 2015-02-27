@@ -24,10 +24,9 @@ import com.codenvy.api.factory.dto.OnProjectOpened;
 import com.codenvy.api.factory.dto.Policies;
 import com.codenvy.api.factory.dto.WelcomePage;
 import com.codenvy.api.factory.dto.Workspace;
-import com.codenvy.api.user.server.dao.Profile;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -43,6 +42,7 @@ import static com.codenvy.api.factory.FactoryConstants.INVALID_OPENFILE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.INVALID_WELCOME_PAGE_ACTION;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE;
 import static com.codenvy.api.factory.FactoryConstants.PARAMETRIZED_ILLEGAL_TRACKED_PARAMETER_MESSAGE;
+import static java.lang.Boolean.parseBoolean;
 import static com.google.common.base.Strings.emptyToNull;
 import static com.google.common.base.Strings.isNullOrEmpty;
 import static java.lang.String.format;
@@ -58,16 +58,16 @@ public abstract class FactoryBaseValidator {
 
 
 
-    private final AccountDao     accountDao;
-    private final UserDao        userDao;
-    private final UserProfileDao profileDao;
+    private final AccountDao    accountDao;
+    private final UserDao       userDao;
+    private final PreferenceDao preferenceDao;
 
     public FactoryBaseValidator(AccountDao accountDao,
                                 UserDao userDao,
-                                UserProfileDao profileDao) {
+                                PreferenceDao preferenceDao) {
         this.accountDao = accountDao;
         this.userDao = userDao;
-        this.profileDao = profileDao;
+        this.preferenceDao = preferenceDao;
     }
 
     /**
@@ -144,9 +144,8 @@ public abstract class FactoryBaseValidator {
         }
 
         try {
-            User user = userDao.getById(userId);
-            Profile profile = profileDao.getById(userId);
-            if (profile.getAttributes() != null && "true".equals(profile.getAttributes().get("temporary"))) {
+            Map<String, String> preferences = preferenceDao.getPreferences(userId);
+            if (parseBoolean(preferences.get("temporary"))) {
                 throw new ConflictException("Current user is not allowed for using this method.");
             }
 
@@ -155,6 +154,8 @@ public abstract class FactoryBaseValidator {
             if (members.isEmpty()) {
                 throw new ConflictException(format(PARAMETRIZED_ILLEGAL_ACCOUNTID_PARAMETER_MESSAGE, accountId));
             }
+
+            User user = userDao.getById(userId);
             for (Member accountMember : members) {
                 if (accountMember.getUserId().equals(user.getId()) && accountMember.getRoles().contains("account/owner")) {
                     isOwner = true;

@@ -84,8 +84,6 @@ import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
-
 /**
  * @author andrew00x
  * @author Eugene Voevodin

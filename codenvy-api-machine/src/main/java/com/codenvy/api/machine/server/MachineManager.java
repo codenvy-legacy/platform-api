@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -293,7 +292,7 @@ public class MachineManager {
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjectBindings()) {
             if (projectBinding.getPath().equals(project.getPath())) {
-                throw new ConflictException(String.format("Project %s is binded already to machine %s", project.getPath(), machineId));
+                throw new ConflictException(String.format("Project %s is already bound to machine %s", project.getPath(), machineId));
             }
         }
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
@@ -301,7 +300,9 @@ public class MachineManager {
             final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
             copyProjectSource(fullPath, machine.getWorkspaceId(), project.getPath());
         } catch (IOException e) {
-            throw new MachineException(e.getLocalizedMessage(), e);
+            IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()));
+            LOG.warn(e.getLocalizedMessage(), e);
+            throw new MachineException("Project binding failed");
         }
         machine.getProjectBindings().add(project);
         // TODO add synchronization of origin project and copied

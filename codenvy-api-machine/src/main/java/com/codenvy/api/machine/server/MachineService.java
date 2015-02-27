@@ -26,6 +26,8 @@ import com.codenvy.api.machine.shared.dto.ProcessDescriptor;
 import com.codenvy.api.machine.shared.dto.NewSnapshotDescriptor;
 import com.codenvy.api.machine.shared.dto.ProjectBindingDescriptor;
 import com.codenvy.api.machine.shared.dto.SnapshotDescriptor;
+import com.codenvy.api.workspace.server.dao.Member;
+import com.codenvy.api.workspace.server.dao.MemberDao;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.dto.server.DtoFactory;
 
@@ -53,11 +55,13 @@ import java.util.Set;
 @Path("/machine")
 public class MachineService {
     private MachineManager machineManager;
-    private DtoFactory dtoFactory;
+    private DtoFactory     dtoFactory;
+    private MemberDao      memberDao;
 
     @Inject
-    public MachineService(MachineManager machineManager) {
+    public MachineService(MachineManager machineManager, MemberDao memberDao) {
         this.machineManager = machineManager;
+        this.memberDao = memberDao;
         this.dtoFactory = DtoFactory.getInstance();
     }
 
@@ -73,6 +77,8 @@ public class MachineService {
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getScript(), "Recipe script");
         requiredNotNull(createMachineRequest.getRecipeDescriptor().getType(), "Recipe type");
+
+        checkCurrentUserPermissionsForWorkspace(createMachineRequest.getWorkspaceId());
 
         final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
@@ -99,7 +105,9 @@ public class MachineService {
     public MachineDescriptor createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
             throws ForbiddenException, NotFoundException, ServerException {
         requiredNotNull(createMachineRequest.getSnapshotId(), "Snapshot id");
-        checkCurrentUserPermissionsForSnapshot(createMachineRequest.getSnapshotId());
+        final Snapshot snapshot = machineManager.getSnapshot(createMachineRequest.getSnapshotId());
+        checkCurrentUserPermissionsForSnapshot(snapshot);
+        checkCurrentUserPermissionsForWorkspace(snapshot.getWorkspaceId());
 
         final LineConsumer lineConsumer = getLineConsumer(createMachineRequest.getOutputChannel());
 
@@ -201,7 +209,7 @@ public class MachineService {
     @DELETE
     @RolesAllowed("user")
     public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
-        checkCurrentUserPermissionsForSnapshot(snapshotId);
+        checkCurrentUserPermissionsForSnapshot(machineManager.getSnapshot(snapshotId));
 
         machineManager.removeSnapshot(snapshotId);
     }
@@ -229,7 +237,7 @@ public class MachineService {
 
         final List<ProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (ProcessImpl process : machineManager.getProcesses(machineId)) {
-            processesDescriptors.add(toDescriptor(process.getPid(), process.getCommandLine()));
+            processesDescriptors.add(toDescriptor(process.getPid(), process.getCommandLine(), process.isAlive()));
         }
 
         return processesDescriptors;
@@ -267,8 +275,7 @@ public class MachineService {
         machineManager.unbindProject(machineId, new ProjectBindingImpl().withPath(path));
     }
 
-    private void checkCurrentUserPermissionsForSnapshot(String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
-        final Snapshot snapshot = machineManager.getSnapshot(snapshotId);
+    private void checkCurrentUserPermissionsForSnapshot(Snapshot snapshot) throws ForbiddenException, NotFoundException, ServerException {
         if (!EnvironmentContext.getCurrent().getUser().getId().equals(snapshot.getOwner())) {
             throw new ForbiddenException("You are not the owner of this snapshot");
         }
@@ -279,6 +286,17 @@ public class MachineService {
         if (!userId.equals(machineOwner)) {
             throw new ForbiddenException("You are not the owner of this machine");
         }
+    }
+
+    private void checkCurrentUserPermissionsForWorkspace(String workspaceId) throws ForbiddenException, ServerException {
+        try {
+            final Member member = memberDao.getWorkspaceMember(workspaceId, EnvironmentContext.getCurrent().getUser().getId());
+            if (member.getRoles().contains("workspace/admin") || member.getRoles().contains("workspace/developer")) {
+                return;
+            }
+        } catch (NotFoundException ignored) {
+        }
+        throw new ForbiddenException("You are not a member of workspace " + workspaceId);
     }
 
     /**
@@ -332,10 +350,11 @@ public class MachineService {
                          .withLinks(null); // TODO
     }
 
-    private ProcessDescriptor toDescriptor(int processId, String commandLine) throws ServerException {
+    private ProcessDescriptor toDescriptor(int processId, String commandLine, boolean isAlive) throws ServerException {
         return dtoFactory.createDto(ProcessDescriptor.class)
                          .withPid(processId)
                          .withCommandLine(commandLine)
+                         .withIsAlive(isAlive)
                          .withLinks(null); // TODO
     }
 

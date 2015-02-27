@@ -76,7 +76,9 @@ import static java.nio.file.FileVisitResult.TERMINATE;
 @Description("Runner REST API")
 public class RunnerService extends Service {
     private static final String DOCKERFILES_REPO = "runner.docker.dockerfiles_repo";
-    private static final Logger LOG              = LoggerFactory.getLogger(RunnerService.class);
+    private static final String DOCKER_FILE_NAME = "/Dockerfile";
+
+    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
 
     @Inject
     private RunQueue runQueue;
@@ -325,7 +327,7 @@ public class RunnerService extends Service {
     @GET
     @Path("/recipe")
     @Produces(MediaType.TEXT_PLAIN)
-    public String getRecipe(@QueryParam("id") final String id) throws Exception {
+    public String getRecipe(@QueryParam("id") String id) throws Exception {
         java.nio.file.Path dockerParentPath = Paths.get(dockerfilesRepository);
         if (dockerfilesRepository == null || !Files.exists(dockerParentPath) || !Files.isDirectory(dockerParentPath)) {
             throw new NotFoundException("The configuration of docker repository wasn't found or " +
@@ -333,6 +335,8 @@ public class RunnerService extends Service {
         }
 
         final StringBuilder content = new StringBuilder();
+        final String path = id + DOCKER_FILE_NAME;
+
         Files.walkFileTree(dockerParentPath, new FileVisitor<java.nio.file.Path>() {
             @Override
             public FileVisitResult preVisitDirectory(java.nio.file.Path dir, BasicFileAttributes attrs) throws IOException {
@@ -341,7 +345,7 @@ public class RunnerService extends Service {
 
             @Override
             public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
-                if (file.endsWith(id)) {
+                if (file.endsWith(path)) {
                     content.append(Arrays.toString(Files.readAllBytes(file)));
                     return TERMINATE;
                 } else {

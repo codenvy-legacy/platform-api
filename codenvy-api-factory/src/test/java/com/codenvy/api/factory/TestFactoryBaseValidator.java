@@ -11,8 +11,8 @@
 package com.codenvy.api.factory;
 
 import com.codenvy.api.account.server.dao.AccountDao;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.UserDao;
-import com.codenvy.api.user.server.dao.UserProfileDao;
 
 /**
  * @author Sergii Kabashniuk
@@ -21,8 +21,8 @@ public class TestFactoryBaseValidator extends FactoryBaseValidator {
 
     public TestFactoryBaseValidator(AccountDao accountDao,
                                     UserDao userDao,
-                                    UserProfileDao profileDao,
+                                    PreferenceDao preferenceDao,
                                     boolean onPremises) {
-        super(accountDao, userDao, profileDao, onPremises);
+        super(accountDao, userDao, preferenceDao, onPremises);
     }
 }

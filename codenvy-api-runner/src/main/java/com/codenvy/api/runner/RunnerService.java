@@ -52,12 +52,12 @@ import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.FileVisitor;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.Arrays;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -77,6 +77,7 @@ import static java.nio.file.FileVisitResult.TERMINATE;
 public class RunnerService extends Service {
     private static final String DOCKERFILES_REPO = "runner.docker.dockerfiles_repo";
     private static final String DOCKER_FILE_NAME = "/Dockerfile";
+    private static final String SYSTEM_PREFIX    = "system:/";
 
     private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
 
@@ -335,7 +336,7 @@ public class RunnerService extends Service {
         }
 
         final StringBuilder content = new StringBuilder();
-        final String path = id + DOCKER_FILE_NAME;
+        final String path = id.replace(SYSTEM_PREFIX, "") + DOCKER_FILE_NAME;
 
         Files.walkFileTree(dockerParentPath, new FileVisitor<java.nio.file.Path>() {
             @Override
@@ -346,7 +347,11 @@ public class RunnerService extends Service {
             @Override
             public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
                 if (file.endsWith(path)) {
-                    content.append(Arrays.toString(Files.readAllBytes(file)));
+                    List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
+                    for (String line : lines) {
+                        content.append(line).append('\n');
+                    }
+
                     return TERMINATE;
                 } else {
                     return CONTINUE;

@@ -36,7 +36,7 @@ import javax.inject.Inject;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.PUT;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -66,7 +66,7 @@ public class MachineService {
     }
 
     @Path("/recipe")
-    @PUT
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
@@ -98,7 +98,7 @@ public class MachineService {
     }
 
     @Path("/snapshot")
-    @PUT
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
@@ -195,7 +195,7 @@ public class MachineService {
     }
 
     @Path("/{machineId}/snapshot")
-    @PUT
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
     public void saveSnapshot(@PathParam("machineId") String machineId, NewSnapshotDescriptor newSnapshotDescriptor)
@@ -214,17 +214,17 @@ public class MachineService {
         machineManager.removeSnapshot(snapshotId);
     }
 
-    @Path("/{machineId}/process")
-    @PUT
+    @Path("/{machineId}/command")
+    @POST
     @Consumes(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void executeCommandInMachine(@PathParam("machineId") String machineId, final CommandDescriptor command)
+    public ProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId, final CommandDescriptor command)
             throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         final LineConsumer lineConsumer = getLineConsumer(command.getOutputChannel());
 
-        machineManager.exec(machineId, command, lineConsumer);
+        return toDescriptor(machineManager.exec(machineId, command, lineConsumer));
     }
 
     @Path("/{machineId}/process")
@@ -237,7 +237,7 @@ public class MachineService {
 
         final List<ProcessDescriptor> processesDescriptors = new LinkedList<>();
         for (ProcessImpl process : machineManager.getProcesses(machineId)) {
-            processesDescriptors.add(toDescriptor(process.getPid(), process.getCommandLine(), process.isAlive()));
+            processesDescriptors.add(toDescriptor(process));
         }
 
         return processesDescriptors;
@@ -255,7 +255,7 @@ public class MachineService {
     }
 
     @Path("/{machineId}/binding/{path:.*}")
-    @PUT
+    @POST
     @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
                             @PathParam("path") String path)
@@ -350,11 +350,11 @@ public class MachineService {
                          .withLinks(null); // TODO
     }
 
-    private ProcessDescriptor toDescriptor(int processId, String commandLine, boolean isAlive) throws ServerException {
+    private ProcessDescriptor toDescriptor(ProcessImpl process) throws ServerException {
         return dtoFactory.createDto(ProcessDescriptor.class)
-                         .withPid(processId)
-                         .withCommandLine(commandLine)
-                         .withIsAlive(isAlive)
+                         .withPid(process.getPid())
+                         .withCommandLine(process.getCommandLine())
+                         .withIsAlive(process.isAlive())
                          .withLinks(null); // TODO
     }
 

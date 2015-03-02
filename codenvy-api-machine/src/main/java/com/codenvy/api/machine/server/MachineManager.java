@@ -477,7 +477,7 @@ public class MachineManager {
         }
     }
 
-    public Process exec(final String machineId, final Command command, final LineConsumer commandOutput)
+    public ProcessImpl exec(final String machineId, final Command command, final LineConsumer commandOutput)
             throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         final Instance instance = machine.getInstance();

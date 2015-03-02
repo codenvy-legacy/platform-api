@@ -96,31 +96,28 @@ public class DtoConverter {
                                                                                                      ValueStorageException {
         final String typeId = dto.getType();
         ProjectType projectType;
-        if (typeId == null) {
-            throw new ProjectTypeConstraintException("Project Type not found in giving config");
-        } else {
+        if (typeId != null) {
             projectType = typeRegistry.getProjectType(typeId);
             if (projectType == null) {
                 throw new ProjectTypeConstraintException("Project Type not found " + typeId);
             }
-        }
+            final Map<String, List<String>> updateAttributes = dto.getAttributes();
+            final HashMap<String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
+            if (!updateAttributes.isEmpty()) {
+                for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
 
-        final Map<String, List<String>> updateAttributes = dto.getAttributes();
-        final HashMap<String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
+                    Attribute attr = projectType.getAttribute(e.getKey());
+                    if (attr != null) {
+                        attributes.put(attr.getName(), new AttributeValue(e.getValue()));
 
-        if (!updateAttributes.isEmpty()) {
-            for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
-
-                Attribute attr = projectType.getAttribute(e.getKey());
-                if (attr != null) {
-                    attributes.put(attr.getName(), new AttributeValue(e.getValue()));
-
+                    }
                 }
             }
-        }
+            return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
+                                     fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
 
-        return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
-                                 fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
+        }
+        return new ProjectConfig(dto.getDescription(), typeId);
     }
 
 

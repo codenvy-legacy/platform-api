@@ -24,9 +24,12 @@ import java.util.Set;
 @Singleton
 public class ProjectHandlerRegistry {
 
-    private final Map<String, CreateProjectHandler> createProjectHandlers = new HashMap<>();
-    private final Map<String, GetItemHandler>       getItemHandlers       = new HashMap<>();
-    private final Map<String, CreateModuleHandler>  createModuleHandlers  = new HashMap<>();
+    private final Map<String, CreateProjectHandler>      createProjectHandlers      = new HashMap<>();
+    private final Map<String, PostImportProjectHandler>  postImportProjectHandlers  = new HashMap<>();
+    private final Map<String, GetItemHandler>            getItemHandlers            = new HashMap<>();
+    private final Map<String, CreateModuleHandler>       createModuleHandlers       = new HashMap<>();
+    private final Map<String, ProjectTypeChangedHandler> projectTypeChangedHandlers = new HashMap<>();
+    private final Map<String, GetModulesHandler>         getModulesHandlers         = new HashMap<>();
 
     @Inject
     public ProjectHandlerRegistry(Set<ProjectHandler> projectHandlers) {
@@ -42,6 +45,12 @@ public class ProjectHandlerRegistry {
             getItemHandlers.put(handler.getProjectType(), (GetItemHandler)handler);
         } else if (handler instanceof CreateModuleHandler) {
             createModuleHandlers.put(handler.getProjectType(), (CreateModuleHandler)handler);
+        } else if (handler instanceof PostImportProjectHandler) {
+            postImportProjectHandlers.put(handler.getProjectType(), (PostImportProjectHandler)handler);
+        } else if (handler instanceof ProjectTypeChangedHandler) {
+            projectTypeChangedHandlers.put(handler.getProjectType(), (ProjectTypeChangedHandler)handler);
+        } else if (handler instanceof GetModulesHandler) {
+            getModulesHandlers.put(handler.getProjectType(), (GetModulesHandler)handler);
         }
     }
 
@@ -58,6 +67,21 @@ public class ProjectHandlerRegistry {
     @Nullable
     public CreateModuleHandler getCreateModuleHandler(@Nonnull String projectType) {
         return createModuleHandlers.get(projectType);
+    }
+
+    @Nullable
+    public PostImportProjectHandler getPostImportProjectHandler(@Nonnull String projectType) {
+        return postImportProjectHandlers.get(projectType);
+    }
+
+    @Nullable
+    public ProjectTypeChangedHandler getProjectTypeChangedHandler(@Nonnull String projectType) {
+        return projectTypeChangedHandlers.get(projectType);
+    }
+
+    @Nullable
+    public GetModulesHandler getModulesHandler(@Nonnull String projectType) {
+        return getModulesHandlers.get(projectType);
     }
 
 }

@@ -10,8 +10,18 @@
  *******************************************************************************/
 package com.codenvy.api.machine.server.spi;
 
+import java.util.Map;
+
 /**
  * @author andrew00x
  */
 public interface InstanceMetadata {
+
+    // TODO add more generic info
+
+    /**
+     *
+     * @return instance specific properties
+     */
+    Map<String, String> getProperties();
 }

@@ -15,6 +15,7 @@ import com.codenvy.api.machine.server.MachineException;
 
 import java.io.File;
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author gazarenkov

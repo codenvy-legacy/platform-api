@@ -10,12 +10,27 @@
  *******************************************************************************/
 package com.codenvy.api.machine.shared;
 
+import com.codenvy.api.machine.server.MachineException;
+import com.codenvy.api.machine.server.spi.InstanceMetadata;
+
+import java.util.Map;
+import java.util.Set;
+
 /**
  * @author gazarenkov
  */
 public interface Machine {
+
+    /**
+     *
+     * @return unique ID of this machine
+     */
     String getId();
 
+    /**
+     *
+     * @return machine type (i.e. "docker")
+     */
     String getType();
 
     /**
@@ -24,4 +39,22 @@ public interface Machine {
      * @return identifier of user who launched this machine
      */
     String getOwner();
+
+    /**
+     *
+     * @return list of projects bound to this machine
+     */
+    Set<? extends ProjectBinding> getProjects();
+
+    /**
+     *
+     * @return id of workspace this machine belongs to
+     */
+    String getWorkspaceId();
+
+    /**
+     *
+     * @return machine specific metadata
+     */
+    InstanceMetadata getMetadata() throws MachineException;
 }

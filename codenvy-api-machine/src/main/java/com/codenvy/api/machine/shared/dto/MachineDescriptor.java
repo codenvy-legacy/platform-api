@@ -17,6 +17,7 @@ import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Set;
 
 /**
  * @author andrew00x
@@ -47,7 +48,7 @@ public interface MachineDescriptor extends Machine, Hyperlinks {
 
     MachineDescriptor withWorkspaceId(String workspaceId);
 
-    List<ProjectBindingDescriptor> getProjects();
+    Set<ProjectBindingDescriptor> getProjects();
 
     void setProjects(List<ProjectBindingDescriptor> projects);
 

@@ -13,6 +13,7 @@ package com.codenvy.api.machine.server;
 import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.machine.server.spi.Instance;
+import com.codenvy.api.machine.server.spi.InstanceMetadata;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Machine;
 import com.codenvy.api.machine.shared.MachineState;
@@ -20,6 +21,7 @@ import com.codenvy.api.machine.shared.ProjectBinding;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -61,6 +63,21 @@ public class MachineImpl implements Machine {
         return owner;
     }
 
+    @Override
+    public Set<ProjectBinding> getProjects() {
+        return projectBindings;
+    }
+
+    @Override
+    public InstanceMetadata getMetadata() throws MachineException{
+        return instance.getMetadata();
+    }
+
+    @Override
+    public String getWorkspaceId() {
+        return workspaceId;
+    }
+
     public synchronized MachineState getState() {
         return state;
     }
@@ -86,13 +103,13 @@ public class MachineImpl implements Machine {
         return processes;
     }
 
-    Set<ProjectBinding> getProjectBindings() {
-        return projectBindings;
-    }
-
-    String getWorkspaceId() {
-        return workspaceId;
-    }
+//    Set<ProjectBinding> getProjectBindings() {
+//        return projectBindings;
+//    }
+//
+//    public String getWorkspaceId() {
+//        return workspaceId;
+//    }
 
     LineConsumer getMachineLogsOutput() {
         return machineLogsOutput;

@@ -1,20 +1,13 @@
-/*
- * CODENVY CONFIDENTIAL
- * __________________
- * 
- *  [2012] - [2015] Codenvy, S.A. 
- *  All Rights Reserved.
- * 
- * NOTICE:  All information contained herein is, and remains
- * the property of Codenvy S.A. and its suppliers,
- * if any.  The intellectual and technical concepts contained
- * herein are proprietary to Codenvy S.A.
- * and its suppliers and may be covered by U.S. and Foreign Patents,
- * patents in process, and are protected by trade secret or copyright law.
- * Dissemination of this information or reproduction of this material
- * is strictly forbidden unless prior written permission is obtained
- * from Codenvy S.A..
- */
+/*******************************************************************************
+ * Copyright (c) 2012-2015 Codenvy, S.A.
+ * All rights reserved. This program and the accompanying materials
+ * are made available under the terms of the Eclipse Public License v1.0
+ * which accompanies this distribution, and is available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ *
+ * Contributors:
+ *   Codenvy, S.A. - initial API and implementation
+ *******************************************************************************/
 package com.codenvy.api.auth;
 
 import com.codenvy.commons.env.EnvironmentContext;
@@ -43,28 +36,29 @@ public class LoginFilter implements Filter {
     @Inject
     protected SessionStore sessionStore;
 
+    @Inject
+    protected UserProvider userProvider;
+
 
     @Override
     public void init(FilterConfig filterConfig) throws ServletException {
-
     }
 
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
-        final HttpServletRequest httpReq = (HttpServletRequest)request;
-        final HttpServletResponse httpResp = (HttpServletResponse)response;
-        String token = tokenExtractor.getToken(httpReq);
+        final HttpServletRequest httpRequest = (HttpServletRequest)request;
+        String token = tokenExtractor.getToken(httpRequest);
         if (token != null) {
             HttpSession session = null;
             synchronized (sessionStore) {
                 session = sessionStore.getSession(token);
                 if (session == null) {
-                    session = httpReq.getSession();
+                    session = httpRequest.getSession();
                     sessionStore.saveSession(token, session);
                 }
             }
 
-            handleValidToken(request, response, chain, session, null);
+            handleValidToken(request, response, chain, session, userProvider.getUser(token));
             return;
         } else {
             //token not exists
@@ -90,7 +84,6 @@ public class LoginFilter implements Filter {
             throws IOException, ServletException {
 
     }
-
 
 
     @Override

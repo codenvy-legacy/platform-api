@@ -20,6 +20,7 @@ import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.rest.ApiExceptionMapper;
 import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.core.rest.shared.dto.ServiceError;
+import com.codenvy.api.user.server.dao.PreferenceDao;
 import com.codenvy.api.user.server.dao.Profile;
 import com.codenvy.api.user.server.dao.User;
 import com.codenvy.api.user.server.dao.UserDao;
@@ -104,23 +105,26 @@ public class WorkspaceServiceTest {
     private static final String SERVICE_PATH = BASE_URI + "/workspace";
 
     @Mock
-    private WorkspaceDao       workspaceDao;
+    WorkspaceDao       workspaceDao;
     @Mock
-    private UserDao            userDao;
+    UserDao            userDao;
     @Mock
-    private MemberDao          memberDao;
+    MemberDao          memberDao;
     @Mock
-    private AccountDao         accountDao;
+    AccountDao         accountDao;
     @Mock
-    private UserProfileDao     profileDao;
+    UserProfileDao     profileDao;
     @Mock
-    private SecurityContext    securityContext;
+    PreferenceDao      preferenceDao;
     @Mock
-    private EnvironmentContext environmentContext;
-    private ResourceLauncher   launcher;
-    private WorkspaceService   service;
-    private User               testUser;
-    private String             isOrgAddonEnabledByDefault;
+    SecurityContext    securityContext;
+    @Mock
+    EnvironmentContext environmentContext;
+
+    ResourceLauncher launcher;
+    WorkspaceService service;
+    User             testUser;
+    String           isOrgAddonEnabledByDefault;
 
     @BeforeMethod
     public void before() throws Exception {
@@ -143,6 +147,7 @@ public class WorkspaceServiceTest {
         dependencies.addComponent(UserDao.class, userDao);
         dependencies.addComponent(UserProfileDao.class, profileDao);
         dependencies.addComponent(AccountDao.class, accountDao);
+        dependencies.addComponent(PreferenceDao.class, preferenceDao);
         final ApplicationProviderBinder binder = new ApplicationProviderBinder();
         binder.addExceptionMapper(ApiExceptionMapper.class);
         final URI uri = new URI(BASE_URI);

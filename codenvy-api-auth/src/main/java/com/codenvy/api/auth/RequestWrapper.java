@@ -10,7 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.auth;
 
+import static com.google.common.base.Preconditions.checkNotNull;
+
 import com.codenvy.commons.user.User;
+import com.google.common.base.Preconditions;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;
@@ -34,6 +37,8 @@ public class RequestWrapper extends HttpServletRequestWrapper {
      */
     public RequestWrapper(HttpServletRequest request, HttpSession session, User user) {
         super(request);
+        checkNotNull(request);
+        checkNotNull(user);
         this.session = session;
         this.user = user;
     }

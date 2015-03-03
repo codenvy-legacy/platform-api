@@ -78,18 +78,15 @@ public class AuthenticationService {
         }
         try {
             if (!userDao.authenticate(credentials.getUsername(), credentials.getPassword()/*, realm*/)) {
-                return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication failed. Please check username and password.")
-                               .build();
+                throw new UnauthorizedException("Authentication failed. Please check username and password.");
             }
         } catch (com.codenvy.api.core.NotFoundException e) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication failed. Please check username and password.")
-                           .build();
+            throw new UnauthorizedException("Authentication failed. Please check username and password.");
         }
 
         User user = userDao.getByAlias(credentials.getUsername());
         if (user == null) {
-            return Response.status(Response.Status.UNAUTHORIZED).entity("Authentication failed. Please check username and password.")
-                           .build();
+            throw new UnauthorizedException("Authentication failed. Please check username and password.");
         }
 
         return Response.ok()

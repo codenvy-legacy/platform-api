@@ -11,6 +11,8 @@
 package com.codenvy.api.auth;
 
 
+import javax.inject.Inject;
+import javax.inject.Singleton;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,10 +23,12 @@ import java.util.Map;
  * @author Andrey Parfonov
  * @author Sergey Kabashniuk
  */
+@Singleton
 public class TokenManager {
     private final Map<String, String> tokens;
     private final TokenGenerator      tokenGenerator;
 
+    @Inject
     public TokenManager(TokenGenerator tokenGenerator) {
         this.tokenGenerator = tokenGenerator;
         tokens = new HashMap<>();

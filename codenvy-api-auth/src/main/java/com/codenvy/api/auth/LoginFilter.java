@@ -10,10 +10,13 @@
  *******************************************************************************/
 package com.codenvy.api.auth;
 
+import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
+import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.Filter;
 import javax.servlet.FilterChain;
 import javax.servlet.FilterConfig;
@@ -23,11 +26,14 @@ import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.ws.rs.core.MediaType;
 import java.io.IOException;
+import java.io.PrintWriter;
 
 /**
  * @author Sergii Kabashniuk
  */
+@Singleton
 public class LoginFilter implements Filter {
 
     @Inject
@@ -58,8 +64,12 @@ public class LoginFilter implements Filter {
                 }
             }
 
-            handleValidToken(request, response, chain, session, userProvider.getUser(token));
-            return;
+            User user = userProvider.getUser(token);
+            if (user != null) {
+                handleValidToken(request, response, chain, session, user);
+            } else {
+                handleInvalidToken(request, response, chain, token);
+            }
         } else {
             //token not exists
             handleMissingToken(request, response, chain);
@@ -77,12 +87,23 @@ public class LoginFilter implements Filter {
 
     protected void handleInvalidToken(ServletRequest request, ServletResponse response, FilterChain chain, String token)
             throws IOException, ServletException {
+
+        ((HttpServletResponse)response).setStatus(HttpServletResponse.SC_FORBIDDEN);
+        response.setContentType(MediaType.APPLICATION_JSON);
+        try (PrintWriter writer = response.getWriter();) {
+            writer.write(DtoFactory.getInstance()
+                                   .toJson(new UnauthorizedException("Provided " + token + " is invalid").getServiceError()));
+        }
     }
 
 
     protected void handleMissingToken(ServletRequest request, ServletResponse response, FilterChain chain)
             throws IOException, ServletException {
-
+        //go with anonymous
+        EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
+        environmentContext.setUser(User.ANONYMOUS);
+        HttpServletRequest httpServletRequest = (HttpServletRequest)request;
+        chain.doFilter(new RequestWrapper(httpServletRequest, httpServletRequest.getSession(), User.ANONYMOUS), response);
     }
 
 

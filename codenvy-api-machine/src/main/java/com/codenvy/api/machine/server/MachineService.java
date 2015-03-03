@@ -138,7 +138,7 @@ public class MachineService {
                             machine.getState(),
                             machine.getOwner(),
                             machine.getWorkspaceId(),
-                            machine.getProjectBindings());
+                            machine.getProjects());
     }
 
     @Path("/workspace/{ws-id}/project/{path:.*}")
@@ -160,7 +160,7 @@ public class MachineService {
                                                  machine.getState(),
                                                  machine.getOwner(),
                                                  machine.getWorkspaceId(),
-                                                 machine.getProjectBindings()));
+                                                 machine.getProjects()));
         }
 
         return machinesDescriptors;

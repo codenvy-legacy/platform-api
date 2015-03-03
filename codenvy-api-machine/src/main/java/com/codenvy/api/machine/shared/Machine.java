@@ -13,7 +13,6 @@ package com.codenvy.api.machine.shared;
 import com.codenvy.api.machine.server.MachineException;
 import com.codenvy.api.machine.server.spi.InstanceMetadata;
 
-import java.util.Map;
 import java.util.Set;
 
 /**

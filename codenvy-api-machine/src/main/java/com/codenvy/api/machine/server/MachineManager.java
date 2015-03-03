@@ -24,7 +24,6 @@ import com.codenvy.api.machine.server.spi.Instance;
 import com.codenvy.api.machine.server.spi.InstanceProcess;
 import com.codenvy.api.machine.shared.Command;
 import com.codenvy.api.machine.shared.MachineState;
-import com.codenvy.api.machine.shared.Process;
 import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.Recipe;
 import com.codenvy.commons.env.EnvironmentContext;
@@ -290,7 +289,7 @@ public class MachineManager {
 
     public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException, ConflictException {
         final MachineImpl machine = getMachine(machineId);
-        for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+        for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
                 throw new ConflictException(String.format("Project %s is already bound to machine %s", project.getPath(), machineId));
             }
@@ -304,13 +303,13 @@ public class MachineManager {
             LOG.warn(e.getLocalizedMessage(), e);
             throw new MachineException("Project binding failed");
         }
-        machine.getProjectBindings().add(project);
+        machine.getProjects().add(project);
         // TODO add synchronization of origin project and copied
     }
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
-        for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+        for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
                 final File projectsFolder = machine.getInstance().getHostProjectsFolder();
                 if (IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()))) {
@@ -319,7 +318,7 @@ public class MachineManager {
                     } catch (IOException ignored) {
                     }
                 }
-                machine.getProjectBindings().remove(project);
+                machine.getProjects().remove(project);
                 return;
             }
         }
@@ -341,7 +340,7 @@ public class MachineManager {
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
-        return new ArrayList<>(getMachine(machineId).getProjectBindings());
+        return new ArrayList<>(getMachine(machineId).getProjects());
     }
 
     public MachineImpl getMachine(String machineId) throws NotFoundException {
@@ -372,7 +371,7 @@ public class MachineManager {
         for (MachineImpl machine : machines.values()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
                 machine.getWorkspaceId().equals(workspaceId)) {
-                for (ProjectBinding projectBinding : machine.getProjectBindings()) {
+                for (ProjectBinding projectBinding : machine.getProjects()) {
                     if (projectBinding.getPath().equals(project.getPath())) {
                         result.add(machine);
                     }
@@ -411,7 +410,7 @@ public class MachineManager {
                                                        owner,
                                                        System.currentTimeMillis(),
                                                        machine.getWorkspaceId(),
-                                                       new ArrayList<>(machine.getProjectBindings()),
+                                                       new ArrayList<>(machine.getProjects()),
                                                        description);
                 snapshotStorage.saveSnapshot(snapshot);
                 return snapshot;

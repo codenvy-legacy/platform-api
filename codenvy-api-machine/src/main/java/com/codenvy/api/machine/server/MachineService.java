@@ -40,6 +40,7 @@ import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -141,17 +142,19 @@ public class MachineService {
                             machine.getProjects());
     }
 
-    @Path("/workspace/{ws-id}/project/{path:.*}")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<MachineDescriptor> getMachines(@PathParam("ws-id") String workspaceId,
-                                               @PathParam("path") String path)
+    public List<MachineDescriptor> getMachines(@QueryParam("workspace") String workspaceId,
+                                               @QueryParam("project") String path)
             throws ServerException, ForbiddenException {
-        requiredNotNull(workspaceId, "Workspace parameter");
+        requiredNotNull(workspaceId, "Parameter workspace");
 
         final String userId = EnvironmentContext.getCurrent().getUser().getId();
-        final List<MachineImpl> machines = machineManager.getMachines(userId, workspaceId, new ProjectBindingImpl().withPath(path));
+        final List<MachineImpl> machines = machineManager.getMachines(userId,
+                                                                      workspaceId,
+                                                                      path != null && !path.isEmpty() ? new ProjectBindingImpl().withPath(
+                                                                              path) : null);
 
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         for (MachineImpl machine : machines) {
@@ -176,15 +179,19 @@ public class MachineService {
         machineManager.destroy(machineId);
     }
 
-    @Path("/snapshot/workspace/{ws-id}/project/{path:.*}")
+    @Path("/snapshot")
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public List<SnapshotDescriptor> getSnapshots(@PathParam("ws-id") String workspaceId, @PathParam("path") String path)
-            throws ServerException {
+    public List<SnapshotDescriptor> getSnapshots(@QueryParam("workspace") String workspaceId,
+                                                 @QueryParam("project") String path)
+            throws ServerException, ForbiddenException {
+        requiredNotNull(workspaceId, "Parameter workspace");
+
         final List<Snapshot> snapshots = machineManager.getSnapshots(EnvironmentContext.getCurrent().getUser().getId(),
                                                                      workspaceId,
-                                                                     new ProjectBindingImpl().withPath(path));
+                                                                     path != null && !path.isEmpty() ? new ProjectBindingImpl()
+                                                                             .withPath(path) : null);
 
         final List<SnapshotDescriptor> snapshotDescriptors = new LinkedList<>();
         for (Snapshot snapshot : snapshots) {

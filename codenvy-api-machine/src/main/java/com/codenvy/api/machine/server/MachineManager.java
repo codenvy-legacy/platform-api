@@ -371,9 +371,11 @@ public class MachineManager {
         for (MachineImpl machine : machines.values()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
                 machine.getWorkspaceId().equals(workspaceId)) {
-                for (ProjectBinding projectBinding : machine.getProjects()) {
-                    if (projectBinding.getPath().equals(project.getPath())) {
-                        result.add(machine);
+                if (project != null) {
+                    for (ProjectBinding projectBinding : machine.getProjects()) {
+                        if (projectBinding.getPath().equals(project.getPath())) {
+                            result.add(machine);
+                        }
                     }
                 }
             }
@@ -526,7 +528,7 @@ public class MachineManager {
                     destroy(machine);
                     machines.remove(machine.getId());
                 } catch (MachineException error) {
-                    LOG.warn(error.getMessage());
+                    LOG.warn(error.getMessage(), error);
                     try {
                         machine.getMachineLogsOutput().writeLine(String.format("[ERROR] %s", error.getMessage()));
                     } catch (IOException e) {

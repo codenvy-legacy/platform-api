@@ -44,7 +44,30 @@ public interface ProjectTypeDefinition {
 
     ProjectTypeDefinition withAttributeDescriptors(List<AttributeDescriptor> attributeDescriptors);
 
-    /** Gets runner configurations. */
+
+    List<String> getParents();
+
+    void setParents(List<String> parents);
+
+    ProjectTypeDefinition withParents(List<String> parents);
+
+
+    boolean getPrimaryable();
+
+    void setPrimaryable(boolean primaryable);
+
+    ProjectTypeDefinition withPrimaryable(boolean primaryable);
+
+
+    boolean getMixable();
+
+    void setMixable(boolean mixable);
+
+    ProjectTypeDefinition withMixable(boolean mixable);
+
+
+
+    /** builder / runner configurations. */
     List<String> getRunnerCategories();
 
     void setRunnerCategories(List<String> runnerCategories);
@@ -57,6 +80,7 @@ public interface ProjectTypeDefinition {
     void setDefaultBuilder(String builder);
 
     ProjectTypeDefinition withDefaultBuilder(String builder);
+
 
     String getDefaultRunner();
 

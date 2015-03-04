@@ -258,10 +258,17 @@ public class ProjectService extends Service {
             throws ConflictException, ForbiddenException, ServerException {
 
         final GeneratorDescription generatorDescription = newProject.getGeneratorDescription();
+        Map<String, String> options;
+        if (generatorDescription == null) {
+            options = Collections.emptyMap();
+        } else {
+            options = generatorDescription.getOptions();
+        }
+
 
         final Project project = projectManager.createProject(workspace, name,
                                                              DtoConverter.fromDto2(newProject, projectManager.getProjectTypeRegistry()),
-                                                             generatorDescription.getOptions(),
+                                                             options,
                                                              newProject.getVisibility());
 
 

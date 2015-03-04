@@ -119,12 +119,6 @@ public class LocalInfrastructureModule extends AbstractModule {
                                     .withPassword("secret");
         user.getAliases().add("codenvy@codenvy.com");
         users.add(user);
-
-        User user2 = new User().withId("codenvy2")
-                                    .withEmail("codenvy2@codenvy.com")
-                                    .withPassword("notsecret");
-        user2.getAliases().add("codenvy2@codenvy.com");
-        users.add(user2);
         return users;
     }
 

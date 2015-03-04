@@ -127,30 +127,6 @@ public class DtoConverter {
         return new ProjectConfig(dto.getDescription(), dto.getType(), attributes,
                 fromDto(dto.getRunners()), fromDto(dto.getBuilders()), validMixins);
 
-//        final String typeId = dto.getType();
-//        ProjectType projectType;
-//        if (typeId != null) {
-//            projectType = typeRegistry.getProjectType(typeId);
-//            if (projectType == null) {
-//                throw new ProjectTypeConstraintException("Project Type not found " + typeId);
-//            }
-//            final Map<String, List<String>> updateAttributes = dto.getAttributes();
-//            final HashMap<String, AttributeValue> attributes = new HashMap<>(updateAttributes.size());
-//            if (!updateAttributes.isEmpty()) {
-//                for (Map.Entry<String, List<String>> e : updateAttributes.entrySet()) {
-//
-//                    Attribute attr = projectType.getAttribute(e.getKey());
-//                    if (attr != null) {
-//                        attributes.put(attr.getName(), new AttributeValue(e.getValue()));
-//
-//                    }
-//                }
-//            }
-//            return new ProjectConfig(dto.getDescription(), projectType.getId(), attributes,
-//                                     fromDto(dto.getRunners()), fromDto(dto.getBuilders()), dto.getMixinTypes());
-//
-//        }
-//        return new ProjectConfig(dto.getDescription(), typeId);
     }
 
 
@@ -193,7 +169,9 @@ public class DtoConverter {
                 .withDisplayName(projectType.getDisplayName())
                 .withRunnerCategories(projectType.getRunnerCategories())
                 .withDefaultRunner(projectType.getDefaultRunner())
-                .withDefaultBuilder(projectType.getDefaultBuilder());
+                .withDefaultBuilder(projectType.getDefaultBuilder())
+                .withPrimaryable(projectType.canBePrimary())
+                .withMixable(projectType.canBeMixin());
 
         final List<AttributeDescriptor> typeAttributes = new ArrayList<>();
         for (Attribute attr : projectType.getAttributes()) {
@@ -205,8 +183,6 @@ public class DtoConverter {
                   valueList = attr.getValue().getList();
             } catch (ValueStorageException e) {
             }
-//            if(valueList == null)
-//                valueList = new ArrayList<>();
 
             typeAttributes.add(dtoFactory.createDto(AttributeDescriptor.class)
                                          .withName(attr.getName())
@@ -216,6 +192,12 @@ public class DtoConverter {
                                          .withValues(valueList));
         }
         definition.setAttributeDescriptors(typeAttributes);
+
+        final List<String> parents = new ArrayList<>();
+        for(ProjectType parent : projectType.getParents()) {
+            parents.add(parent.getId());
+        }
+        definition.setParents(parents);
 
         return definition;
     }

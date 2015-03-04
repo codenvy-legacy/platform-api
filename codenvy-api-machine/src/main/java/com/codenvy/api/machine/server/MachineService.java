@@ -16,7 +16,6 @@ import com.codenvy.api.core.NotFoundException;
 import com.codenvy.api.core.ServerException;
 import com.codenvy.api.core.util.LineConsumer;
 import com.codenvy.api.core.util.WebsocketLineConsumer;
-import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.api.machine.shared.ProjectBinding;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromRecipe;
 import com.codenvy.api.machine.shared.dto.CreateMachineFromSnapshot;
@@ -43,10 +42,8 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.MediaType;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Machine API
@@ -90,12 +87,7 @@ public class MachineService {
                                                           lineConsumer);
 
         // TODO displayName? machine description?
-        return toDescriptor(machine.getId(),
-                            machine.getType(),
-                            machine.getState(),
-                            machine.getOwner(),
-                            machine.getWorkspaceId(),
-                            Collections.<ProjectBinding>emptySet());
+        return toDescriptor(machine);
     }
 
     @Path("/snapshot")
@@ -116,12 +108,7 @@ public class MachineService {
                                                           EnvironmentContext.getCurrent().getUser().getId(),
                                                           lineConsumer);
 
-        return toDescriptor(machine.getId(),
-                            machine.getType(),
-                            machine.getState(),
-                            machine.getOwner(),
-                            machine.getWorkspaceId(),
-                            Collections.<ProjectBinding>emptySet());
+        return toDescriptor(machine);
     }
 
     @Path("/{machineId}")
@@ -134,12 +121,7 @@ public class MachineService {
 
         checkCurrentUserPermissionsForMachine(machine.getOwner());
 
-        return toDescriptor(machineId,
-                            machine.getType(),
-                            machine.getState(),
-                            machine.getOwner(),
-                            machine.getWorkspaceId(),
-                            machine.getProjects());
+        return toDescriptor(machine);
     }
 
     @GET
@@ -158,12 +140,7 @@ public class MachineService {
 
         final List<MachineDescriptor> machinesDescriptors = new LinkedList<>();
         for (MachineImpl machine : machines) {
-            machinesDescriptors.add(toDescriptor(machine.getId(),
-                                                 machine.getType(),
-                                                 machine.getState(),
-                                                 machine.getOwner(),
-                                                 machine.getWorkspaceId(),
-                                                 machine.getProjects()));
+            machinesDescriptors.add(toDescriptor(machine));
         }
 
         return machinesDescriptors;
@@ -333,27 +310,23 @@ public class MachineService {
         return lineConsumer;
     }
 
-    private MachineDescriptor toDescriptor(String id,
-                                           String machineType,
-                                           MachineState machineState,
-                                           String machineOwner,
-                                           String workspaceId,
-                                           Set<ProjectBinding> projects)
+    private MachineDescriptor toDescriptor(MachineImpl machine)
             throws ServerException {
-        final List<ProjectBindingDescriptor> projectDescriptors = new ArrayList<>(projects.size());
-        for (ProjectBinding project : projects) {
+        final List<ProjectBindingDescriptor> projectDescriptors = new ArrayList<>();
+        for (ProjectBinding project : machine.getProjects()) {
             projectDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)
                                              .withPath(project.getPath())
                                              .withLinks(null)); // TODO
         }
 
         return dtoFactory.createDto(MachineDescriptor.class)
-                         .withId(id)
-                         .withType(machineType)
-                         .withState(machineState)
-                         .withOwner(machineOwner)
-                         .withWorkspaceId(workspaceId)
+                         .withId(machine.getId())
+                         .withType(machine.getType())
+                         .withState(machine.getState())
+                         .withOwner(machine.getOwner())
+                         .withWorkspaceId(machine.getWorkspaceId())
                          .withProjects(projectDescriptors)
+                         .withMetadata(machine.getInstance() != null ? machine.getInstance().getMetadata().getProperties() : null)
                          .withLinks(null); // TODO
     }
 

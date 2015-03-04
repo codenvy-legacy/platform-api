@@ -16,6 +16,7 @@ import com.codenvy.api.machine.shared.MachineState;
 import com.codenvy.dto.shared.DTO;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * @author andrew00x
@@ -58,5 +59,12 @@ public interface MachineDescriptor extends Hyperlinks {
 
     MachineDescriptor withProjects(List<ProjectBindingDescriptor> projects);
 
+    Map<String, String> getMetadata();
+
+    void setMetadata(Map<String, String> metadata);
+
+    MachineDescriptor withMetadata(Map<String, String> metadata);
+
+    @Override
     MachineDescriptor withLinks(List<Link> links);
 }

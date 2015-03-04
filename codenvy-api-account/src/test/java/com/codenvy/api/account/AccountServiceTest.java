@@ -895,6 +895,7 @@ public class AccountServiceTest {
     public void shouldBeAbleToAddSubscriptionWithoutChargingIfSubscriptionIsNotPaid() throws Exception {
         prepareSuccessfulSubscriptionAddition();
         plan.setPaid(false);
+        newSubscription.setUsePaymentSystem(false);
 
         ContainerResponse response =
                 makeRequest(HttpMethod.POST, SERVICE_PATH + "/subscriptions", MediaType.APPLICATION_JSON, newSubscription);

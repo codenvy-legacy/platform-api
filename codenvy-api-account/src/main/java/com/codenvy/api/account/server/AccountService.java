@@ -19,8 +19,6 @@ import com.codenvy.api.account.server.subscription.SubscriptionService;
 import com.codenvy.api.account.server.subscription.SubscriptionServiceRegistry;
 import com.codenvy.api.account.shared.dto.AccountDescriptor;
 import com.codenvy.api.account.shared.dto.AccountReference;
-import com.codenvy.api.account.shared.dto.SubscriptionResourcesUsed;
-import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.account.shared.dto.AccountUpdate;
 import com.codenvy.api.account.shared.dto.MemberDescriptor;
 import com.codenvy.api.account.shared.dto.NewAccount;
@@ -30,8 +28,10 @@ import com.codenvy.api.account.shared.dto.NewSubscriptionTemplate;
 import com.codenvy.api.account.shared.dto.Plan;
 import com.codenvy.api.account.shared.dto.SubscriptionDescriptor;
 import com.codenvy.api.account.shared.dto.SubscriptionReference;
+import com.codenvy.api.account.shared.dto.SubscriptionResourcesUsed;
 import com.codenvy.api.account.shared.dto.SubscriptionState;
 import com.codenvy.api.account.shared.dto.UpdateResourcesDescriptor;
+import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
 import com.codenvy.api.core.ForbiddenException;
@@ -795,15 +795,8 @@ public class AccountService extends Service {
                 throw new ForbiddenException("Access denied");
             }
         }
-        boolean isUserAdmin = securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager");
 
         final Plan plan = planDao.getPlanById(newSubscription.getPlanId());
-
-        // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
-        if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0 &&
-            !newSubscription.getTrialDuration().equals(plan.getTrialDuration()) && !isUserAdmin) {
-            throw new ConflictException("User not authorized to add this subscription, please contact support");
-        }
 
         // check service exists
         final SubscriptionService service = registry.get(plan.getServiceId());
@@ -811,17 +804,44 @@ public class AccountService extends Service {
             throw new ConflictException("Unknown serviceId is used");
         }
 
-        // only admins are allowed to disable payment on subscription addition
-        if (!newSubscription.getUsePaymentSystem() && !isUserAdmin) {
-            throw new ConflictException("Given value of attribute usePaymentSystem is not allowed");
+        //Not admin has additional restrictions
+        if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
+            // check that subscription is allowed for not admin
+            if (plan.getSalesOnly()) {
+                throw new ForbiddenException("User not authorized to add this subscription, please contact support");
+            }
+
+            // only admins are allowed to disable payment on subscription addition
+            if (!newSubscription.getUsePaymentSystem().equals(plan.isPaid())) {
+                throw new ConflictException("Given value of attribute usePaymentSystem is not allowed");
+            }
+
+            // check trial
+            if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
+                // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
+                if (!newSubscription.getTrialDuration().equals(plan.getTrialDuration())) {
+                    throw new ConflictException("User not authorized to add this subscription, please contact support");
+                }
+
+                // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
+                try {
+                    List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
+                                                                 .getTrialQuery(plan.getServiceId(), newSubscription.getAccountId())
+                                                                 .execute();
+
+                    if (!subscriptions.isEmpty()) {
+                        throw new ForbiddenException("Can't add new trial. Please, contact support");
+                    }
+                } catch (ServerException e) {
+                    throw new ServerException("Can't add subscription. Please, contact support");
+                }
+            }
         }
 
-        // check that subscription is allowed for not admin
-        if (plan.getSalesOnly() && !isUserAdmin) {
-            throw new ForbiddenException("User not authorized to add this subscription, please contact support");
+        // disable payment if subscription is free
+        if (!plan.isPaid()) {
+            newSubscription.setUsePaymentSystem(false);
         }
-
-        //TODO Add Checking of credit card
 
         //create new subscription
         Subscription subscription = new Subscription()
@@ -836,11 +856,6 @@ public class AccountService extends Service {
                 .withBillingCycle(plan.getBillingCycle())
                 .withBillingContractTerm(plan.getBillingContractTerm())
                 .withState(SubscriptionState.ACTIVE);
-
-        // disable payment if subscription is free
-        if (!plan.isPaid()) {
-            subscription.setUsePaymentSystem(false);
-        }
 
         Calendar calendar = Calendar.getInstance();
         if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
@@ -875,36 +890,15 @@ public class AccountService extends Service {
 
         service.beforeCreateSubscription(subscription);
 
-        // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
-        if (subscription.getTrialStartDate() != null && !isUserAdmin) {
-            try {
-                List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
-                                                             .getTrialQuery(subscription.getServiceId(), subscription.getAccountId())
-                                                             .execute();
-
-                if (!subscriptions.isEmpty()) {
-                    throw new ForbiddenException("Can't add new trial. Please, contact support");
-                }
-            } catch (ServerException e) {
-                throw new ServerException("Can't add subscription. Please, contact support");
-            }
-        }
-
-        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
-                 EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
+        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#",
+                 subscription.getId(),
+                 EnvironmentContext.getCurrent().getUser().getId(),
+                 subscription.getAccountId(),
+                 subscription.getPlanId());
 
         accountDao.addSubscription(subscription);
 
-        //TODO Rework it
-        try {
-            service.afterCreateSubscription(subscription);
-        } catch (Exception e) {
-            try {
-                accountDao.removeSubscription(subscription.getId());
-            } catch (Exception e1) {
-                LOG.error(e1.getLocalizedMessage(), e1);
-            }
-        }
+        service.afterCreateSubscription(subscription);
 
         LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
 
@@ -1036,8 +1030,8 @@ public class AccountService extends Service {
     @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
     @Produces(MediaType.APPLICATION_JSON)
     public List<SubscriptionResourcesUsed> getResources(@ApiParam(value = "Account ID", required = true)
-                                                    @PathParam("id") String accountId,
-                                                    @QueryParam("serviceId") String serviceId)
+                                                        @PathParam("id") String accountId,
+                                                        @QueryParam("serviceId") String serviceId)
             throws ServerException, NotFoundException, ConflictException {
         Set<SubscriptionService> subscriptionServices = new HashSet<>();
         if (serviceId == null) {

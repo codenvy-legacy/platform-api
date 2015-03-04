@@ -14,6 +14,7 @@ import com.codenvy.api.account.server.dao.Subscription;
 import com.codenvy.api.account.shared.dto.UsedAccountResources;
 import com.codenvy.api.core.ApiException;
 import com.codenvy.api.core.ConflictException;
+import com.codenvy.api.core.ForbiddenException;
 import com.codenvy.api.core.ServerException;
 
 /**
@@ -21,6 +22,7 @@ import com.codenvy.api.core.ServerException;
  *
  * @author Eugene Voevodin
  * @author Alexander Garagatyi
+ * @author Sergii Leschenko
  */
 public abstract class SubscriptionService {
     public static final String SUBSCRIPTION_LIMIT_EXHAUSTED_MESSAGE =
@@ -51,7 +53,7 @@ public abstract class SubscriptionService {
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract void beforeCreateSubscription(Subscription subscription) throws ConflictException, ServerException;
+    public abstract void beforeCreateSubscription(Subscription subscription) throws ConflictException, ServerException, ForbiddenException;
 
     /**
      * Should be invoked after subscription creation
@@ -74,12 +76,6 @@ public abstract class SubscriptionService {
     public abstract void onRemoveSubscription(Subscription subscription) throws ApiException;
 
     /**
-     * Should be invoked to check subscriptions.
-     * The one of use cases is use this method to check subscription expiration etc
-     */
-    public abstract void onCheckSubscriptions() throws ApiException;
-
-    /**
      * Should be invoked after subscription update
      *
      * @param oldSubscription
@@ -90,6 +86,12 @@ public abstract class SubscriptionService {
      *         when some error occurs while processing {@code subscription}
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
+
+    /**
+     * Should be invoked to check subscriptions.
+     * The one of use cases is use this method to check subscription expiration etc
+     */
+    public abstract void onCheckSubscriptions() throws ApiException;
 
     /**
      * Returns used resources, provided by subscription

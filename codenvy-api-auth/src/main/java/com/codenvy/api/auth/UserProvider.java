@@ -13,8 +13,15 @@ package com.codenvy.api.auth;
 import com.codenvy.commons.user.User;
 
 /**
+ * Provider user by his authentication token.
+ *
  * @author Sergii Kabashniuk
  */
 public interface UserProvider {
+    /**
+     * @param token
+     *         authentication token.
+     * @return user that will be user in request.
+     */
     User getUser(String token);
 }

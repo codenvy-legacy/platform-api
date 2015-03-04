@@ -17,7 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Manager to handle access token for login process
+ * Manager to handle access token for authentication-authorization process
  * <p/>
  *
  * @author Andrey Parfonov

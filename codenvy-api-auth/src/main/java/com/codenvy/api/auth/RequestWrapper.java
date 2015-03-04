@@ -13,7 +13,6 @@ package com.codenvy.api.auth;
 import static com.google.common.base.Preconditions.checkNotNull;
 
 import com.codenvy.commons.user.User;
-import com.google.common.base.Preconditions;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletRequestWrapper;

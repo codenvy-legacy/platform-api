@@ -168,14 +168,14 @@ public class AccountService extends Service {
                 validateAttributeName(attributeName);
             }
         }
-        final Principal principal = securityContext.getUserPrincipal();
         User current = null;
         if (securityContext.isUserInRole("user")) {
-          current = userDao.getByAlias(principal.getName());
-        }
-        //for now account <-One to One-> user
-        if (current != null && accountDao.getByOwner(current.getId()).size() != 0) {
-            throw new ConflictException(format("Account which owner is %s already exists", current.getId()));
+            final Principal principal = securityContext.getUserPrincipal();
+            current = userDao.getByAlias(principal.getName());
+            //for now account <-One to One-> user
+            if (accountDao.getByOwner(current.getId()).size() != 0) {
+                throw new ConflictException(format("Account which owner is %s already exists", current.getId()));
+            }
         }
 
         try {

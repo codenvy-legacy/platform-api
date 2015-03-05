@@ -10,10 +10,8 @@
  *******************************************************************************/
 package com.codenvy.api.auth;
 
-import com.codenvy.api.core.UnauthorizedException;
 import com.codenvy.commons.env.EnvironmentContext;
 import com.codenvy.commons.user.User;
-import com.codenvy.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
@@ -24,17 +22,41 @@ import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
 import javax.servlet.ServletResponse;
 import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import javax.ws.rs.core.MediaType;
 import java.io.IOException;
-import java.io.PrintWriter;
 
 /**
+ * Provide  request authorization by authentication token.
+ * <p/>
+ * Token which was obtained during authentication should be combined with
+ * original request. {@link com.codenvy.api.auth.TokenExtractor} suppose to be able to extract token from request
+ * and with help of  {@link com.codenvy.api.auth.UserProvider} can be transformed to real user with roles
+ * actual for the current environment {@link com.codenvy.commons.env.EnvironmentContext}.
+ * <p/>
+ * To make LoginFilter work such a requirement has to be satisfied
+ * <p/>
+ * <ul>
+ * <li>
+ * All environment variables have to be set before  LoginFilter.
+ * This will allow {@link com.codenvy.api.auth.UserProvider} identify user with correct roles for this moment.
+ * </li>
+ * <li>
+ * {@link com.codenvy.api.auth.DestroySessionListener} have to be set in container to be able correctly close
+ * opened sessions assisted with tokens by container timeout.
+ * </li>
+ * <li>
+ * {@link com.codenvy.api.auth.LogoutServlet} have to be use to correctly implement logout by user request
+ * </li>
+ * </ul>
+ *
  * @author Sergii Kabashniuk
+ * @see com.codenvy.api.auth.AuthenticationService
+ * @see com.codenvy.api.auth.UserProvider
+ * @see com.codenvy.api.auth.TokenExtractor
+ * @see com.codenvy.api.auth.DestroySessionListener
  */
 @Singleton
-public class LoginFilter implements Filter {
+public abstract class LoginFilter implements Filter {
 
     @Inject
     protected TokenExtractor tokenExtractor;
@@ -77,38 +99,73 @@ public class LoginFilter implements Filter {
 
     }
 
-    protected void handleValidToken(ServletRequest request, ServletResponse response, FilterChain chain, HttpSession session, User user)
-            throws IOException, ServletException {
+    /**
+     * Handle request with valid token and user.
+     * Method should commit response.
+     *
+     * @param request
+     *         original request
+     * @param response
+     *         original response
+     * @param chain
+     *         filter chain
+     * @param session
+     *         first session associated with given token.
+     * @param user
+     *         user associated with given token
+     * @throws IOException
+     * @throws ServletException
+     */
+    protected void handleValidToken(ServletRequest request,
+                                    ServletResponse response,
+                                    FilterChain chain,
+                                    HttpSession session,
+                                    User user) throws IOException, ServletException {
         EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
         environmentContext.setUser(user);
         chain.doFilter(new RequestWrapper((HttpServletRequest)request, session, user), response);
     }
 
 
-    protected void handleInvalidToken(ServletRequest request, ServletResponse response, FilterChain chain, String token)
-            throws IOException, ServletException {
+    /**
+     * Handle request with invalid token.
+     * Method should commit response.
+     *
+     * @param request
+     *         original request
+     * @param response
+     *         original response
+     * @param chain
+     *         filter chain
+     * @param token
+     *         invalid token.
+     * @throws IOException
+     * @throws ServletException
+     */
+    protected abstract void handleInvalidToken(ServletRequest request,
+                                               ServletResponse response,
+                                               FilterChain chain,
+                                               String token) throws IOException, ServletException;
 
-        ((HttpServletResponse)response).setStatus(HttpServletResponse.SC_FORBIDDEN);
-        response.setContentType(MediaType.APPLICATION_JSON);
-        try (PrintWriter writer = response.getWriter();) {
-            writer.write(DtoFactory.getInstance()
-                                   .toJson(new UnauthorizedException("Provided " + token + " is invalid").getServiceError()));
-        }
-    }
-
-
-    protected void handleMissingToken(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
-        //go with anonymous
-        EnvironmentContext environmentContext = EnvironmentContext.getCurrent();
-        environmentContext.setUser(User.ANONYMOUS);
-        HttpServletRequest httpServletRequest = (HttpServletRequest)request;
-        chain.doFilter(new RequestWrapper(httpServletRequest, httpServletRequest.getSession(), User.ANONYMOUS), response);
-    }
+    /**
+     * Handle request when token can't be extracted from request.
+     * Method should commit response.
+     *
+     * @param request
+     *         original request
+     * @param response
+     *         original response
+     * @param chain
+     *         filter chain
+     * @throws IOException
+     * @throws ServletException
+     */
+    protected abstract void handleMissingToken(ServletRequest request,
+                                               ServletResponse response,
+                                               FilterChain chain) throws IOException, ServletException;
 
 
     @Override
     public void destroy() {
-
     }
 }

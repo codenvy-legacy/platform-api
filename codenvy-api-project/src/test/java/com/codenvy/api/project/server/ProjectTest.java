@@ -18,6 +18,7 @@ import com.codenvy.api.project.server.handlers.ProjectHandlerRegistry;
 import com.codenvy.api.project.server.type.AttributeValue;
 import com.codenvy.api.project.server.type.ProjectType;
 import com.codenvy.api.project.server.type.ProjectTypeRegistry;
+import com.codenvy.api.project.shared.dto.ProjectUpdate;
 import com.codenvy.api.project.shared.dto.SourceEstimation;
 import com.codenvy.api.vfs.server.VirtualFile;
 import com.codenvy.api.vfs.server.VirtualFileSystemRegistry;
@@ -26,6 +27,7 @@ import com.codenvy.api.vfs.server.VirtualFileSystemUserContext;
 import com.codenvy.api.vfs.server.impl.memory.MemoryFileSystemProvider;
 import com.codenvy.api.vfs.server.impl.memory.MemoryMountPoint;
 
+import com.codenvy.dto.server.DtoFactory;
 import org.testng.Assert;
 import org.testng.annotations.AfterMethod;
 import org.testng.annotations.BeforeMethod;
@@ -619,6 +621,35 @@ public class ProjectTest {
         Assert.assertEquals(parent.getModules().get().size(), 2);
 
     }
+
+    @Test
+    public void testDtoConverterWithMixin() throws Exception {
+        //final ProjectTypeRegistry registry = injector.getInstance(ProjectTypeRegistry.class);
+
+        pm.getProjectTypeRegistry().registerProjectType(new ProjectType("testDtoConverterWithMixin", "my type", false, true) {
+            {
+                addVariableDefinition("var2", "var", true);
+            }
+        });
+
+        final Map<String, List<String>> attributes = new HashMap<>();
+        attributes.put("var2", Arrays.asList("var2Value"));
+
+        final ProjectUpdate projectUpdate = DtoFactory.getInstance().createDto(ProjectUpdate.class)
+                .withType("blank")
+                .withMixinTypes(Arrays.asList("testDtoConverterWithMixin"))
+                .withAttributes(attributes);
+
+        final ProjectConfig projectConfig = DtoConverter.fromDto2(projectUpdate, pm.getProjectTypeRegistry());
+
+        Assert.assertEquals(projectConfig.getTypeId(), "blank");
+        Assert.assertEquals(projectConfig.getMixinTypes(), Arrays.asList("testDtoConverterWithMixin"));
+
+        // here the attribute is null because the project type is not the owner of the attribute but we have
+        // a mixin so it should works ?
+        Assert.assertEquals(projectConfig.getAttributes().get("var2"), new AttributeValue("var2Value"));
+    }
+
 
 }
 

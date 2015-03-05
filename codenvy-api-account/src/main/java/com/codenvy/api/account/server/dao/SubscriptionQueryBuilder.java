@@ -26,9 +26,9 @@ public interface SubscriptionQueryBuilder {
 
     SubscriptionQuery getChargeQuery(String service);
 
-    SubscriptionQuery getExpiringQuery(String service, int days);
+    SubscriptionQuery getTrialExpiringQuery(String service, int days);
 
-    SubscriptionQuery getExpiredQuery(String service, int days);
+    SubscriptionQuery getTrialExpiredQuery(String service, int days);
 
     SubscriptionQuery getTrialExpiredQuery(String service);
 }

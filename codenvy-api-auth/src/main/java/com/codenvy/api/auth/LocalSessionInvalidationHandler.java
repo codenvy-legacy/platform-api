@@ -14,34 +14,28 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.inject.Singleton;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.io.IOException;
 
 /**
- * Invalidate sso client session associated with given token.
+ * Perform session invalidation after user call logout.
  *
  * @author Sergii Kabashniuk
- * @author Andrey Parfonov
  */
-@Singleton
-public class LogoutServlet extends HttpServlet {
-    private static final Logger LOG = LoggerFactory.getLogger(LogoutServlet.class);
+
+public class LocalSessionInvalidationHandler implements TokenInvalidationHandler {
+
+    private static final Logger LOG = LoggerFactory.getLogger(LocalSessionInvalidationHandler.class);
+
+    private final SessionStore store;
+
     @Inject
-    protected SessionStore sessionStore;
+    public LocalSessionInvalidationHandler(SessionStore store) {
+        this.store = store;
+    }
 
     @Override
-    protected void doPost(HttpServletRequest req, HttpServletResponse resp) throws ServletException, IOException {
-        final String token = req.getParameter("token");
-        if (token == null) {
-            resp.sendError(HttpServletResponse.SC_BAD_REQUEST, "Token is not set");
-            return;
-        }
-        HttpSession session = sessionStore.removeSessionByToken(token);
+    public void onTokenInvalidated(String token) {
+        HttpSession session = store.removeSessionByToken(token);
         if (session != null) {
             session.invalidate();
             LOG.debug("logout [token: {}, session: {}, context {}]", token, session.getId(),

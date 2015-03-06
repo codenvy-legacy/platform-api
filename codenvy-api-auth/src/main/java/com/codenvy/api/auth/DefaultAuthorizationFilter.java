@@ -36,7 +36,7 @@ import java.io.PrintWriter;
  * @author Sergii Kabashniuk
  */
 @Singleton
-public class DefaultLoginFilter extends LoginFilter {
+public class DefaultAuthorizationFilter extends AuthorizationFilter {
     @Override
     protected void handleInvalidToken(ServletRequest request, ServletResponse response, FilterChain chain, String token)
             throws IOException, ServletException {

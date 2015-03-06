@@ -44,9 +44,6 @@ import java.io.IOException;
  * {@link com.codenvy.api.auth.DestroySessionListener} have to be set in container to be able correctly close
  * opened sessions assisted with tokens by container timeout.
  * </li>
- * <li>
- * {@link com.codenvy.api.auth.LogoutServlet} have to be use to correctly implement logout by user request
- * </li>
  * </ul>
  *
  * @author Sergii Kabashniuk
@@ -56,13 +53,16 @@ import java.io.IOException;
  * @see com.codenvy.api.auth.DestroySessionListener
  */
 @Singleton
-public abstract class LoginFilter implements Filter {
+public abstract class AuthorizationFilter implements Filter {
 
     @Inject
     protected TokenExtractor tokenExtractor;
 
     @Inject
     protected SessionStore sessionStore;
+
+    @Inject
+    protected TokenManager tokenManager;
 
     @Inject
     protected UserProvider userProvider;
@@ -86,9 +86,8 @@ public abstract class LoginFilter implements Filter {
                 }
             }
 
-            User user = userProvider.getUser(token);
-            if (user != null) {
-                handleValidToken(request, response, chain, session, user);
+            if (tokenManager.isValid(token)) {
+                handleValidToken(request, response, chain, session, userProvider.getUser(token));
             } else {
                 handleInvalidToken(request, response, chain, token);
             }

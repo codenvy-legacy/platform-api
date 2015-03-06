@@ -11,10 +11,7 @@
 package com.codenvy.api.auth;
 
 
-import javax.inject.Inject;
 import javax.inject.Singleton;
-import java.util.HashMap;
-import java.util.Map;
 
 /**
  * Manager to handle access token for authentication-authorization process
@@ -24,37 +21,29 @@ import java.util.Map;
  * @author Sergey Kabashniuk
  */
 @Singleton
-public class TokenManager {
-    private final Map<String, String> tokens;
-    private final TokenGenerator      tokenGenerator;
-
-    @Inject
-    public TokenManager(TokenGenerator tokenGenerator) {
-        this.tokenGenerator = tokenGenerator;
-        tokens = new HashMap<>();
-    }
-
+public interface TokenManager {
     /**
-     * Create new access token and associate with given userid.
+     * Create new access token and associate with given user id.
      *
      * @param userId
      *         user id
      * @return access token.
      */
-    public String createToken(String userId) {
-        String token = tokenGenerator.generate();
-        tokens.put(token, userId);
-        return token;
-    }
+    String createToken(String userId);
 
     /**
      * @param token
      *         access token.
      * @return userId associated with token
      */
-    public String getUserId(String token) {
-        return tokens.get(token);
-    }
+    String getUserId(String token);
+
+    /**
+     * @param token
+     *         access token.
+     * @return true if provided token is valid
+     */
+    boolean isValid(String token);
 
     /**
      * Remove access token from manager.
@@ -63,7 +52,5 @@ public class TokenManager {
      *         unique token to remove
      * @return userId associated with token
      */
-    public String removeToken(String token) {
-        return tokens.remove(token);
-    }
+    public String invalidateToken(String token);
 }

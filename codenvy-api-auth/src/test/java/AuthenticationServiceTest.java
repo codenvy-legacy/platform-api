@@ -16,6 +16,7 @@ import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
 
 import com.codenvy.api.auth.AuthenticationService;
+import com.codenvy.api.auth.TokenInvalidationHandler;
 import com.codenvy.api.auth.TokenManager;
 import com.codenvy.api.auth.server.dto.DtoServerImpls;
 import com.codenvy.api.auth.shared.dto.Credentials;
@@ -41,11 +42,13 @@ import javax.ws.rs.core.Response;
 public class AuthenticationServiceTest {
 
     @Mock
-    UserDao      userDao;
+    UserDao                  userDao;
     @Mock
-    User         user;
+    User                     user;
     @Mock
-    TokenManager tokenManager;
+    TokenManager             tokenManager;
+    @Mock
+    TokenInvalidationHandler tokenInvalidationHandler;
 
     @InjectMocks
     AuthenticationService service;
@@ -173,7 +176,8 @@ public class AuthenticationServiceTest {
                 .post("/auth/logout?token=er00349");
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         //then
-        verify(tokenManager).removeToken(argument.capture());
+        verify(tokenManager).invalidateToken(argument.capture());
+        verify(tokenInvalidationHandler).onTokenInvalidated(eq("er00349"));
         assertEquals(argument.getValue(), "er00349");
 
     }

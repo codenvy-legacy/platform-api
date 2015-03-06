@@ -49,14 +49,18 @@ import javax.ws.rs.core.Response;
 public class AuthenticationService {
 
 
-    private final UserDao      userDao;
-    private final TokenManager tokenManager;
+    private final UserDao                  userDao;
+    private final TokenManager             tokenManager;
+    private final TokenInvalidationHandler invalidationHandler;
 
     @Inject
-    public AuthenticationService(UserDao userDao, TokenManager tokenManager) {
+    public AuthenticationService(UserDao userDao,
+                                 TokenManager tokenManager,
+                                 TokenInvalidationHandler invalidationHandler) {
 
         this.userDao = userDao;
         this.tokenManager = tokenManager;
+        this.invalidationHandler = invalidationHandler;
     }
 
     /**
@@ -123,6 +127,7 @@ public class AuthenticationService {
         if (token == null) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
-        tokenManager.removeToken(token);
+        tokenManager.invalidateToken(token);
+        invalidationHandler.onTokenInvalidated(token);
     }
 }

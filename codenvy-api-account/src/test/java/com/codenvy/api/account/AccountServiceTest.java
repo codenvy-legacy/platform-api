@@ -772,11 +772,6 @@ public class AccountServiceTest {
         assertTrue(subscription.getUsePaymentSystem());
 
         assertNotNull(subscription.getId());
-        assertNotNull(subscription.getStartDate());
-        assertNotNull(subscription.getEndDate());
-        assertNotNull(subscription.getBillingStartDate());
-        assertNotNull(subscription.getBillingEndDate());
-        assertNotNull(subscription.getNextBillingDate());
         assertNull(subscription.getTrialStartDate());
         assertNull(subscription.getTrialEndDate());
 
@@ -797,11 +792,6 @@ public class AccountServiceTest {
                 assertTrue(actual.getUsePaymentSystem());
 
                 assertNotNull(actual.getId());
-                assertNotNull(actual.getStartDate());
-                assertNotNull(actual.getEndDate());
-                assertNotNull(actual.getBillingStartDate());
-                assertNotNull(actual.getBillingEndDate());
-                assertNotNull(actual.getNextBillingDate());
                 assertNull(actual.getTrialStartDate());
                 assertNull(actual.getTrialEndDate());
 

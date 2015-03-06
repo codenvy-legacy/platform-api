@@ -95,7 +95,7 @@ import static java.util.Collections.singletonList;
  * @author Alex Garagatyi
  */
 @Api(value = "/account",
-     description = "Account manager")
+        description = "Account manager")
 @Path("/account")
 public class AccountService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
@@ -139,9 +139,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Create a new account",
-                  notes = "Create a new account",
-                  response = Account.class,
-                  position = 1)
+            notes = "Create a new account",
+            response = Account.class,
+            position = 1)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -205,10 +205,10 @@ public class AccountService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get current user memberships",
-                  notes = "This API call returns a JSON with all user membership in a single or multiple accounts",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 2)
+            notes = "This API call returns a JSON with all user membership in a single or multiple accounts",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -243,10 +243,10 @@ public class AccountService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get memberships of a specific user",
-                  notes = "ID of a user should be specified as a query parameter. JSON with membership details is returned. For this API call system/admin or system/manager role is required",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 3)
+            notes = "ID of a user should be specified as a query parameter. JSON with membership details is returned. For this API call system/admin or system/manager role is required",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -287,8 +287,8 @@ public class AccountService extends Service {
      *         when some error occurred while getting/updating account
      */
     @ApiOperation(value = "Delete account attribute",
-                  notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
-                  position = 4)
+            notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
+            position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -321,9 +321,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Get account by ID",
-                  notes = "Get account information by its ID. JSON with account details is returned. This API call requires account/owner, system/admin or system/manager role.",
-                  response = AccountDescriptor.class,
-                  position = 5)
+            notes = "Get account information by its ID. JSON with account details is returned. This API call requires account/owner, system/admin or system/manager role.",
+            response = AccountDescriptor.class,
+            position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -355,9 +355,9 @@ public class AccountService extends Service {
      * @see #getById(String, SecurityContext)
      */
     @ApiOperation(value = "Get account by name",
-                  notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
-                  response = AccountDescriptor.class,
-                  position = 5)
+            notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
+            response = AccountDescriptor.class,
+            position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -397,9 +397,9 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Add a new member to account",
-                  notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
-                  response = MemberDescriptor.class,
-                  position = 6)
+            notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -450,10 +450,10 @@ public class AccountService extends Service {
      * @see #removeMember(String, String)
      */
     @ApiOperation(value = "Get account members",
-                  notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 7)
+            notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 7)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -491,8 +491,8 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Remove user from account",
-                  notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
-                  position = 8)
+            notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            position = 8)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -543,9 +543,9 @@ public class AccountService extends Service {
      * @see AccountDescriptor
      */
     @ApiOperation(value = "Update account",
-                  notes = "Update account. This API call requires account/owner role.",
-                  response = AccountDescriptor.class,
-                  position = 9)
+            notes = "Update account. This API call requires account/owner role.",
+            response = AccountDescriptor.class,
+            position = 9)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -598,10 +598,10 @@ public class AccountService extends Service {
      * @see SubscriptionDescriptor
      */
     @ApiOperation(value = "Get account subscriptions",
-                  notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
-                  response = SubscriptionDescriptor.class,
-                  responseContainer = "List",
-                  position = 10)
+            notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
+            response = SubscriptionDescriptor.class,
+            responseContainer = "List",
+            position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -647,9 +647,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Get subscription details",
-                  notes = "Get information on a particular subscription by its unique ID.",
-                  response = SubscriptionDescriptor.class,
-                  position = 11)
+            notes = "Get information on a particular subscription by its unique ID.",
+            response = SubscriptionDescriptor.class,
+            position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this method"),
@@ -688,9 +688,9 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Validate new subscription",
-                  notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
-                  response = NewSubscriptionTemplate.class,
-                  position = 16)
+            notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
+            response = NewSubscriptionTemplate.class,
+            position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -768,9 +768,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Add new subscription",
-                  notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
-                  response = SubscriptionDescriptor.class,
-                  position = 12)
+            notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
+            response = SubscriptionDescriptor.class,
+            position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = "CREATED"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -862,35 +862,11 @@ public class AccountService extends Service {
                 .withBillingContractTerm(plan.getBillingContractTerm())
                 .withState(SubscriptionState.ACTIVE);
 
-        Calendar calendar = Calendar.getInstance();
         if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
+            Calendar calendar = Calendar.getInstance();
             subscription.setTrialStartDate(calendar.getTime());
-
             calendar.add(Calendar.DATE, newSubscription.getTrialDuration());
             subscription.setTrialEndDate(calendar.getTime());
-
-            calendar.add(Calendar.DATE, 1);
-        } else {
-            if (subscription.getUsePaymentSystem()) {
-                Calendar billingCalendar = Calendar.getInstance();
-                billingCalendar.setTime(calendar.getTime());
-
-                subscription.setBillingStartDate(billingCalendar.getTime());
-
-                Calendar nextBillingDate = Calendar.getInstance();
-                nextBillingDate.setTime(billingCalendar.getTime());
-                nextBillingDate.add(Calendar.MONTH, subscription.getBillingCycle());
-                subscription.setNextBillingDate(nextBillingDate.getTime());
-
-                billingCalendar.add(Calendar.YEAR, 1);
-                subscription.setBillingEndDate(billingCalendar.getTime());
-            }
-
-            // subscription without trial is paid unless another stated above
-            subscription.setStartDate(calendar.getTime());
-
-            calendar.add(Calendar.YEAR, 1);
-            subscription.setEndDate(calendar.getTime());
         }
 
         service.beforeCreateSubscription(subscription);
@@ -928,8 +904,8 @@ public class AccountService extends Service {
      * @see #getSubscriptions(String, String, SecurityContext)
      */
     @ApiOperation(value = "Remove subscription",
-                  notes = "Remove subscription from account. Roles: account/owner, system/admin.",
-                  position = 13)
+            notes = "Remove subscription from account. Roles: account/owner, system/admin.",
+            position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -961,8 +937,8 @@ public class AccountService extends Service {
 
 
     @ApiOperation(value = "Remove account",
-                  notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
-                  position = 16)
+            notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
+            position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -994,8 +970,8 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Redistributes resources",
-                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/manager, system/admin.",
-                  position = 17)
+            notes = "Redistributes resources between workspaces. Roles: account/owner, system/manager, system/admin.",
+            position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -1024,8 +1000,8 @@ public class AccountService extends Service {
      *         account id
      */
     @ApiOperation(value = "Get used resources, provided by subscriptions",
-                  notes = "Returns used resources, provided by subscriptions. Roles: account/owner, account/member, system/manager, system/admin.",
-                  position = 17)
+            notes = "Returns used resources, provided by subscriptions. Roles: account/owner, account/member, system/manager, system/admin.",
+            position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not found"),

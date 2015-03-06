@@ -11,11 +11,13 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
@@ -27,6 +29,7 @@ import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.Api;
@@ -38,9 +41,7 @@ import com.wordnik.swagger.annotations.ApiResponses;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.annotation.CheckForNull;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.servlet.http.HttpServletResponse;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
@@ -51,19 +52,9 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
-import java.io.IOException;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.FileVisitResult;
-import java.nio.file.FileVisitor;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-
-import static java.nio.file.FileVisitResult.CONTINUE;
-import static java.nio.file.FileVisitResult.TERMINATE;
 
 /**
  * RESTful API for RunQueue.
@@ -75,18 +66,12 @@ import static java.nio.file.FileVisitResult.TERMINATE;
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")
 public class RunnerService extends Service {
-    private static final String DOCKERFILES_REPO = "runner.docker.dockerfiles_repo";
-    private static final String DOCKER_FILE_NAME = "/Dockerfile";
-    private static final String SYSTEM_PREFIX    = "system:/";
-
-    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+    private static final Logger LOG   = LoggerFactory.getLogger(RunnerService.class);
+    private static final String START = "{ \"recipe\":\"";
+    private static final String END   = "\" }";
 
     @Inject
     private RunQueue runQueue;
-    @Inject
-    @Named(DOCKERFILES_REPO)
-    @CheckForNull
-    private String   dockerfilesRepository;
 
 
     @ApiOperation(value = "Run project",
@@ -329,52 +314,23 @@ public class RunnerService extends Service {
     @Path("/recipe")
     @Produces(MediaType.TEXT_PLAIN)
     public String getRecipe(@QueryParam("id") String id) throws Exception {
-        java.nio.file.Path dockerParentPath = Paths.get(dockerfilesRepository);
-        if (dockerfilesRepository == null || !Files.exists(dockerParentPath) || !Files.isDirectory(dockerParentPath)) {
-            throw new NotFoundException("The configuration of docker repository wasn't found or " +
-                                        "some problem with configuration was found.");
+        List<RemoteRunnerServer> servers = runQueue.getRegisterRunnerServers();
+        if (servers.isEmpty()) {
+            throw new NotFoundException("Docker configuration wasn't found.");
         }
 
-        final StringBuilder content = new StringBuilder();
-        final String path = id.replace(SYSTEM_PREFIX, "") + DOCKER_FILE_NAME;
-
-        Files.walkFileTree(dockerParentPath, new FileVisitor<java.nio.file.Path>() {
-            @Override
-            public FileVisitResult preVisitDirectory(java.nio.file.Path dir, BasicFileAttributes attrs) throws IOException {
-                return CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult visitFile(java.nio.file.Path file, BasicFileAttributes attrs) throws IOException {
-                if (file.endsWith(path)) {
-                    List<String> lines = Files.readAllLines(file, StandardCharsets.UTF_8);
-                    for (String line : lines) {
-                        content.append(line).append('\n');
-                    }
-
-                    return TERMINATE;
-                } else {
-                    return CONTINUE;
-                }
-            }
-
-            @Override
-            public FileVisitResult visitFileFailed(java.nio.file.Path file, IOException exc) throws IOException {
-                return CONTINUE;
-            }
-
-            @Override
-            public FileVisitResult postVisitDirectory(java.nio.file.Path dir, IOException exc) throws IOException {
-                return CONTINUE;
-            }
-        });
-
-        String result = content.toString();
-        if (result.isEmpty()) {
-            throw new NotFoundException("The content of file wasn't found. Probably you put in incorrect id of configuration etc");
+        RemoteRunnerServer server = servers.get(0);
+        Link link = server.getLink(Constants.LINK_REL_GET_CURRENT_RECIPE);
+        if (link == null) {
+            throw new NotFoundException("Get recipe link wasn't found.");
         }
 
-        return result;
+        // TODO needs to improve this code
+        String json = HttpJsonHelper.requestString(link.getHref(), "GET", null, Pair.of("id", id));
+        json = json.substring(START.length() - 1);
+        json = json.substring(0, json.length() - END.length() - 1);
+
+        return json;
     }
 
 }

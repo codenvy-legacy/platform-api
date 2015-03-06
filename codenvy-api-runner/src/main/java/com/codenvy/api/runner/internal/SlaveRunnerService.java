@@ -32,6 +32,7 @@ import com.codenvy.api.runner.dto.ServerState;
 import com.codenvy.dto.server.DtoFactory;
 import com.google.common.io.Files;
 
+import javax.annotation.CheckForNull;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.servlet.http.HttpServletResponse;
@@ -44,9 +45,11 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 import java.io.PrintWriter;
 import java.nio.charset.Charset;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
@@ -61,6 +64,10 @@ import java.util.Set;
 @Description("Internal Runner REST API")
 @Path("internal/runner")
 public class SlaveRunnerService extends Service {
+    private static final String DOCKERFILES_REPO = "runner.docker.dockerfiles_repo";
+    private static final String DOCKER_FILE_NAME = "/Dockerfile";
+    private static final String SYSTEM_PREFIX    = "system:/";
+
     @com.google.inject.Inject(optional = true)
     @Named(Constants.RUNNER_ASSIGNED_TO_WORKSPACE)
     private static String assignedWorkspace;
@@ -74,6 +81,11 @@ public class SlaveRunnerService extends Service {
 
     @Inject
     private ResourceAllocators allocators;
+
+    @Inject
+    @Named(DOCKERFILES_REPO)
+    @CheckForNull
+    private String dockerfilesRepository;
 
     @GenerateLink(rel = Constants.LINK_REL_RUN)
     @Path("run")
@@ -298,4 +310,31 @@ public class SlaveRunnerService extends Service {
         return DtoFactory.getInstance().createDto(RunnerServerDescriptor.class).withAssignedWorkspace(assignedWorkspace)
                          .withAssignedProject(assignedProject);
     }
+
+    @GenerateLink(rel = Constants.LINK_REL_GET_CURRENT_RECIPE)
+    @GET
+    @Path("/recipe")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getRecipe(@QueryParam("id") String id) throws Exception {
+        java.nio.file.Path dockerParentPath = Paths.get(dockerfilesRepository);
+        if (dockerfilesRepository == null || !java.nio.file.Files.exists(dockerParentPath) ||
+            !java.nio.file.Files.isDirectory(dockerParentPath)) {
+            throw new NotFoundException(
+                    "The configuration of docker repository wasn't found or some problem with configuration was found.");
+        }
+
+        final String path = id.replace(SYSTEM_PREFIX, "") + DOCKER_FILE_NAME;
+
+        java.nio.file.Path dockerFile = Paths.get(dockerParentPath.toAbsolutePath().toString(), path);
+        if (!java.nio.file.Files.exists(dockerFile)) {
+            throw new NotFoundException("The docker file with given id wasn't found.");
+        }
+
+        return Response.ok("{ \"recipe\":\"" +
+                           new String(java.nio.file.Files.readAllBytes(dockerFile)) +
+                           "\" }",
+                           MediaType.APPLICATION_JSON_TYPE)
+                       .build();
+    }
+
 }

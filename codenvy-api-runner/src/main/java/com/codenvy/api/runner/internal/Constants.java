@@ -29,6 +29,7 @@ public class Constants {
     public static final String LINK_REL_STOP                     = "stop";
     public static final String LINK_REL_RUNNER_RECIPE            = "runner recipe";
     public static final String LINK_REL_GET_RECIPE               = "get recipe";
+    public static final String LINK_REL_GET_CURRENT_RECIPE       = "get current recipe";
 
     // config properties
     /**

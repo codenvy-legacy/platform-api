@@ -149,7 +149,7 @@ public class AccountService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @POST
     @GenerateLink(rel = Constants.LINK_REL_CREATE_ACCOUNT)
-    @RolesAllowed("user")
+    @RolesAllowed({"user","system/admin"})
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     public Response create(@Context SecurityContext securityContext,
@@ -163,12 +163,15 @@ public class AccountService extends Service {
                 validateAttributeName(attributeName);
             }
         }
-        final Principal principal = securityContext.getUserPrincipal();
-        final User current = userDao.getByAlias(principal.getName());
-        //for now account <-One to One-> user
-        if (accountDao.getByOwner(current.getId()).size() != 0) {
-            throw new ConflictException(format("Account which owner is %s already exists", current.getId()));
+        User current = null;
+        if (securityContext.isUserInRole("user")) {
+            current = userDao.getByAlias(securityContext.getUserPrincipal().getName());
+            //for now account <-One to One-> user
+            if (accountDao.getByOwner(current.getId()).size() != 0) {
+                throw new ConflictException(format("Account which owner is %s already exists", current.getId()));
+            }
         }
+
         try {
             accountDao.getByName(newAccount.getName());
             throw new ConflictException(format("Account with name %s already exists", newAccount.getName()));
@@ -178,12 +181,14 @@ public class AccountService extends Service {
         final Account account = new Account().withId(accountId)
                                              .withName(newAccount.getName())
                                              .withAttributes(newAccount.getAttributes());
-        //account should have owner
-        final Member owner = new Member().withAccountId(accountId)
-                                         .withUserId(current.getId())
-                                         .withRoles(Arrays.asList("account/owner"));
+
         accountDao.create(account);
-        accountDao.addMember(owner);
+        if (current != null) {
+            final Member owner = new Member().withAccountId(accountId)
+                                             .withUserId(current.getId())
+                                             .withRoles(Arrays.asList("account/owner"));
+            accountDao.addMember(owner);
+        }
         return Response.status(Response.Status.CREATED)
                        .entity(toDescriptor(account, securityContext))
                        .build();

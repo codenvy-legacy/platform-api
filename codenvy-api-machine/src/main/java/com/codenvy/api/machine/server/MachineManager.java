@@ -377,6 +377,8 @@ public class MachineManager {
                             result.add(machine);
                         }
                     }
+                } else {
+                    result.add(machine);
                 }
             }
         }

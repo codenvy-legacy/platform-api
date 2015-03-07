@@ -11,11 +11,13 @@
 package com.codenvy.api.runner;
 
 import com.codenvy.api.core.NotFoundException;
+import com.codenvy.api.core.rest.HttpJsonHelper;
 import com.codenvy.api.core.rest.HttpServletProxyResponse;
 import com.codenvy.api.core.rest.Service;
 import com.codenvy.api.core.rest.annotations.Description;
 import com.codenvy.api.core.rest.annotations.GenerateLink;
 import com.codenvy.api.core.rest.annotations.Required;
+import com.codenvy.api.core.rest.shared.dto.Link;
 import com.codenvy.api.project.shared.EnvironmentId;
 import com.codenvy.api.project.shared.dto.RunnerEnvironment;
 import com.codenvy.api.project.shared.dto.RunnerEnvironmentLeaf;
@@ -27,6 +29,7 @@ import com.codenvy.api.runner.dto.RunRequest;
 import com.codenvy.api.runner.dto.RunnerDescriptor;
 import com.codenvy.api.runner.internal.Constants;
 import com.codenvy.commons.env.EnvironmentContext;
+import com.codenvy.commons.lang.Pair;
 import com.codenvy.commons.user.User;
 import com.codenvy.dto.server.DtoFactory;
 import com.wordnik.swagger.annotations.Api;
@@ -63,10 +66,13 @@ import java.util.List;
 @Path("/runner/{ws-id}")
 @Description("Runner REST API")
 public class RunnerService extends Service {
-    private static final Logger LOG = LoggerFactory.getLogger(RunnerService.class);
+    private static final Logger LOG   = LoggerFactory.getLogger(RunnerService.class);
+    private static final String START = "{ \"recipe\":\"";
+    private static final String END   = "\" }";
 
     @Inject
     private RunQueue runQueue;
+
 
     @ApiOperation(value = "Run project",
                   notes = "Run selected project",
@@ -295,4 +301,36 @@ public class RunnerService extends Service {
         // Response write directly to the servlet request stream
         runQueue.getTask(id).readRecipeFile(new HttpServletProxyResponse(httpServletResponse));
     }
+
+    @ApiOperation(value = "Get recipe",
+                  notes = "Get content of a Dockerfile",
+                  position = 9)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GenerateLink(rel = Constants.LINK_REL_GET_RECIPE)
+    @GET
+    @Path("/recipe")
+    @Produces(MediaType.TEXT_PLAIN)
+    public String getRecipe(@QueryParam("id") String id) throws Exception {
+        List<RemoteRunnerServer> servers = runQueue.getRegisterRunnerServers();
+        if (servers.isEmpty()) {
+            throw new NotFoundException("Docker configuration wasn't found.");
+        }
+
+        RemoteRunnerServer server = servers.get(0);
+        Link link = server.getLink(Constants.LINK_REL_GET_CURRENT_RECIPE);
+        if (link == null) {
+            throw new NotFoundException("Get recipe link wasn't found.");
+        }
+
+        // TODO needs to improve this code
+        String json = HttpJsonHelper.requestString(link.getHref(), "GET", null, Pair.of("id", id));
+        json = json.substring(START.length() - 1);
+        json = json.substring(0, json.length() - END.length() - 1);
+
+        return json;
+    }
+
 }

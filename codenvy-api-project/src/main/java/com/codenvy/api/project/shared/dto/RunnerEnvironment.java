@@ -74,7 +74,17 @@ public interface RunnerEnvironment {
     @Nullable
     String getDescription();
 
-    void setDescription(String description);
+    void setDescription(@Nullable String description);
 
+    @Nullable
     RunnerEnvironment withDescription(String description);
+
+    @Nullable
+    String getDisplayName();
+
+    void setDisplayName(@Nullable String displayName);
+
+    @Nonnull
+    RunnerEnvironment withDisplayName(@Nullable String displayName);
+
 }

@@ -89,7 +89,7 @@ public class DocsModule extends AbstractModule {
         public void init() {
             final SwaggerConfig config = ConfigFactory.config();
             config.setBasePath(baseApiUrl);
-            config.setApiVersion(com.codenvy.api.core.rest.Constants.API_VERSION);
+            config.setApiVersion("1.0-beta2");
             final com.wordnik.swagger.model.ApiInfo apiInfo = new com.wordnik.swagger.model.ApiInfo(
                     "Codenvy REST API", // title
                     "", // description

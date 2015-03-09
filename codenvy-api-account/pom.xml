@@ -119,10 +119,10 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.account.shared.dto</package>
+                        <package>org.eclipse.che.api.account.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.account.server.dto.DtoServerImpls</genClassName>
+                    <genClassName>org.eclipse.che.api.account.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

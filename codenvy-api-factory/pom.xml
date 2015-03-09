@@ -199,10 +199,10 @@
                         </goals>
                         <configuration>
                             <dtoPackages>
-                                <package>com.codenvy.api.factory.dto</package>
+                                <package>org.eclipse.che.api.factory.dto</package>
                             </dtoPackages>
                             <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                            <genClassName>com.codenvy.api.factory.dto.server.DtoServerImpls</genClassName>
+                            <genClassName>org.eclipse.che.api.factory.dto.server.DtoServerImpls</genClassName>
                             <impl>server</impl>
                         </configuration>
                     </execution>

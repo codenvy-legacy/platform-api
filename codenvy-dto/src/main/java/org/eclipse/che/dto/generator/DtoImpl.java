@@ -11,6 +11,7 @@
 package org.eclipse.che.dto.generator;
 
 import org.eclipse.che.dto.shared.CompactJsonDto;
+import org.eclipse.che.dto.shared.DTO;
 import org.eclipse.che.dto.shared.DelegateTo;
 import org.eclipse.che.dto.shared.SerializationIndex;
 import com.google.common.base.Preconditions;

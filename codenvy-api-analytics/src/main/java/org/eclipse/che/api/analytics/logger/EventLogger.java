@@ -45,7 +45,7 @@ public class EventLogger {
 
     public static final String IDE_USAGE             = "ide-usage";
     public static final String DASHBOARD_USAGE       = "dashboard-usage";
-    public static final String USER_INVITE           = "user_invite";
+    public static final String USER_INVITE           = "user-invite";
     public static final String SESSION_USAGE         = "session-usage";
     public static final String SESSION_FACTORY_USAGE = "session-factory-usage";
 

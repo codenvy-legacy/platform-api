@@ -114,10 +114,10 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.analytics.shared.dto</package>
+                        <package>org.eclipse.che.api.analytics.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.analytics.shared.dto.DtoServerImpls</genClassName>
+                    <genClassName>org.eclipse.che.api.analytics.shared.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

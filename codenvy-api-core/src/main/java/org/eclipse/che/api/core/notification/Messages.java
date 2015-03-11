@@ -85,6 +85,11 @@ class Messages {
         if (typeNode == null || (type = typeNode.getStringValue()) == null) {
             return null;
         }
+        try {
+            Class.forName(type);
+        } catch (ClassNotFoundException e) {
+            System.err.println(">>>>>>>>>>>>>>>>>> "+Messages.class.getProtectionDomain().getCodeSource().getLocation());
+        }
         return ObjectBuilder.createObject(Class.forName(type), node);
     }
 

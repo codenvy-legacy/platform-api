@@ -374,14 +374,13 @@ public class BuildQueue {
      * @param buildOptions
      * @return BuildQueueTask
      */
-    public BuildQueueTask scheduleDependenciesAnalyze(String wsId, String project, String type, ServiceContext serviceContext,
+    public BuildQueueTask scheduleDependenciesAnalyze(String wsId, String project, ServiceContext serviceContext,
                                                       BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
         final ProjectDescriptor descriptor = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final DependencyRequest request = (DependencyRequest)DtoFactory.getInstance().createDto(DependencyRequest.class)
-                                                                       .withType(type)
                                                                        .withWorkspace(wsId)
                                                                        .withProject(project)
                                                                        .withUserName(user == null ? "" : user.getName());

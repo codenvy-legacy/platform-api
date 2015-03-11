@@ -152,7 +152,11 @@ public class SourcesManagerImpl implements SourcesManager {
             if (ioError != null) {
                 throw ioError;
             }
-            IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
+            if (!srcDir.equals(workDir)) {
+                // We can pass workDir as srcDir, so we don't need to copy files
+                // It need for example for simple downloading source files to perform some operations on them
+                IoUtil.copy(srcDir, workDir, IoUtil.ANY_FILTER);
+            }
             for (SourceManagerListener listener : listeners) {
                 listener.afterDownload(new SourceManagerEvent(workspace, project, sourcesUrl, workDir));
             }

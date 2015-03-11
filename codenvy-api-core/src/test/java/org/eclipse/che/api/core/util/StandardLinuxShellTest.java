@@ -26,9 +26,9 @@ public class StandardLinuxShellTest {
 
     @Test
     public void testEscapeControls() {
-        CommandLine cmd = new CommandLine().add("ls", "-l", "/home/andrew/c|r>a$z\"y'dir&");
+        CommandLine cmd = new CommandLine().add("ls", "-l", "/home/andrew/cr>a$z\"y'dir");
         final String[] line = new ShellFactory.StandardLinuxShell().createShellCommand(cmd);
-        final String[] expected = {"/bin/bash", "-cl", "ls -l /home/andrew/c\\|r\\>a\\$z\\\"y\\'dir\\&"};
+        final String[] expected = {"/bin/bash", "-cl", "ls -l /home/andrew/cr\\>a\\$z\\\"y\\'dir"};
         Assert.assertEquals(line, expected);
     }
 

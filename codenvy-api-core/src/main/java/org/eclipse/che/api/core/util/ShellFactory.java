@@ -47,12 +47,12 @@ public class ShellFactory {
                         char c = str.charAt(i);
                         switch (c) {
                             case ' ':
-                            case '|':
+//                            case '|':
                             case '>':
                             case '$':
                             case '"':
                             case '\'':
-                            case '&':
+//                            case '&':
                             case '(':
                             case ')':
                             case '~':

@@ -14,6 +14,8 @@ import org.eclipse.che.api.core.rest.shared.dto.Link;
 import org.eclipse.che.api.core.rest.shared.dto.LinkParameter;
 import org.eclipse.che.dto.server.DtoFactory;
 
+import javax.annotation.Nonnull;
+import javax.annotation.Nullable;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -56,6 +58,16 @@ public class LinksHelper {
 
     public static Link createLink(String method, String href, String rel) {
         return DtoFactory.getInstance().createDto(Link.class).withMethod(method).withHref(href).withRel(rel);
+    }
+
+    @Nullable
+    public static Link findLink(@Nonnull String rel, List<Link> links) {
+        for (Link link : links) {
+            if (link.getRel().equals(rel)) {
+                return link;
+            }
+        }
+        return null;
     }
 
     private LinksHelper() {

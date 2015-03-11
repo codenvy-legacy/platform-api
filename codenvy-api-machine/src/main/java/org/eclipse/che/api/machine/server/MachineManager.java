@@ -14,9 +14,12 @@ import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
+import org.eclipse.che.api.core.util.Cancellable;
+import org.eclipse.che.api.core.util.CommandLine;
 import org.eclipse.che.api.core.util.CompositeLineConsumer;
 import org.eclipse.che.api.core.util.FileLineConsumer;
 import org.eclipse.che.api.core.util.LineConsumer;
+import org.eclipse.che.api.core.util.ProcessUtil;
 import org.eclipse.che.api.machine.server.spi.Image;
 import org.eclipse.che.api.machine.server.spi.ImageKey;
 import org.eclipse.che.api.machine.server.spi.ImageProvider;
@@ -27,6 +30,7 @@ import org.eclipse.che.api.machine.shared.MachineState;
 import org.eclipse.che.api.machine.shared.ProjectBinding;
 import org.eclipse.che.api.machine.shared.Recipe;
 
+import org.eclipse.che.api.vfs.server.Path;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.IoUtil;
 import org.eclipse.che.commons.lang.NameGenerator;
@@ -46,6 +50,7 @@ import java.io.IOException;
 import java.io.Reader;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -74,6 +79,7 @@ public class MachineManager {
     private final Map<String, MachineImpl>   machines;
     private final ExecutorService            executor;
     private final String                     apiEndPoint;
+    private final ConcurrentHashMap<String, SyncTask> syncTasks;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
@@ -90,6 +96,7 @@ public class MachineManager {
         machines = new ConcurrentHashMap<>();
         // fixme replace with guice style impl
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("MachineManager-", true));
+        syncTasks = new ConcurrentHashMap<>();
     }
 
     @PostConstruct
@@ -296,24 +303,80 @@ public class MachineManager {
             }
         }
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
+        final File fullPath;
         try {
-            final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
+            fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
             copyProjectSource(fullPath, machine.getWorkspaceId(), project.getPath());
+
+            machine.getProjects().add(project);
         } catch (IOException e) {
             IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()));
             LOG.warn(e.getLocalizedMessage(), e);
             throw new MachineException("Project binding failed");
         }
-        machine.getProjects().add(project);
-        // TODO add synchronization of origin project and copied
+
+        try {
+            final String watchPath = fullPath.toString();
+            final SyncTask syncTask = new SyncTask(watchPath);
+            syncTasks.putIfAbsent(watchPath, syncTask);
+            executor.submit(syncTask);
+        } catch (IOException e) {
+            LOG.error(e.getLocalizedMessage(), e);
+        }
+    }
+
+    private static class SyncTask implements Cancellable, Runnable {
+        private final String  watchPath;
+        private final LineConsumer stdout;
+        private final LineConsumer stderr;
+        private Process process;
+
+        public SyncTask(String watchPath) throws IOException {
+            this.watchPath = watchPath;
+            this.stdout = new FileLineConsumer(Files.createFile(Paths.get(watchPath, "stdout")).toFile());
+            this.stderr = LineConsumer.DEV_NULL;
+        }
+
+        @Override
+        public void run() {
+            CommandLine cl = new CommandLine("inotifywait",
+                                             "-mr",
+                                             "--event",
+                                             "modify,move,move_self,create,delete,delete_self",
+                                             "--format",
+                                             "'%e %w%f'",
+                                             watchPath);
+            ProcessBuilder processBuilder = new ProcessBuilder().command(cl.toShellCommand());
+            try {
+                process = ProcessUtil.execute(processBuilder, stdout, stderr);
+            } catch (IOException e) {
+                LOG.error(e.getLocalizedMessage(), e);
+            }
+        }
+
+        @Override
+        public void cancel() throws Exception {
+            ProcessUtil.kill(process);
+            Thread.currentThread().interrupt();
+        }
     }
 
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
-                final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-                if (IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()))) {
+                final File fullPath = new File(machine.getInstance().getHostProjectsFolder(), project.getPath());
+                SyncTask syncTask = syncTasks.get(fullPath.toString());
+                if (syncTask != null) {
+                    try {
+                        syncTask.cancel();
+                    } catch (Exception e) {
+                        LOG.error(e.getLocalizedMessage(), e);
+                    }
+                } else {
+                    LOG.error("Sync task is not found for project {} in machine {}", project.getPath(), machineId);
+                }
+                if (IoUtil.deleteRecursive(fullPath)) {
                     try {
                         machine.getMachineLogsOutput().writeLine("[ERROR] Error occurred on removing of binding");
                     } catch (IOException ignored) {

@@ -14,6 +14,7 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.Buffer;
 
 /**
  * Helpers to manage system processes.
@@ -75,6 +76,31 @@ public final class ProcessUtil {
             consumer.writeLine(line);
         }
 
+        return process;
+    }
+
+    /**
+     * Start the process, writing the stdout and stderr to consumers.
+     *
+     * @param pb
+     *         process builder to start
+     * @param consumer
+     *         a consumer where stdout and stderr will be redirected
+     * @return the started process
+     * @throws IOException
+     */
+    public static Process execute(ProcessBuilder pb, LineConsumer stdout, LineConsumer stderr) throws IOException {
+        final Process process = pb.start();
+        try (final BufferedReader inputReader = new BufferedReader(new InputStreamReader(process.getInputStream()));
+             final BufferedReader errorReader = new BufferedReader(new InputStreamReader(process.getErrorStream()))) {
+            String line;
+            while ((line = inputReader.readLine()) != null) {
+                stdout.writeLine(line);
+            }
+            while ((line = errorReader.readLine()) != null) {
+                stderr.writeLine(line);
+            }
+        }
         return process;
     }
 

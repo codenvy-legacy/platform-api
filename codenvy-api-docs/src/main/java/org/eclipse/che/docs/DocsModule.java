@@ -23,7 +23,6 @@ import com.wordnik.swagger.jaxrs.listing.ResourceListingProvider;
 import com.wordnik.swagger.jaxrs.reader.DefaultJaxrsApiReader;
 import com.wordnik.swagger.reader.ClassReaders;
 
-import org.eclipse.che.api.core.rest.Constants;
 
 import javax.annotation.PostConstruct;
 import javax.inject.Inject;

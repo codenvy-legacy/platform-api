@@ -11,8 +11,6 @@
 package org.eclipse.che.api.auth;
 
 
-import javax.inject.Singleton;
-
 /**
  * Manager to handle access token for authentication-authorization process
  * <p/>
@@ -20,7 +18,6 @@ import javax.inject.Singleton;
  * @author Andrey Parfonov
  * @author Sergey Kabashniuk
  */
-@Singleton
 public interface TokenManager {
     /**
      * Create new access token and associate with given user id.

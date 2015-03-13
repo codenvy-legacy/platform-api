@@ -327,8 +327,8 @@ public class RunnerService extends Service {
 
         // TODO needs to improve this code
         String json = HttpJsonHelper.requestString(link.getHref(), "GET", null, Pair.of("id", id));
-        json = json.substring(START.length() - 1);
-        json = json.substring(0, json.length() - END.length() - 1);
+        json = json.substring(START.length());
+        json = json.substring(0, json.length() - END.length());
 
         return json;
     }

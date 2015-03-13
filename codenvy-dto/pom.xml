@@ -110,10 +110,10 @@
                             <goal>java</goal>
                         </goals>
                         <configuration>
-                            <mainClass>com.codenvy.dto.generator.DtoGenerator</mainClass>
+                            <mainClass>org.eclipse.che.dto.generator.DtoGenerator</mainClass>
                             <arguments>
-                                <argument>--dto_packages=com.codenvy.dto</argument>
-                                <argument>--gen_file_name=${generated.test.sources.directory}/com/codenvy/dto/DtoServerImpls.java</argument>
+                                <argument>--dto_packages=org.eclipse.che.dto</argument>
+                                <argument>--gen_file_name=${generated.test.sources.directory}/org/eclipse/che/dto/DtoServerImpls.java</argument>
                                 <argument>--impl=server</argument>
                                 <argument>--package_base=${generated.test.sources.directory}/</argument>
                             </arguments>

@@ -170,10 +170,10 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.vfs.shared.dto</package>
+                        <package>org.eclipse.che.api.vfs.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.vfs.server.dto.DtoServerImpls</genClassName>
+                    <genClassName>org.eclipse.che.api.vfs.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>

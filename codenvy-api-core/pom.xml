@@ -149,10 +149,10 @@
                 </dependencies>
                 <configuration>
                     <dtoPackages>
-                        <package>com.codenvy.api.core.rest.shared.dto</package>
+                        <package>org.eclipse.che.api.core.rest.shared.dto</package>
                     </dtoPackages>
                     <outputDirectory>${dto-generator-out-directory}</outputDirectory>
-                    <genClassName>com.codenvy.api.core.server.dto.DtoServerImpls</genClassName>
+                    <genClassName>org.eclipse.che.api.core.server.dto.DtoServerImpls</genClassName>
                     <impl>server</impl>
                 </configuration>
             </plugin>
@@ -263,8 +263,8 @@
                         <artifactId>maven-surefire-plugin</artifactId>
                         <configuration>
                             <includes>
-                                <include>com/codenvy/api/core/util/ProcessUtilTest.java</include>
-                                <include>com/codenvy/api/core/util/StandardLinuxShellTest.java</include>
+                                <include>org/eclipse/che/api/core/util/ProcessUtilTest.java</include>
+                                <include>org/elipse/che/api/core/util/StandardLinuxShellTest.java</include>
                                 <include>**/*Test.java</include>
                             </includes>
                         </configuration>

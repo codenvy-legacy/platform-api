@@ -14,12 +14,9 @@ import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
-import org.eclipse.che.api.core.util.Cancellable;
-import org.eclipse.che.api.core.util.CommandLine;
 import org.eclipse.che.api.core.util.CompositeLineConsumer;
 import org.eclipse.che.api.core.util.FileLineConsumer;
 import org.eclipse.che.api.core.util.LineConsumer;
-import org.eclipse.che.api.core.util.ProcessUtil;
 import org.eclipse.che.api.machine.server.spi.Image;
 import org.eclipse.che.api.machine.server.spi.ImageKey;
 import org.eclipse.che.api.machine.server.spi.ImageProvider;
@@ -56,11 +53,9 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import static org.slf4j.LoggerFactory.getLogger;
@@ -323,124 +318,6 @@ public class MachineManager {
             executor.submit(syncTask);
         } catch (IOException e) {
             LOG.error(e.getLocalizedMessage(), e);
-        }
-    }
-
-    private static class SyncTask implements Cancellable, Runnable {
-        private final String  watchPath;
-        private final LineConsumer stdout;
-        private final LineConsumer stderr;
-        private Process process;
-
-        public SyncTask(String watchPath, String workspace, String project) throws IOException {
-            this.watchPath = watchPath;
-            final String token = EnvironmentContext.getCurrent().getUser().getToken();
-            final File stdoutFile = Files.createTempFile(watchPath.replace('/', '_'), "stdout").toFile();
-            this.stdout = new CompositeLineConsumer(new FileLineConsumer(stdoutFile), new SyncEventProcessor(workspace, project, token, 2000));// TODO inject with guice
-            this.stderr = new FileLineConsumer(Files.createTempFile(watchPath.replace('/', '_'), "stderr").toFile());
-        }
-
-        @Override
-        public void run() {
-            LOG.info("Sync task is starting");
-            CommandLine cl = new CommandLine("inotifywait",
-                                             "-mr",
-                                             "--event",
-                                             "modify,move,create,delete",//attrib,delete_self,move_self?
-                                             "--format",
-                                             "'%e %w%f'",
-                                             watchPath);
-            ProcessBuilder processBuilder = new ProcessBuilder().command(cl.toShellCommand());
-            try {
-                process = ProcessUtil.execute(processBuilder, stdout, stderr);
-            } catch (IOException e) {
-                LOG.error(e.getLocalizedMessage(), e);
-            }
-            LOG.info("Sync task is finishing");
-        }
-
-        @Override
-        public void cancel() throws Exception {
-            ProcessUtil.kill(process);
-            Thread.currentThread().interrupt();
-        }
-    }
-
-    private static class SyncEventProcessor implements LineConsumer {
-        private static final Logger LOG = getLogger(SyncEventProcessor.class);
-        private final String                        workspace;
-        private final String                        project;
-        private final String                        token;
-        private final ConcurrentLinkedQueue<String> events;
-        private final ScheduledExecutorService      executor;
-
-        @Inject
-        public SyncEventProcessor(String workspace, String project, String token, long delayInMilis) {
-            this.workspace = workspace;
-            this.project = project;
-            this.token = token;
-            this.events = new ConcurrentLinkedQueue<>();
-            this.executor = Executors.newSingleThreadScheduledExecutor(new NamedThreadFactory("MachineProjectSourceSync-", true));
-            this.executor.scheduleAtFixedRate(new Runnable() {
-                @Override
-                public void run() {
-                    processLines();
-                }
-            }, delayInMilis, delayInMilis, TimeUnit.MILLISECONDS);
-        }
-
-        @Override
-        public void writeLine(String line) throws IOException {
-            // process events in separate thread to prevent native process stdout/stderr overflowing
-            events.add(line);
-        }
-
-        private void processLines() {
-            LOG.info("Sync processor starts processing");
-            for (String event = events.poll(); event != null; ) {
-                if (Thread.currentThread().isInterrupted()) {
-                    return;
-                }
-                if (event.startsWith("CREATE,ISDIR")) {
-                    // file was created
-                    LOG.info("sync: create folder {}", event.substring(12));
-                } else if (event.startsWith("CREATE")) {
-                    LOG.info("sync: create file {}", event.substring(6));
-                    // dir was created
-                } else if (event.startsWith("MODIFY")) {
-                    LOG.info("sync: modify file {}", event.substring(6));
-                    // file was modified
-//                } else if (event.startsWith("DELETE_SELF")) {
-                    // useless?
-                } else if (event.startsWith("DELETE,ISDIR")) {
-                    LOG.info("sync: delete dir {}", event.substring(12));
-                    // dir was deleted
-                } else if (event.startsWith("DELETE")) {
-                    LOG.info("sync: delete file {}", event.substring(6));
-                    // file was deleted
-//                } else if (event.startsWith("MOVED_SELF")) {
-                    // useless?
-                } else if (event.startsWith("MOVED_FROM,ISDIR")) {
-                    LOG.info("sync: move dir from {}", event.substring(16));
-                    // dir was moved from
-                } else if (event.startsWith("MOVED_FROM")) {
-                    LOG.info("sync: move file from {}", event.substring(10));
-                    // file was moved from
-                } else if (event.startsWith("MOVED_TO,ISDIR")) {
-                    LOG.info("sync: move dir to {}", event.substring(14));
-                    // dir was moved to
-                } else if (event.startsWith("MOVED_TO")) {
-                    LOG.info("sync: move file to {}", event.substring(8));
-                    // file was moved to
-                }
-            }
-            LOG.info("Sync processor finishes processing");
-        }
-
-        @Override
-        public void close() throws IOException {
-            LOG.info("Sync processor is shutting down");
-            executor.shutdownNow();
         }
     }
 

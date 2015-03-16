@@ -308,12 +308,12 @@ public class MachineManager {
         } catch (IOException e) {
             IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()));
             LOG.warn(e.getLocalizedMessage(), e);
-            throw new MachineException("Project binding failed");
+            throw new MachineException("Project binding failed. " + e.getLocalizedMessage());
         }
 
         try {
             final String watchPath = fullPath.toString();
-            final SyncTask syncTask = new SyncTask(watchPath, machine.getWorkspaceId(), project.getPath());
+            final SyncTask syncTask = new SyncTask(watchPath, machine.getWorkspaceId(), project.getPath(), apiEndPoint);
             syncTasks.putIfAbsent(watchPath, syncTask);
             executor.submit(syncTask);
         } catch (IOException e) {

@@ -326,7 +326,7 @@ public final class DefaultProjectManager implements ProjectManager {
     }
 
     /**
-     * Gets root folder od project tree.
+     * Gets root folder of project tree.
      *
      * @param workspace
      *         id of workspace

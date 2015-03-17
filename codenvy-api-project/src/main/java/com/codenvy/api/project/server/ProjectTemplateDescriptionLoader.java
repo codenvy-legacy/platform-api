@@ -17,12 +17,16 @@ import com.codenvy.dto.server.DtoFactory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.annotation.Nonnull;
 import javax.annotation.PostConstruct;
-import javax.inject.Inject;
+import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URL;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.List;
 import java.util.Set;
 
@@ -36,20 +40,76 @@ import java.util.Set;
 public class ProjectTemplateDescriptionLoader {
 
     private static final Logger LOG = LoggerFactory.getLogger(ProjectTemplateRegistry.class);
-    private final Set<ProjectType>        projectTypes;
-    private final ProjectTemplateRegistry templateRegistry;
+
+    /**
+     * Describe path to the dir where to locate json file that describes templates for project types.
+     * Json file must have name like: "projectTypeId".json (e.g, maven.json, python.json and so on)
+     */
+    @Inject(optional = true)
+    @Named("project.template_descriptions_dir")
+    private String templateDescriptionsDir;
+
+
+    /**
+     * Describe value to the dir where templates sources are located.
+     * If in ImportSourceDescriptor.location is set in the path ${project.template_location_dir}
+     * it will replaced with value that is set in configuration
+     */
+    @Inject(optional = true)
+    @Named("project.template_location_dir")
+    private String templateLocationDir;
 
     @Inject
-    public ProjectTemplateDescriptionLoader(Set<ProjectType> projectTypes, ProjectTemplateRegistry templateRegistry) {
+    private Set<ProjectType> projectTypes;
+
+    @Inject
+    private ProjectTemplateRegistry templateRegistry;
+
+
+    @Inject
+    public ProjectTemplateDescriptionLoader() {
+    }
+
+    protected ProjectTemplateDescriptionLoader(String templateDescriptionsDir,
+                                               String templateLocationDir,
+                                               Set<ProjectType> projectTypes,
+                                               ProjectTemplateRegistry templateRegistry) {
+        this.templateDescriptionsDir = templateDescriptionsDir;
+        this.templateLocationDir = templateLocationDir;
         this.projectTypes = projectTypes;
         this.templateRegistry = templateRegistry;
     }
 
     @PostConstruct
-    private void start() {
-        for (ProjectType projectType : projectTypes) {
-            load(projectType.getId());
+    public void start() {
+        if (templateDescriptionsDir == null || !Files.exists(Paths.get(templateDescriptionsDir)) ||
+            !Files.isDirectory(Paths.get(templateDescriptionsDir))) {
+            LOG.warn("ProjectTemplateDescriptionLoader",
+                     "The configuration of project templates descriptors wasn't found or some problem with configuration was found.");
+            for (ProjectType projectType : projectTypes) {
+                load(projectType.getId());
+            }
+        } else {
+            Path dirPath = Paths.get(templateDescriptionsDir);
+            for (ProjectType projectType : projectTypes) {
+                load(dirPath, projectType.getId());
+            }
         }
+    }
+
+    private void load(@Nonnull Path dirPath, @Nonnull String projectTypeId) {
+        try {
+            Path tmplConf = Paths.get(dirPath.toString() + "/" + projectTypeId + ".json");
+            if (tmplConf != null && Files.exists(tmplConf)) {
+                try (InputStream inputStream = Files.newInputStream(tmplConf)) {
+                    resolveTemplate(projectTypeId, inputStream);
+                }
+            }
+        } catch (IOException e) {
+            LOG.debug(String.format("Can't load information about project templates for %s project type", projectTypeId), e);
+        }
+
+
     }
 
     /**
@@ -62,17 +122,28 @@ public class ProjectTemplateDescriptionLoader {
         try {
             final URL url = Thread.currentThread().getContextClassLoader().getResource(projectTypeId + ".json");
             if (url != null) {
-                final List<ProjectTemplateDescriptor> templates;
                 try (InputStream inputStream = url.openStream()) {
-                    templates = DtoFactory.getInstance().createListDtoFromJson(inputStream, ProjectTemplateDescriptor.class);
-                    for (ProjectTemplateDescriptor template : templates) {
-                        template.setProjectType(projectTypeId);
-                    }
+                    resolveTemplate(projectTypeId, inputStream);
                 }
-                templateRegistry.register(projectTypeId, templates);
             }
         } catch (IOException e) {
             LOG.debug(String.format("Can't load information about project templates for %s project type", projectTypeId), e);
         }
     }
+
+    private void resolveTemplate(String projectTypeId, InputStream stream) throws IOException {
+        final List<ProjectTemplateDescriptor> templates;
+        templates = DtoFactory.getInstance().createListDtoFromJson(stream, ProjectTemplateDescriptor.class);
+        for (ProjectTemplateDescriptor template : templates) {
+            template.setProjectType(projectTypeId);
+            ImportSourceDescriptor templateSource = template.getSource();
+            String location = templateSource.getLocation();
+            if (location.contains("${project.template_location_dir}") && templateLocationDir != null) {
+                templateSource.setLocation(location.replace("${project.template_location_dir}", templateLocationDir));
+            }
+        }
+        templateRegistry.register(projectTypeId, templates);
+    }
+
+
 }

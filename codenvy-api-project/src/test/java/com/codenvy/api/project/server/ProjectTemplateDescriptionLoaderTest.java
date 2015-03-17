@@ -10,10 +10,10 @@
  *******************************************************************************/
 package com.codenvy.api.project.server;
 
-import org.eclipse.che.api.project.server.type.ProjectType;
-import org.eclipse.che.api.project.shared.dto.ImportSourceDescriptor;
-import org.eclipse.che.api.project.shared.dto.ProjectTemplateDescriptor;
-import org.eclipse.che.commons.lang.NameGenerator;
+import com.codenvy.api.project.server.type.ProjectType;
+import com.codenvy.api.project.shared.dto.ImportSourceDescriptor;
+import com.codenvy.api.project.shared.dto.ProjectTemplateDescriptor;
+import com.codenvy.commons.lang.NameGenerator;
 import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;

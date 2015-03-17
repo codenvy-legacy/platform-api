@@ -1,4 +1,4 @@
-/*******************************************************************************
+package org.eclipse.che.api.auth; /*******************************************************************************
  * Copyright (c) 2012-2015 Codenvy, S.A.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
@@ -14,12 +14,16 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.testng.Assert.assertEquals;
+import static org.testng.Assert.assertTrue;
 
 import org.eclipse.che.api.auth.AuthenticationService;
 import org.eclipse.che.api.auth.TokenInvalidationHandler;
 import org.eclipse.che.api.auth.TokenManager;
+
 import com.jayway.restassured.http.ContentType;
+import com.jayway.restassured.internal.mapper.ObjectMapperType;
 import com.jayway.restassured.mapper.ObjectMapper;
+import com.jayway.restassured.response.Cookie;
 
 import org.eclipse.che.api.auth.server.dto.DtoServerImpls;
 import org.eclipse.che.api.auth.shared.dto.Credentials;
@@ -127,11 +131,11 @@ public class AuthenticationServiceTest {
     @Test
     public void shouldReturnToken() throws ApiException {
         //given
-        Token expected = DtoFactory.getInstance().createDto(Token.class).withValue("v1");
+        Token expected = DtoFactory.getInstance().createDto(Token.class).withValue("t-12342345");
         when(userDao.authenticate(eq("User"), eq("password"))).thenReturn(true);
         when(userDao.getByAlias(eq("User"))).thenReturn(user);
         when(user.getId()).thenReturn("u-1");
-        when(tokenManager.createToken(eq("u-1"))).thenReturn("v1");
+        when(tokenManager.createToken(eq("u-1"))).thenReturn("t-12342345");
         //when
 
         Token actual = given()
@@ -144,7 +148,8 @@ public class AuthenticationServiceTest {
                 .then()
                 .expect().statusCode(200)
                 .when()
-                .post("/auth/login").as(DtoServerImpls.TokenImpl.class, ObjectMapper.GSON);
+                .cookie("session-access-key", "t-12342345")
+                .post("/auth/login").as(DtoServerImpls.TokenImpl.class, ObjectMapperType.GSON);
         //then
         assertEquals(actual, expected);
         ArgumentCaptor<String> login = ArgumentCaptor.forClass(String.class);
@@ -166,20 +171,23 @@ public class AuthenticationServiceTest {
     }
 
     @Test
-    public void shouldCallLogoutOnDao() {
+    public void shouldLogOut() {
         //given
         //when
-        given()
+        Cookie cookie = given()
                 .then()
                 .expect().statusCode(204)
                 .when()
-                .post("/auth/logout?token=er00349");
+                .post("/auth/logout?token=er00349").getDetailedCookie("session-access-key");
         ArgumentCaptor<String> argument = ArgumentCaptor.forClass(String.class);
         //then
+        assertTrue(cookie.isHttpOnly());
+        assertEquals(cookie.getMaxAge(), 0);
         verify(tokenManager).invalidateToken(argument.capture());
         verify(tokenInvalidationHandler).onTokenInvalidated(eq("er00349"));
         assertEquals(argument.getValue(), "er00349");
 
     }
+
 
 }

@@ -33,8 +33,12 @@ import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.NewCookie;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
+import javax.ws.rs.core.UriInfo;
 
 /**
  * Authenticate user by username and password.
@@ -85,7 +89,7 @@ public class AuthenticationService {
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
     @Path("/login")
-    public Response login(Credentials credentials) throws ApiException {
+    public Response login(Credentials credentials, @Context SecurityContext context) throws ApiException {
 
         if (credentials == null
             || credentials.getPassword() == null
@@ -107,8 +111,11 @@ public class AuthenticationService {
             throw new UnauthorizedException("Authentication failed. Please check username and password.");
         }
 
+        String token = tokenManager.createToken(user.getId());
         return Response.ok()
-                       .entity(DtoFactory.getInstance().createDto(Token.class).withValue(tokenManager.createToken(user.getId())))
+                       .entity(DtoFactory.getInstance().createDto(Token.class).withValue(token))
+                       .header("Set-Cookie",
+                               new NewCookie("session-access-key", token, "/", null, null, -1, context.isSecure()) + ";HttpOnly")
                        .build();
     }
 
@@ -126,11 +133,16 @@ public class AuthenticationService {
             @ApiResponse(code = 400, message = "Authentication error")})
     @POST
     @Path("/logout")
-    public void logout(@ApiParam(value = "Auth token", required = true) @QueryParam("token") String token) {
+    public Response logout(@ApiParam(value = "Auth token", required = true) @QueryParam("token") String token,
+                           @Context SecurityContext context) {
         if (token == null) {
             throw new WebApplicationException(Response.Status.BAD_REQUEST);
         }
         tokenManager.invalidateToken(token);
         invalidationHandler.onTokenInvalidated(token);
+        return Response.noContent()
+                       .header("Set-Cookie",
+                               new NewCookie("session-access-key", token, "/", null, null, 0, context.isSecure()) + ";HttpOnly")
+                       .build();
     }
 }

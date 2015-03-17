@@ -15,7 +15,6 @@ import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.account.server.dao.Subscription;
 import org.eclipse.che.api.account.server.dao.SubscriptionAttributes;
 
-import org.eclipse.che.api.auth.AuthenticationDao;
 import org.eclipse.che.api.factory.FactoryStore;
 import org.eclipse.che.api.user.server.TokenValidator;
 import org.eclipse.che.api.user.server.dao.User;

@@ -12,7 +12,6 @@ package org.eclipse.che.api.factory;
 
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.account.server.dao.Member;
-import org.eclipse.che.api.account.server.dao.Subscription;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -22,11 +21,11 @@ import org.eclipse.che.api.factory.dto.Factory;
 import org.eclipse.che.api.factory.dto.OnAppLoaded;
 import org.eclipse.che.api.factory.dto.OnProjectOpened;
 import org.eclipse.che.api.factory.dto.Policies;
-import org.eclipse.che.api.factory.dto.WelcomePage;
 import org.eclipse.che.api.factory.dto.Workspace;
 import org.eclipse.che.api.user.server.dao.PreferenceDao;
 import org.eclipse.che.api.user.server.dao.User;
 import org.eclipse.che.api.user.server.dao.UserDao;
+import org.eclipse.che.dto.server.DtoFactory;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
@@ -114,14 +113,27 @@ public abstract class FactoryBaseValidator {
 
     protected void validateWorkspace(Factory factory) throws ApiException {
         final Workspace workspace = factory.getWorkspace();
-        if (workspace != null && workspace.getType() != null) {
-            if (workspace.getType().equals("named")) {
-                Policies policies = factory.getPolicies();
-                if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
-                    throw new ConflictException(FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
+        if (workspace != null) {
+            if (workspace.getType() != null) {
+                if (workspace.getType().equals("named")) {
+                    Policies policies = factory.getPolicies();
+                    if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
+                        throw new ConflictException(FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
+                    }
+                } else if (!workspace.getType().equals("temp")) {
+                    throw new ConflictException("workspace.type have only two possible values - named or temp");
                 }
-            } else if (!workspace.getType().equals("temp")) {
-                throw new ConflictException("workspace.type have only two possible values - named or temp");
+            }
+            if (workspace.getLocation() != null) {
+                if (workspace.getLocation().equals("owner")) {
+                    String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
+                    if (accountId == null) {
+                        throw new ConflictException("current workspace location requires factory creator accountId to be set");
+                    }
+                } else if (!workspace.getLocation().equals("acceptor")) {
+                    throw new ConflictException("workspace.location have only two possible values - owner or acceptor");
+                }
+
             }
         }
     }

@@ -13,12 +13,15 @@ package org.eclipse.che.api.factory;
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.factory.dto.Factory;
+import org.eclipse.che.api.factory.dto.Workspace;
 import org.eclipse.che.api.user.server.dao.PreferenceDao;
 import org.eclipse.che.api.user.server.dao.UserDao;
+import org.eclipse.che.dto.server.DtoFactory;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
+
+import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Factory URL accept stage builder.
@@ -38,8 +41,22 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateSource(factory);
             validateProjectName(factory);
         }
+        processDefaults(factory);
         validateWorkspace(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
+    }
+
+    private void processDefaults(Factory factory)  {
+        if (factory.getWorkspace() ==  null) {
+            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("named").withLocation("owner"));
+        } else {
+            if (isNullOrEmpty(factory.getWorkspace().getType())) {
+                factory.getWorkspace().setType("named");
+            }
+            if (isNullOrEmpty(factory.getWorkspace().getLocation())) {
+                factory.getWorkspace().setLocation("owner");
+            }
+        }
     }
 }

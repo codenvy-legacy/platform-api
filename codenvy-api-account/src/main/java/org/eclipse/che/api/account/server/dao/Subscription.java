@@ -358,4 +358,44 @@ public class Subscription {
                Objects.equals(billingContractTerm, other.billingContractTerm) &&
                Objects.equals(description, other.description);
     }
+
+    @Override
+    public String toString() {
+        return String.format("{\"id\":\"%s\"," +
+                             " \"accountId\":\"%s\", " +
+                             "\"serviceId\":\"%s\"," +
+                             " \"planId\":\"%s\", " +
+                             "\"properties\":\"%s\", " +
+                             "\"state\":\"%s\", " +
+                             "\"startDate\":\"%s\" " +
+                             "\"endDate\":\"%s\"," +
+                             " \"trialStartDate\":\"%s\", " +
+                             "\"trialEndDate\":\"%s\"," +
+                             " \"usePaymentSystem\":\"%s\", " +
+                             "\"billingStartDate\":\"%s\"," +
+                             " \"billingEndDate\":\"%s\", " +
+                             "\"nextBillingDate\":\"%s\"," +
+                             " \"billingCycle\":\"%s\"," +
+                             " \"billingCycleType\":\"%s\"," +
+                             " \"billingContractTerm\":\"%s\", " +
+                             "\"description\":\"%s\"}",
+                             id,
+                             accountId,
+                             serviceId,
+                             planId,
+                             properties,
+                             state,
+                             startDate,
+                             endDate,
+                             trialStartDate,
+                             trialEndDate,
+                             usePaymentSystem,
+                             billingStartDate,
+                             billingEndDate,
+                             nextBillingDate,
+                             billingCycle,
+                             billingCycleType,
+                             billingContractTerm,
+                             description);
+    }
 }

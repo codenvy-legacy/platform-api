@@ -147,7 +147,7 @@ public interface AccountDao {
      * @param subscription
      *         new subscription
      */
-    void updateSubscription(Subscription subscription) throws NotFoundException, ServerException;
+    Subscription updateSubscription(Subscription subscription) throws NotFoundException, ServerException;
 
     /**
      * Remove subscription related to existing account
@@ -155,7 +155,7 @@ public interface AccountDao {
      * @param subscriptionId
      *         subscription identifier for removal
      */
-    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException;
+    Subscription removeSubscription(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
      * Gets list of existing in persistent layer members related to given account

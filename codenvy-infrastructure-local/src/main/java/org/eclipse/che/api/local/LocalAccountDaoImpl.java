@@ -308,7 +308,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void removeSubscription(String subscriptionId) throws NotFoundException {
+    public Subscription removeSubscription(String subscriptionId) throws NotFoundException {
         lock.writeLock().lock();
         try {
             Subscription subscription = null;
@@ -324,6 +324,7 @@ public class LocalAccountDaoImpl implements AccountDao {
         } finally {
             lock.writeLock().unlock();
         }
+        return null;
     }
 
     @Override
@@ -378,7 +379,7 @@ public class LocalAccountDaoImpl implements AccountDao {
     }
 
     @Override
-    public void updateSubscription(Subscription subscription) throws NotFoundException, ServerException {
+    public Subscription updateSubscription(Subscription subscription) throws NotFoundException, ServerException {
         lock.writeLock().lock();
         try {
             int i = 0;
@@ -396,6 +397,7 @@ public class LocalAccountDaoImpl implements AccountDao {
         } finally {
             lock.writeLock().unlock();
         }
+        return null;
     }
 
     @Override

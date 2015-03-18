@@ -332,7 +332,7 @@ public class DtoConverter {
             } else {
                 for (AccessControlEntry accessControlEntry : acl) {
                     final Principal principal = accessControlEntry.getPrincipal();
-                    if ((Principal.Type.USER == principal.getType() && currentUser.getName().equals(principal.getName()))
+                    if ((Principal.Type.USER == principal.getType() && currentUser.getId().equals(principal.getName()))
                             || (Principal.Type.USER == principal.getType() && "any".equals(principal.getName()))
                             || (Principal.Type.GROUP == principal.getType() && currentUser.isMemberOf(principal.getName()))) {
 
@@ -361,10 +361,12 @@ public class DtoConverter {
             dto.getProblems().add(createProjectProblem(dtoFactory, e));
         }
 
-        dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, path.substring(1)).toString())
-                .withLinks(generateProjectLinks(project, uriBuilder));
-        if (wsName != null) {
-            dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+        if (uriBuilder != null) {
+            dto.withBaseUrl(uriBuilder.clone().path(ProjectService.class, "getProject").build(wsId, path.substring(1)).toString())
+               .withLinks(generateProjectLinks(project, uriBuilder));
+            if (wsName != null) {
+                dto.withIdeUrl(uriBuilder.clone().replacePath("ws").path(wsName).path(path).build().toString());
+            }
         }
 
         return dto;

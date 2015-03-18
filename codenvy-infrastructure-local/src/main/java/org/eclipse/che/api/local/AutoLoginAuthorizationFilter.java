@@ -10,6 +10,10 @@
  *******************************************************************************/
 package org.eclipse.che.api.local;
 
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+import com.google.common.base.MoreObjects;
+
 import org.eclipse.che.api.auth.DefaultAuthorizationFilter;
 import org.eclipse.che.api.auth.TokenExtractor;
 import org.eclipse.che.api.auth.TokenManager;
@@ -19,6 +23,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
 import javax.servlet.ServletRequest;
@@ -32,6 +37,7 @@ import java.io.IOException;
 /**
  * @author Sergii Kabashniuk
  */
+@Singleton
 public class AutoLoginAuthorizationFilter extends DefaultAuthorizationFilter {
     private static final Logger LOG = LoggerFactory.getLogger(AutoLoginAuthorizationFilter.class);
 
@@ -78,7 +84,7 @@ public class AutoLoginAuthorizationFilter extends DefaultAuthorizationFilter {
          */
         public WrappedRequest(HttpServletRequest request, Cookie additionalCookie) {
             super(request);
-            Cookie[] original = request.getCookies();
+            Cookie[] original = firstNonNull(request.getCookies(), new Cookie[0]);
             result = new Cookie[original.length + 1];
             System.arraycopy(original, 0, result, 0, original.length);
             result[original.length] = additionalCookie;

@@ -47,7 +47,7 @@ public class LocalInfrastructureModule extends AbstractModule {
         bind(MemberDao.class).to(LocalMemberDaoImpl.class);
         bind(AccountDao.class).to(LocalAccountDaoImpl.class);
         bind(FactoryStore.class).to(InMemoryFactoryStore.class);
-        bind(TokenValidator.class).to(DummyTokenValidator.class);
+        bind(TokenValidator.class).to(LocalTokenValidator.class);
     }
 
 

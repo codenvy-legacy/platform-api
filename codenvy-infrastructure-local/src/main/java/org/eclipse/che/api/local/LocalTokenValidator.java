@@ -21,7 +21,7 @@ import javax.inject.Singleton;
  * @author Ann Shumilova
  */
 @Singleton
-public class DummyTokenValidator implements TokenValidator {
+public class LocalTokenValidator implements TokenValidator {
     /** {@inheritDoc} */
     @Override
     public String validateToken(String token) throws ConflictException {

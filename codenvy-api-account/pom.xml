@@ -16,7 +16,7 @@
     <parent>
         <artifactId>codenvy-platform-api-parent</artifactId>
         <groupId>com.codenvy.platform-api</groupId>
-        <version>0.32.1-SNAPSHOT</version>
+        <version>0.32.1</version>
     </parent>
     <artifactId>codenvy-api-account</artifactId>
     <name>Codenvy API Account</name>

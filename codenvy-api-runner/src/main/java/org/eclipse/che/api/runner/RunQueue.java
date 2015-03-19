@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.runner;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.eclipse.che.api.builder.BuildStatus;
 import org.eclipse.che.api.builder.BuilderService;
 import org.eclipse.che.api.builder.dto.BuildOptions;
@@ -52,8 +54,6 @@ import org.eclipse.che.commons.lang.Size;
 import org.eclipse.che.commons.lang.concurrent.ThreadLocalPropagateContext;
 import org.eclipse.che.commons.user.User;
 import org.eclipse.che.dto.server.DtoFactory;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
@@ -1402,8 +1402,8 @@ public class RunQueue {
                                      analyticsID,
                                      waitingTime);
                             final String startLineFormat =
-                                    debug ? "EVENT#debug-started# WS#{}# TIME#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
-                                          : "EVENT#run-started# WS#{}# TIME#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
+                                    debug ? "EVENT#debug-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#"
+                                          : "EVENT#run-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# MEMORY#{}# LIFETIME#{}#";
                             LOG.info(startLineFormat,
                                      time,
                                      workspace,

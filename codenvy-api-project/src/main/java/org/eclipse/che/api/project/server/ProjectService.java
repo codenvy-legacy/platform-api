@@ -121,12 +121,8 @@ public class ProjectService extends Service {
     private ProjectManager              projectManager;
     @Inject
     private ProjectImporterRegistry     importers;
-    //@Inject
-    //private ProjectGeneratorRegistry    handler;
     @Inject
     private SearcherProvider            searcherProvider;
-    @Inject
-    private ProjectTypeResolverRegistry resolverRegistry;
     @Inject
     private EventService                eventService;
     @Inject

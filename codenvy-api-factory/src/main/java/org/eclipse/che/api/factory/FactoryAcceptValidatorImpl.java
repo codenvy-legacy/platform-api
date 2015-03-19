@@ -49,13 +49,13 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
 
     private void processDefaults(Factory factory)  {
         if (factory.getWorkspace() ==  null) {
-            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("named").withLocation("owner"));
+            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("temp").withLocation("acceptor"));
         } else {
             if (isNullOrEmpty(factory.getWorkspace().getType())) {
-                factory.getWorkspace().setType("named");
+                factory.getWorkspace().setType("temp");
             }
             if (isNullOrEmpty(factory.getWorkspace().getLocation())) {
-                factory.getWorkspace().setLocation("owner");
+                factory.getWorkspace().setLocation("acceptor");
             }
         }
     }

@@ -116,12 +116,7 @@ public abstract class FactoryBaseValidator {
             return;
         }
         if (workspace.getType() != null) {
-            if (workspace.getType().equals("named")) {
-                Policies policies = factory.getPolicies();
-                if (policies == null || policies.getRequireAuthentication() == null || !policies.getRequireAuthentication()) {
-                    throw new ConflictException(FactoryConstants.ILLEGAL_REQUIRE_AUTHENTICATION_FOR_NAMED_WORKSPACE_MESSAGE);
-                }
-            } else if (!workspace.getType().equals("temp")) {
+            if (!workspace.getType().equals("named") && !workspace.getType().equals("temp")) {
                 throw new ConflictException("workspace.type have only two possible values - named or temp");
             }
         }

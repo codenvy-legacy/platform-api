@@ -41,22 +41,8 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateSource(factory);
             validateProjectName(factory);
         }
-        processDefaults(factory);
         validateWorkspace(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
-    }
-
-    private void processDefaults(Factory factory)  {
-        if (factory.getWorkspace() ==  null) {
-            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("temp").withLocation("acceptor"));
-        } else {
-            if (isNullOrEmpty(factory.getWorkspace().getType())) {
-                factory.getWorkspace().setType("temp");
-            }
-            if (isNullOrEmpty(factory.getWorkspace().getLocation())) {
-                factory.getWorkspace().setLocation("acceptor");
-            }
-        }
     }
 }

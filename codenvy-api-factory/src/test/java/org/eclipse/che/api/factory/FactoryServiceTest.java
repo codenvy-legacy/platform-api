@@ -19,6 +19,7 @@ import org.eclipse.che.api.factory.dto.Author;
 import org.eclipse.che.api.factory.dto.Button;
 import org.eclipse.che.api.factory.dto.ButtonAttributes;
 import org.eclipse.che.api.factory.dto.Factory;
+import org.eclipse.che.api.factory.dto.Workspace;
 import org.eclipse.che.api.project.server.ProjectManager;
 import org.eclipse.che.api.project.shared.dto.ImportSourceDescriptor;
 import org.eclipse.che.api.project.shared.dto.NewProject;
@@ -56,7 +57,6 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
 
@@ -66,7 +66,7 @@ import static java.net.URLEncoder.encode;
 import static javax.ws.rs.core.Response.Status;
 import static org.hamcrest.Matchers.equalTo;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anySet;
+import static org.mockito.Matchers.anySetOf;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
@@ -143,7 +143,10 @@ public class FactoryServiceTest {
                                                              .withParameters(ImmutableMap.of("keepVcs", "true"))))
                               .withProject(dto.createDto(NewProject.class)
                                               .withType("ptype")
-                                              .withName("pname"));
+                                              .withName("pname"))
+                              .withWorkspace(dto.createDto(Workspace.class)
+                                                .withType("temp")
+                                                .withLocation("acceptor"));
 
 
         StringBuilder queryString = new StringBuilder();
@@ -185,9 +188,10 @@ public class FactoryServiceTest {
         factory.setId(CORRECT_FACTORY_ID);
 
         Factory expected = dto.clone(factory);
+        expected.withWorkspace(dto.createDto(Workspace.class).withType("temp").withLocation("acceptor"));
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factory);
-        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.EMPTY_SET);
+        when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.<FactoryImage>emptySet());
 
         // when
         Response response = given().when().get(SERVICE_PATH + "/" + CORRECT_FACTORY_ID);
@@ -218,7 +222,7 @@ public class FactoryServiceTest {
 
 
         FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
-        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.saveFactory((Factory)any(), anySetOf(FactoryImage.class))).then(factorySaveAnswer);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
 
@@ -233,9 +237,7 @@ public class FactoryServiceTest {
         assertEquals(response.getStatusCode(), 200);
         Factory responseFactoryUrl = dto.createDtoFromJson(response.getBody().asInputStream(), Factory.class);
         boolean found = false;
-        Iterator<Link> iter = responseFactoryUrl.getLinks().iterator();
-        while (iter.hasNext()) {
-            Link link = iter.next();
+        for (Link link : responseFactoryUrl.getLinks()) {
             if (link.getRel().equals("image") && link.getProduces().equals("image/jpeg") && !link.getHref().isEmpty())
                 found = true;
         }
@@ -278,7 +280,7 @@ public class FactoryServiceTest {
                    .withHref(getServerUrl(context) + "/f?id=" + CORRECT_FACTORY_ID);
 
         FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
-        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.saveFactory((Factory)any(), anySetOf(FactoryImage.class))).then(factorySaveAnswer);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
@@ -382,7 +384,7 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToSaveFactoryWithOutImageWithOrgId(ITestContext context) throws Exception {
+    public void shouldBeAbleToSaveFactoryWithOutImageWithOrgId() throws Exception {
         // given
         Factory factory = dto.createDto(Factory.class)
                              .withV("2.0")
@@ -395,7 +397,7 @@ public class FactoryServiceTest {
 
 
         FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
-        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.saveFactory((Factory)any(), anySetOf(FactoryImage.class))).then(factorySaveAnswer);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
@@ -423,7 +425,7 @@ public class FactoryServiceTest {
                                                             .withParameters(ImmutableMap.of("commitId", "12345679"))));
 
         FactorySaveAnswer factorySaveAnswer = new FactorySaveAnswer();
-        when(factoryStore.saveFactory((Factory)any(), anySet())).then(factorySaveAnswer);
+        when(factoryStore.saveFactory((Factory)any(), anySetOf(FactoryImage.class))).then(factorySaveAnswer);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).then(factorySaveAnswer);
 
         // when, then
@@ -450,7 +452,7 @@ public class FactoryServiceTest {
 
         Path path = Paths.get(Thread.currentThread().getContextClassLoader().getResource("100x100_image.jpeg").toURI());
 
-        when(factoryStore.saveFactory((Factory)any(), anySet())).thenReturn(CORRECT_FACTORY_ID);
+        when(factoryStore.saveFactory((Factory)any(), anySetOf(FactoryImage.class))).thenReturn(CORRECT_FACTORY_ID);
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factory);
 
         // when, then
@@ -792,7 +794,7 @@ public class FactoryServiceTest {
 
 
     @Test
-    public void shouldNotBeAbleToGetMarkdownSnippetForFactory1WithoutStyle(ITestContext context) throws Exception {
+    public void shouldNotBeAbleToGetMarkdownSnippetForFactory1WithoutStyle() throws Exception {
         // given
 
         Factory factory = (Factory)dto.createDto(Factory.class)
@@ -818,7 +820,7 @@ public class FactoryServiceTest {
     }
 
     @Test
-    public void shouldNotBeAbleToGetMarkdownSnippetForFactory2WithoutColor(ITestContext context) throws Exception {
+    public void shouldNotBeAbleToGetMarkdownSnippetForFactory2WithoutColor() throws Exception {
         // given
         Factory factory = (Factory)dto.createDto(Factory.class)
                                       .withV("2.0")

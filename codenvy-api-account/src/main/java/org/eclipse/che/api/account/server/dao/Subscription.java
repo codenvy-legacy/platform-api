@@ -365,9 +365,9 @@ public class Subscription {
                              " \"accountId\":\"%s\", " +
                              "\"serviceId\":\"%s\"," +
                              " \"planId\":\"%s\", " +
-                             "\"properties\":\"%s\", " +
+                             "\"properties\":%s, " +
                              "\"state\":\"%s\", " +
-                             "\"startDate\":\"%s\" " +
+                             "\"startDate\":\"%s\"," +
                              "\"endDate\":\"%s\"," +
                              " \"trialStartDate\":\"%s\", " +
                              "\"trialEndDate\":\"%s\"," +

@@ -13,15 +13,11 @@ package org.eclipse.che.api.factory;
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.factory.dto.Factory;
-import org.eclipse.che.api.factory.dto.Workspace;
 import org.eclipse.che.api.user.server.dao.PreferenceDao;
 import org.eclipse.che.api.user.server.dao.UserDao;
-import org.eclipse.che.dto.server.DtoFactory;
 
 import javax.inject.Inject;
 import javax.inject.Singleton;
-
-import static com.google.common.base.Strings.isNullOrEmpty;
 
 /**
  * Factory URL accept stage builder.

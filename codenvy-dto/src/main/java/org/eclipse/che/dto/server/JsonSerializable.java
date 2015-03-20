@@ -13,8 +13,10 @@
 // limitations under the License.
 package org.eclipse.che.dto.server;
 
+import java.io.Serializable;
+
 /** An entity that may serialize itself to JSON. */
-public interface JsonSerializable {
+public interface JsonSerializable extends Serializable {
 
     /** Serializes DTO to JSON format. */
     String toJson();

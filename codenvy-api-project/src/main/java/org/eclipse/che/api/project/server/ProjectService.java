@@ -44,6 +44,7 @@ import org.eclipse.che.api.project.shared.dto.RunnerEnvironment;
 import org.eclipse.che.api.project.shared.dto.RunnerEnvironmentLeaf;
 import org.eclipse.che.api.project.shared.dto.RunnerEnvironmentTree;
 import org.eclipse.che.api.project.shared.dto.RunnerSource;
+import org.eclipse.che.api.project.shared.dto.Source;
 import org.eclipse.che.api.project.shared.dto.SourceEstimation;
 import org.eclipse.che.api.project.shared.dto.TreeElement;
 
@@ -120,12 +121,8 @@ public class ProjectService extends Service {
     private ProjectManager              projectManager;
     @Inject
     private ProjectImporterRegistry     importers;
-    //@Inject
-    //private ProjectGeneratorRegistry    handler;
     @Inject
     private SearcherProvider            searcherProvider;
-    @Inject
-    private ProjectTypeResolverRegistry resolverRegistry;
     @Inject
     private EventService                eventService;
     @Inject
@@ -577,9 +574,36 @@ public class ProjectService extends Service {
         return VirtualFileSystemImpl.uploadFile(parent.getVirtualFile(), formData);
     }
 
+    @ApiOperation(value = "Upload zip folder",
+                  notes = "Upload folder from local zip",
+                  response = Response.class,
+                  position = 10)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 401, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 403, message = "Forbidden operation"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+
+    @POST
+    @Consumes({MediaType.MULTIPART_FORM_DATA})
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/upload/zipfolder/{path:.*}")
+    public Response uploadFolderFromZip(@ApiParam(value = "Workspace ID", required = true)
+                                        @PathParam("ws-id") String workspace,
+                                        @ApiParam(value = "Path in the project", required = true)
+                                        @PathParam("path") String path,
+                                        Iterator<FileItem> formData)
+            throws ServerException, ConflictException, ForbiddenException, NotFoundException {
+
+        final FolderEntry parent = asFolder(workspace, path);
+        return VirtualFileSystemImpl.uploadZip(parent.getVirtualFile(), formData);
+    }
+
     @ApiOperation(value = "Get file content",
                   notes = "Get file content by its name",
-                  position = 10)
+                  position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -598,7 +622,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Update file",
                   notes = "Update an existing file with new content",
-                  position = 11)
+                  position = 12)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -633,7 +657,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Delete a resource",
                   notes = "Delete resources. If you want to delete a single project, specify project name. If a folder or file needs to " +
                           "be deleted a path to the requested resource needs to be specified",
-                  position = 12)
+                  position = 13)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -680,7 +704,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Copy resource",
                   notes = "Copy resource to a new location which is specified in a query parameter",
-                  position = 13)
+                  position = 14)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -714,7 +738,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Move resource",
                   notes = "Move resource to a new location which is specified in a query parameter",
-                  position = 14)
+                  position = 15)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -750,7 +774,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Rename resource",
                   notes = "Rename resources. It can be project, module, folder or file",
-                  position = 15)
+                  position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -785,7 +809,7 @@ public class ProjectService extends Service {
                   notes = "Import resource. JSON with a designated importer and project location is sent. It is possible to import from " +
                           "VCS or ZIP",
                   response = ProjectDescriptor.class,
-                  position = 16)
+                  position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = ""),
             @ApiResponse(code = 401, message = "User not authorized to call this operation"),
@@ -823,25 +847,35 @@ public class ProjectService extends Service {
 
         // Not all importers uses virtual file system API. In this case virtual file system API doesn't get events and isn't able to set
         // correct creation time. Need do it manually.
-        long creationDate = -1;
+        long creationDate = System.currentTimeMillis();
+        VirtualFileEntry virtualFile = getVirtualFile(workspace, path, force);
+
+        final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
+        importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
+
+        //project source already imported going to configure project
+        return configureProject(importProject, baseProjectFolder, workspace, creationDate);
+    }
+
+    private VirtualFileEntry getVirtualFile(String workspace, String path, boolean force) throws ServerException, ForbiddenException, ConflictException {
         VirtualFileEntry virtualFile = projectManager.getProjectsRoot(workspace).getChild(path);
         if (virtualFile != null && virtualFile.isFile()) {
             // File with same name exist already exists.
             throw new ConflictException(String.format("File with the name '%s' already exists.", path));
         } else {
             if (virtualFile == null) {
-                creationDate = System.currentTimeMillis();
-                virtualFile = projectManager.getProjectsRoot(workspace).createFolder(path);
+                return projectManager.getProjectsRoot(workspace).createFolder(path);
             } else if (!force) {
                 // Project already exists.
                 throw new ConflictException(String.format("Project with the name '%s' already exists.", path));
             }
         }
+        return virtualFile;
+    }
 
-        final FolderEntry baseProjectFolder = (FolderEntry)virtualFile;
-        importer.importSources(baseProjectFolder, projectSource.getLocation(), projectSource.getParameters(), outputOutputConsumerFactory);
-
-        //project source already imported going to configure project
+    private ImportResponse configureProject(ImportProject importProject, FolderEntry baseProjectFolder, String workspace, long creationDate)
+            throws IOException, ForbiddenException, ConflictException, NotFoundException,
+                   ServerException {
         ImportResponse importResponse = DtoFactory.getInstance().createDto(ImportResponse.class);
         ProjectTypeRegistry projectTypeRegistry = projectManager.getProjectTypeRegistry();
         Project project;
@@ -884,6 +918,89 @@ public class ProjectService extends Service {
         eventService.publish(new ProjectCreatedEvent(project.getWorkspace(), project.getPath()));
         logProjectCreatedEvent(projectDescriptor.getName(), projectDescriptor.getType());
         return importResponse;
+    }
+
+    @ApiOperation(value = "Upload zip project",
+                  notes = "Upload project from local zip",
+                  response = ImportResponse.class,
+                  position = 18)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = ""),
+            @ApiResponse(code = 401, message = "User not authorized to call this operation"),
+            @ApiResponse(code = 403, message = "Forbidden operation"),
+            @ApiResponse(code = 409, message = "Resource already exists"),
+            @ApiResponse(code = 500, message = "Unsupported source type")})
+
+    @POST
+    @Consumes({MediaType.MULTIPART_FORM_DATA})
+    @Produces(MediaType.APPLICATION_JSON)
+    @Path("/upload/zipproject/{path:.*}")
+    public ImportResponse uploadProjectFromZip(@ApiParam(value = "Workspace ID", required = true)
+                                               @PathParam("ws-id") String workspace,
+                                               @ApiParam(value = "Path in the project", required = true)
+                                               @PathParam("path") String path,
+                                               @ApiParam(value = "Force rewrite existing project", allowableValues = "true,false")
+                                               @QueryParam("force") boolean force,
+                                               Iterator<FileItem> formData)
+            throws ServerException, IOException, ConflictException, ForbiddenException, NotFoundException {
+
+        // Not all importers uses virtual file system API. In this case virtual file system API doesn't get events and isn't able to set
+        // correct creation time. Need do it manually.
+        long creationDate = System.currentTimeMillis();
+        final FolderEntry baseProjectFolder = (FolderEntry)getVirtualFile(workspace, path, force);
+
+        int stripNumber = 0;
+        String projectName = "";
+        String projectDescription = "";
+        String privacy = "";
+        FileItem contentItem = null;
+
+        while (formData.hasNext()) {
+            FileItem item = formData.next();
+            if (!item.isFormField()) {
+                if (contentItem == null) {
+                    contentItem = item;
+                } else {
+                    throw new ServerException("More then one upload file is found but only one should be. ");
+                }
+            } else {
+                switch (item.getFieldName()) {
+                    case ("name"):
+                        projectName = item.getString().trim();
+                        break;
+                    case ("description"):
+                        projectDescription = item.getString().trim();
+                        break;
+                    case ("privacy"):
+                        privacy = Boolean.parseBoolean(item.getString().trim()) ? "public" : "private";
+                        break;
+                    case ("skipFirstLevel"):
+                        stripNumber = Boolean.parseBoolean(item.getString().trim()) ? 1 : 0;
+                        break;
+                }
+            }
+        }
+
+        if (contentItem == null) {
+            throw new ServerException("Cannot find zip file for upload.");
+        }
+        try (InputStream zip = contentItem.getInputStream()) {
+            baseProjectFolder.getVirtualFile().unzip(zip, true, stripNumber);
+        }
+
+        final DtoFactory dtoFactory = DtoFactory.getInstance();
+        NewProject newProject = dtoFactory.createDto(NewProject.class)
+                                          .withName(projectName)
+                                          .withDescription(projectDescription)
+                                          .withVisibility(privacy);
+        Source source = dtoFactory.createDto(Source.class)
+                                  .withRunners(new HashMap<String, RunnerSource>());
+        ImportProject importProject = dtoFactory.createDto(ImportProject.class)
+                                                .withProject(newProject)
+                                                .withSource(source);
+
+        //project source already imported going to configure project
+        return configureProject(importProject, baseProjectFolder, workspace, creationDate);
     }
 
     /**
@@ -962,7 +1079,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Import zip",
                   notes = "Import resources as zip",
-                  position = 18)
+                  position = 19)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -994,7 +1111,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Download ZIP",
                   notes = "Export resource as zip. It can be an entire project or folder",
-                  position = 19)
+                  position = 20)
     @ApiResponses(value = {
             @ApiResponse(code = 201, message = ""),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1036,7 +1153,7 @@ public class ProjectService extends Service {
                   notes = "Request all children items for a project, such as files and folders",
                   response = ItemReference.class,
                   responseContainer = "List",
-                  position = 20)
+                  position = 21)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1069,7 +1186,7 @@ public class ProjectService extends Service {
                   notes = "Get project tree. Depth is specified in a query parameter",
                   response = TreeElement.class,
                   responseContainer = "List",
-                  position = 21)
+                  position = 22)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1096,7 +1213,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Get file or folder",
                   response = TreeElement.class,
                   responseContainer = "List",
-                  position = 27)
+                  position = 28)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1146,7 +1263,7 @@ public class ProjectService extends Service {
                   notes = "Search for resources applying a number of search filters as query parameters",
                   response = ItemReference.class,
                   responseContainer = "List",
-                  position = 22)
+                  position = 23)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1218,7 +1335,7 @@ public class ProjectService extends Service {
                           "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
-                  position = 23)
+                  position = 24)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1254,7 +1371,7 @@ public class ProjectService extends Service {
 
     @ApiOperation(value = "Set project visibility",
                   notes = "Set project visibility. Projects can be private or public",
-                  position = 24)
+                  position = 25)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1284,7 +1401,7 @@ public class ProjectService extends Service {
                           "run etc. ID of a user is set in a query parameter of a request URL.",
                   response = AccessControlEntry.class,
                   responseContainer = "List",
-                  position = 25)
+                  position = 26)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),
@@ -1311,7 +1428,7 @@ public class ProjectService extends Service {
     @ApiOperation(value = "Get available project-scoped runner environments",
                   notes = "Get available project-scoped runner environments.",
                   response = RunnerEnvironmentTree.class,
-                  position = 26)
+                  position = 27)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this operation"),

@@ -42,6 +42,7 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateProjectName(factory);
         }
         validateWorkspace(factory);
+        validateCreator(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
     }

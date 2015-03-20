@@ -121,17 +121,25 @@ public abstract class FactoryBaseValidator {
             }
         }
         if (workspace.getLocation() != null) {
+            if (!workspace.getLocation().equals("owner") && !workspace.getLocation().equals("acceptor")) {
+                throw new ConflictException("workspace.location have only two possible values - owner or acceptor");
+            }
+        }
+    }
+
+    protected void validateCreator(Factory factory) throws ApiException {
+        final Workspace workspace = factory.getWorkspace();
+        if (workspace.getType() != null) {
             if (workspace.getLocation().equals("owner")) {
                 String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;
                 if (accountId == null) {
                     throw new ConflictException("current workspace location requires factory creator accountId to be set");
                 }
-            } else if (!workspace.getLocation().equals("acceptor")) {
-                throw new ConflictException("workspace.location have only two possible values - owner or acceptor");
             }
-
         }
     }
+
+
 
     protected void validateAccountId(Factory factory) throws ApiException {
         // TODO do we need check if user is temporary?

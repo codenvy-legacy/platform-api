@@ -68,20 +68,24 @@ import java.util.concurrent.TimeUnit;
 public class MachineManager {
     private static final Logger LOG = LoggerFactory.getLogger(MachineManager.class);
 
-    private final SnapshotStorage            snapshotStorage;
-    private final File                       machineLogsDir;
-    private final Map<String, ImageProvider> imageProviders;
-    private final Map<String, MachineImpl>   machines;
-    private final ExecutorService            executor;
-    private final String                     apiEndPoint;
+    private final SnapshotStorage                                  snapshotStorage;
+    private final File                                             machineLogsDir;
+    private final Map<String, ImageProvider>                       imageProviders;
+    private final Map<String, MachineImpl>                         machines;
+    private final ExecutorService                                  executor;
+    private final String                                           apiEndPoint;
+    private final ConcurrentHashMap<String, SynchronizeTask>       syncTasks;
+    private final SynchronizeTaskFactory                           synchronizeTaskFactory;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
                           @Named("machine.logs_dir") File machineLogsDir,
-                          @Named("api.endpoint") String apiEndPoint) {
+                          @Named("api.endpoint") String apiEndPoint,
+                          SynchronizeTaskFactory synchronizeTaskFactory) {
         this.snapshotStorage = snapshotStorage;
         this.machineLogsDir = machineLogsDir;
+        this.synchronizeTaskFactory = synchronizeTaskFactory;
         this.imageProviders = new HashMap<>();
         this.apiEndPoint = apiEndPoint;
         for (ImageProvider provider : imageProviders) {
@@ -90,6 +94,7 @@ public class MachineManager {
         machines = new ConcurrentHashMap<>();
         // fixme replace with guice style impl
         executor = Executors.newCachedThreadPool(new NamedThreadFactory("MachineManager-", true));
+        syncTasks = new ConcurrentHashMap<>();
     }
 
     @PostConstruct
@@ -288,37 +293,73 @@ public class MachineManager {
         throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
-    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException, ConflictException {
+    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, ServerException, ConflictException {
+        // 1. Check project is not bound yet
+        // 2. Send copy project request to runner
+        // 3. Start sync process (on API, on runner)
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
                 throw new ConflictException(String.format("Project %s is already bound to machine %s", project.getPath(), machineId));
             }
         }
+
+        copyProjectOnRunner(machine, project);
+
+        machine.getProjects().add(project);
+
+        String syncKey = machineId + "/" + project.getPath();
+        final SynchronizeTask serverSyncTask = synchronizeTaskFactory.create(machine.getWorkspaceId(),
+                                                                             project,
+                                                                             machine.getInstance().getHostProjectsFolder().toString());
+        syncTasks.put(syncKey, serverSyncTask);
+        executor.submit(serverSyncTask);
+
+//        startSyncOnRunner(machineId, project, fullPathOnRunner);
+    }
+
+    private void copyProjectOnRunner(MachineImpl machine, ProjectBinding project) throws NotFoundException, MachineException {
         final File projectsFolder = machine.getInstance().getHostProjectsFolder();
+        final File fullPath;
         try {
-            final File fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
+            fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
             copyProjectSource(fullPath, machine.getWorkspaceId(), project.getPath());
         } catch (IOException e) {
             IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()));
             LOG.warn(e.getLocalizedMessage(), e);
-            throw new MachineException("Project binding failed");
+            throw new MachineException("Project binding failed. " + e.getLocalizedMessage());
         }
-        machine.getProjects().add(project);
-        // TODO add synchronization of origin project and copied
     }
 
+//    private void startSyncOnRunner(String machineId, ProjectBinding project, String fullPath) throws NotFoundException {
+//        final MachineImpl machine = getMachine(machineId);
+//        final String watchPath = fullPath;
+//        final RunnerSynchronizeTask runnerSyncTask = runnerSynchronizeTaskFactory.create(watchPath, machine.getWorkspaceId(), project);
+//        runnerSyncTasks.putIfAbsent(watchPath, runnerSyncTask);
+//        executor.submit(runnerSyncTask);
+//    }
+
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
+        // 1. Check project is already bound
+        // 2. Stop sync process (on API, on runner)
+        // 3. Send remove project request to runner
+
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
-                final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-                if (IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()))) {
+
+                final SynchronizeTask synchronizeTask = syncTasks.get(machineId + "/" + project.getPath());
+                if (synchronizeTask != null) {
                     try {
-                        machine.getMachineLogsOutput().writeLine("[ERROR] Error occurred on removing of binding");
-                    } catch (IOException ignored) {
+                        synchronizeTask.cancel();
+                    } catch (Exception e) {
+                        LOG.error(e.getLocalizedMessage(), e);
                     }
                 }
+//                stopSyncOnRunner(machineId, project);
+
+                removeProjectOnRunner(machineId, project);
+
                 machine.getProjects().remove(project);
                 return;
             }
@@ -326,6 +367,17 @@ public class MachineManager {
         throw new NotFoundException(String.format("Binding of project %s in machine %s not found", project.getPath(), machineId));
     }
 
+    //    private void stopSyncOnRunner(String machineId, ProjectBinding project) throws NotFoundException {
+//        final MachineImpl machine = getMachine(machineId);
+//        final File fullPath = new File(machine.getInstance().getHostProjectsFolder(), project.getPath());
+//        RunnerSynchronizeTask syncTask = runnerSyncTasks.get(machineId + "/" + project.getPath());
+//        if (syncTask != null) {
+//            try {
+//                syncTask.cancel();
+//            } catch (Exception e) {
+//                LOG.error(e.getLocalizedMessage(), e);
+//            }
+//        }
     private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
         final UriBuilder zipBallUriBuilder = UriBuilder.fromUri(apiEndPoint)
                                                        .path("project")
@@ -338,6 +390,17 @@ public class MachineManager {
         }
         final File zipBall = IoUtil.downloadFile(null, "projectZip", null, zipBallUriBuilder.build().toURL());
         ZipUtils.unzip(zipBall, destinationDir);
+    }
+
+    private void removeProjectOnRunner(String machineId, ProjectBinding project) throws NotFoundException {
+        final MachineImpl machine = getMachine(machineId);
+        final File fullPath = new File(machine.getInstance().getHostProjectsFolder(), project.getPath());
+        if (IoUtil.deleteRecursive(fullPath)) {
+            try {
+                machine.getMachineLogsOutput().writeLine("[ERROR] Error occurred on removing of binding");
+            } catch (IOException ignored) {
+            }
+        }
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {

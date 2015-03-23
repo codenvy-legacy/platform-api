@@ -52,15 +52,27 @@ public class AutoLoginAuthorizationFilter extends DefaultAuthorizationFilter {
     @Override
     public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain) throws IOException, ServletException {
         HttpServletRequest httpServletRequest = (HttpServletRequest)request;
-        if (extractor.getToken(httpServletRequest) == null) {
+        String existedToken = extractor.getToken(httpServletRequest);
+        if (existedToken == null || !tokenManager.isValid(existedToken)) {
             try {
                 String token = tokenManager.createToken(userDao.getByAlias("codenvy@codenvy.com").getId());
+
                 Cookie cookie = new Cookie("session-access-key", token);
                 cookie.setPath("/");
                 cookie.setMaxAge(-1);
                 cookie.setSecure(request.isSecure());
                 cookie.setHttpOnly(true);
                 ((HttpServletResponse)response).addCookie(cookie);
+                //remove existed invalid token.
+                if (existedToken != null) {
+                    Cookie existedCookie = new Cookie("session-access-key", existedToken);
+                    existedCookie.setPath("/");
+                    existedCookie.setMaxAge(0);
+                    existedCookie.setSecure(request.isSecure());
+                    existedCookie.setHttpOnly(true);
+                    ((HttpServletResponse)response).addCookie(existedCookie);
+                }
+
                 super.doFilter(new WrappedRequest(httpServletRequest, cookie), response, chain);
             } catch (ApiException e) {
                 LOG.error(e.getLocalizedMessage(), e);

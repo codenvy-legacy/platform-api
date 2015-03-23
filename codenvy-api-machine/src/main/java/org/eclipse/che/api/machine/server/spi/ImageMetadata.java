@@ -12,13 +12,35 @@ package org.eclipse.che.api.machine.server.spi;
 
 import org.eclipse.che.api.machine.shared.Recipe;
 
+import java.util.Map;
+
 /**
+ * Image metadata
+ *
+ * @author gazarenkov
  * @author andrew00x
  */
-public interface ImageMetadata extends ImageKey {
+public interface ImageMetadata {
     /**
      * Get recipe that was used for creation this image. If image was created as snapshot of {@code Instance} this method returns {@code
      * null}.
      */
-    Recipe getRecipe();
+    //Recipe getRecipe();
+
+    /**
+     *
+     * @return implementation specific key of this image
+     */
+    ImageKey getKey();
+
+    /**
+     *
+     * @return image specific properties
+     */
+    Map<String, String> getProperties();
+
+    /**
+     * Serializes this {@code ImageMetadata} to JSON format.
+     */
+    String toJson();
 }

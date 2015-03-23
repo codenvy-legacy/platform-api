@@ -173,10 +173,10 @@ public class MachineManager {
                               final String workspaceId,
                               final String owner,
                               final LineConsumer machineLogsOutput)
-            throws UnsupportedRecipeException, InvalidRecipeException, MachineException {
+            throws UnsupportedRecipeException, InvalidRecipeException, MachineException, NotFoundException {
         final ImageProvider imageProvider = imageProviders.get(machineType);
         if (imageProvider == null) {
-            throw new MachineException(String.format("Unable create machine from recipe, unsupported machine type '%s'", machineType));
+            throw new NotFoundException(String.format("Unable create machine from recipe, unsupported machine type '%s'", machineType));
         }
         final String recipeType = recipe.getType();
         if (imageProvider.getRecipeTypes().contains(recipeType)) {

@@ -12,7 +12,6 @@
 package org.eclipse.che.everrest;
 
 import org.eclipse.che.api.core.rest.ApiExceptionMapper;
-
 import org.everrest.core.impl.ApplicationContextImpl;
 import org.everrest.core.impl.ApplicationProviderBinder;
 import org.everrest.core.impl.ContainerRequest;
@@ -30,6 +29,7 @@ import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.core.EntityTag;
+import javax.ws.rs.core.Response;
 import java.net.URI;
 import java.util.Arrays;
 import java.util.Collections;
@@ -78,6 +78,17 @@ public class ETagResponseFilterTest {
         public String getMember() {
             return "hello";
         }
+
+
+        @GET
+        @Path("/modify")
+        @Produces(APPLICATION_JSON)
+        public Response modifyHeader() {
+            return Response.ok("helloContent")
+                           .header("Content-Disposition", "attachment; filename=my.json")
+                           .build();
+        }
+
 
     }
 
@@ -128,6 +139,33 @@ public class ETagResponseFilterTest {
         Assert.assertNotNull(headerTags);
         Assert.assertEquals(headerTags.size(), 1);
         Assert.assertEquals(headerTags.get(0), new EntityTag("900150983cd24fb0d6963f7d28e17f72"));
+    }
+
+    /**
+     * Check if ETag is added in response if we're also using a custom header
+     */
+    @Test
+    public void useExistingHeaders() throws Exception {
+
+        final ContainerResponse response = resourceLauncher.service("GET", SERVICE_PATH + "/modify", BASE_URI, null, null, null);
+        assertEquals(response.getStatus(), OK.getStatusCode());
+        // check entity
+        Assert.assertEquals(response.getEntity(), "helloContent");
+
+        // headers = 2
+        Assert.assertEquals(response.getHttpHeaders().keySet().size(), 3);
+
+        // Check custom header
+        List<Object> customTags = response.getHttpHeaders().get("Content-Disposition");
+        Assert.assertNotNull(customTags);
+        Assert.assertEquals(customTags.size(), 1);
+        Assert.assertEquals(customTags.get(0), "attachment; filename=my.json");
+
+
+        // Check etag
+        List<Object> headerTags = response.getHttpHeaders().get("ETag");
+        Assert.assertNotNull(headerTags);
+        Assert.assertEquals(headerTags.get(0), new EntityTag("77e671575d94cfd400ed26c5ef08e0fd"));
     }
 
     /**

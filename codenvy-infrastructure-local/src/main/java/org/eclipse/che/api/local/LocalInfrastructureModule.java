@@ -10,25 +10,32 @@
  *******************************************************************************/
 package org.eclipse.che.api.local;
 
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.account.server.dao.Subscription;
 import org.eclipse.che.api.account.server.dao.SubscriptionAttributes;
-
+import org.eclipse.che.api.auth.CookiesTokenExtractor;
+import org.eclipse.che.api.auth.InMemoryTokenManager;
+import org.eclipse.che.api.auth.LocalSessionInvalidationHandler;
+import org.eclipse.che.api.auth.SecureRandomTokenGenerator;
+import org.eclipse.che.api.auth.TokenExtractor;
+import org.eclipse.che.api.auth.TokenGenerator;
+import org.eclipse.che.api.auth.TokenInvalidationHandler;
+import org.eclipse.che.api.auth.TokenManager;
+import org.eclipse.che.api.auth.UserProvider;
 import org.eclipse.che.api.factory.FactoryStore;
 import org.eclipse.che.api.user.server.TokenValidator;
-import org.eclipse.che.api.user.server.dao.User;
-import org.eclipse.che.api.workspace.server.dao.Workspace;
-
 import org.eclipse.che.api.user.server.dao.PreferenceDao;
+import org.eclipse.che.api.user.server.dao.User;
 import org.eclipse.che.api.user.server.dao.UserDao;
 import org.eclipse.che.api.user.server.dao.UserProfileDao;
 import org.eclipse.che.api.workspace.server.dao.Member;
 import org.eclipse.che.api.workspace.server.dao.MemberDao;
+import org.eclipse.che.api.workspace.server.dao.Workspace;
 import org.eclipse.che.api.workspace.server.dao.WorkspaceDao;
-import org.eclipse.che.inject.DynaModule;
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
 
 import javax.inject.Named;
 import java.util.Collections;
@@ -36,7 +43,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
-@DynaModule
+
 public class LocalInfrastructureModule extends AbstractModule {
     @Override
     protected void configure() {
@@ -48,6 +55,12 @@ public class LocalInfrastructureModule extends AbstractModule {
         bind(AccountDao.class).to(LocalAccountDaoImpl.class);
         bind(FactoryStore.class).to(InMemoryFactoryStore.class);
         bind(TokenValidator.class).to(LocalTokenValidator.class);
+
+        bind(TokenInvalidationHandler.class).to(LocalSessionInvalidationHandler.class);
+        bind(TokenManager.class).to(InMemoryTokenManager.class);
+        bind(UserProvider.class).to(SessionUserProvider.class);
+        bind(TokenExtractor.class).to(CookiesTokenExtractor.class);
+        bind(TokenGenerator.class).to(SecureRandomTokenGenerator.class);
     }
 
 

@@ -75,17 +75,17 @@ public class MachineManager {
     private final ExecutorService                                  executor;
     private final String                                           apiEndPoint;
     private final ConcurrentHashMap<String, SynchronizeTask>       syncTasks;
-    private final SynchronizeTaskFactory                           synchronizeTaskFactory;
+//    private final SynchronizeTaskFactory                           synchronizeTaskFactory;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
                           @Named("machine.logs_dir") File machineLogsDir,
-                          @Named("api.endpoint") String apiEndPoint,
-                          SynchronizeTaskFactory synchronizeTaskFactory) {
+                          @Named("api.endpoint") String apiEndPoint) {
+//                          SynchronizeTaskFactory synchronizeTaskFactory) {
         this.snapshotStorage = snapshotStorage;
         this.machineLogsDir = machineLogsDir;
-        this.synchronizeTaskFactory = synchronizeTaskFactory;
+//        this.synchronizeTaskFactory = synchronizeTaskFactory;
         this.imageProviders = new HashMap<>();
         this.apiEndPoint = apiEndPoint;
         for (ImageProvider provider : imageProviders) {

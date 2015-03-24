@@ -304,16 +304,16 @@ public class MachineManager {
             }
         }
 
-        copyProjectOnRunner(machine, project);
+//        copyProjectOnRunner(machine, project);
 
         machine.getProjects().add(project);
 
-        String syncKey = machineId + "/" + project.getPath();
-        final SynchronizeTask serverSyncTask = synchronizeTaskFactory.create(machine.getWorkspaceId(),
-                                                                             project,
-                                                                             machine.getInstance().getHostProjectsFolder().toString());
-        syncTasks.put(syncKey, serverSyncTask);
-        executor.submit(serverSyncTask);
+//        String syncKey = machineId + "/" + project.getPath();
+//        final SynchronizeTask serverSyncTask = synchronizeTaskFactory.create(machine.getWorkspaceId(),
+//                                                                             project,
+//                                                                             machine.getInstance().getHostProjectsFolder().toString());
+//        syncTasks.put(syncKey, serverSyncTask);
+//        executor.submit(serverSyncTask);
 
 //        startSyncOnRunner(machineId, project, fullPathOnRunner);
     }
@@ -348,17 +348,17 @@ public class MachineManager {
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
 
-                final SynchronizeTask synchronizeTask = syncTasks.get(machineId + "/" + project.getPath());
-                if (synchronizeTask != null) {
-                    try {
-                        synchronizeTask.cancel();
-                    } catch (Exception e) {
-                        LOG.error(e.getLocalizedMessage(), e);
-                    }
-                }
+//                final SynchronizeTask synchronizeTask = syncTasks.get(machineId + "/" + project.getPath());
+//                if (synchronizeTask != null) {
+//                    try {
+//                        synchronizeTask.cancel();
+//                    } catch (Exception e) {
+//                        LOG.error(e.getLocalizedMessage(), e);
+//                    }
+//                }
 //                stopSyncOnRunner(machineId, project);
 
-                removeProjectOnRunner(machineId, project);
+//                removeProjectOnRunner(machineId, project);
 
                 machine.getProjects().remove(project);
                 return;

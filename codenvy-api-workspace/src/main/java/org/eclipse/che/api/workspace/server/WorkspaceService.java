@@ -266,13 +266,7 @@ public class WorkspaceService extends Service {
             final Account account = accountDao.getById(newWorkspace.getAccountId());
             ensureCurrentUserOwnerOf(account);
         }
-
         createTemporaryWorkspace(workspace);
-        final Member newMember = new Member().withUserId(user.getId())
-                                             .withWorkspaceId(workspace.getId())
-                                             .withRoles(asList("workspace/developer", "workspace/admin"));
-        memberDao.create(newMember);
-
         LOG.info("EVENT#workspace-created# WS#{}# WS-ID#{}# USER#{}#", workspace.getName(), workspace.getId(), user.getId());
         return status(CREATED).entity(toDescriptor(workspace, context)).build();
     }

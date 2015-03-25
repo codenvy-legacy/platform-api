@@ -276,10 +276,11 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldBeAbleToCreateNewTemporaryWorkspace() throws Exception {
         final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("new_workspace")
-                                                                    .withAccountId("fake_account");
+                                                                    .withAccountId("fake_account_id");
+
+        createAccount();
 
         final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH + "/temp", newWorkspace, CREATED);
-
         assertTrue(descriptor.isTemporary());
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());

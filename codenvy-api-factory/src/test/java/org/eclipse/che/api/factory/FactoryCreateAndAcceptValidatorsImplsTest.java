@@ -93,6 +93,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateOnAccept(any(Factory.class), eq(false));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 
@@ -110,6 +111,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateOnAccept(any(Factory.class), eq(true));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 

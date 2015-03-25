@@ -173,17 +173,7 @@ public class FactoryBaseValidatorTest {
             expectedExceptionsMessageRegExp = "current workspace location requires factory creator accountId to be set")
     public void shouldNotValidateIfWorkspaceLocationOwnerButNotAuthor() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class).withLocation("owner")).withCreator(null);
-        validator.validateWorkspace(factory);
-    }
-
-    @Test
-    public void shouldValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsTrue() throws ApiException {
-        factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType("named"))
-                         .withPolicies(dto.createDto(Policies.class)
-                                          .withRequireAuthentication(true));
-
-        validator.validateWorkspace(factory);
+        validator.validateCreator(factory);
     }
 
     @Test

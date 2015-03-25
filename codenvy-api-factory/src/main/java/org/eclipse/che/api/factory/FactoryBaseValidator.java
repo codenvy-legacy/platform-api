@@ -141,8 +141,6 @@ public abstract class FactoryBaseValidator {
 
     }
 
-
-
     protected void validateAccountId(Factory factory) throws ApiException {
         // TODO do we need check if user is temporary?
         String accountId = factory.getCreator() != null ? emptyToNull(factory.getCreator().getAccountId()) : null;

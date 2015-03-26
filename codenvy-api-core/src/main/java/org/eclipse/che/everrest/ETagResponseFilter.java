@@ -11,12 +11,12 @@
 
 package org.eclipse.che.everrest;
 
-import org.eclipse.che.dto.server.JsonSerializable;
 import com.google.common.hash.HashCode;
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hasher;
 import com.google.common.hash.Hashing;
 
+import org.eclipse.che.dto.server.JsonSerializable;
 import org.everrest.core.ApplicationContext;
 import org.everrest.core.Filter;
 import org.everrest.core.GenericContainerResponse;
@@ -115,7 +115,7 @@ public class ETagResponseFilter implements ResponseFilter {
                 containerResponse.setResponse(builder.tag(entityTag).build());
             } else {
                 // it has been changed, so send response with new ETag and entity
-                Response.ResponseBuilder responseBuilder = Response.ok(containerResponse.getEntity()).tag(entityTag);
+                Response.ResponseBuilder responseBuilder = Response.fromResponse(containerResponse.getResponse()).tag(entityTag);
                 containerResponse.setResponse(responseBuilder.build());
             }
         }

@@ -11,6 +11,12 @@
 package org.eclipse.che.api.workspace.server;
 
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.core.ConflictException;
@@ -40,15 +46,8 @@ import org.eclipse.che.api.workspace.shared.dto.NewWorkspace;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDescriptor;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceReference;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceUpdate;
-
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.dto.server.DtoFactory;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -72,15 +71,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import static org.eclipse.che.api.project.server.Constants.LINK_REL_GET_PROJECTS;
-import static org.eclipse.che.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
-import static org.eclipse.che.commons.lang.NameGenerator.generate;
 import static java.lang.Boolean.parseBoolean;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonMap;
 import static javax.ws.rs.core.MediaType.APPLICATION_JSON;
 import static javax.ws.rs.core.Response.Status.CREATED;
 import static javax.ws.rs.core.Response.status;
+import static org.eclipse.che.api.project.server.Constants.LINK_REL_GET_PROJECTS;
+import static org.eclipse.che.api.user.server.Constants.LINK_REL_GET_USER_BY_ID;
+import static org.eclipse.che.commons.lang.NameGenerator.generate;
 
 /**
  * Workspace API
@@ -639,7 +638,7 @@ public class WorkspaceService extends Service {
             @ApiResponse(code = 500, message = "Internal Server Error")})
     @GET
     @Path("/{id}/membership")
-    @RolesAllowed({"workspace/developer", "workspace/admin"})
+    @RolesAllowed({"workspace/stakeholder", "workspace/developer", "workspace/admin"})
     @Produces(APPLICATION_JSON)
     public MemberDescriptor getMembershipOfCurrentUser(@ApiParam(value = "Workspace ID")
                                                        @PathParam("id")

@@ -911,9 +911,15 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
     @Override
     public Response uploadZip(@PathParam("parentId") String parentId, Iterator<FileItem> formData)
             throws NotFoundException, ForbiddenException, ConflictException, ServerException {
+        return uploadZip(mountPoint.getVirtualFileById(parentId), formData);
+    }
+
+    public static Response uploadZip(VirtualFile parent, Iterator<FileItem> formData)
+            throws ForbiddenException, ConflictException, ServerException {
         try {
             FileItem contentItem = null;
             boolean overwrite = false;
+            boolean skipFirstLevel = false;
             while (formData.hasNext()) {
                 FileItem item = formData.next();
                 if (!item.isFormField()) {
@@ -924,23 +930,26 @@ public abstract class VirtualFileSystemImpl implements VirtualFileSystem {
                     }
                 } else if ("overwrite".equals(item.getFieldName())) {
                     overwrite = Boolean.parseBoolean(item.getString().trim());
+                } else if ("skipFirstLevel".equals(item.getFieldName())) {
+                    skipFirstLevel = Boolean.parseBoolean(item.getString().trim());
                 }
             }
             if (contentItem == null) {
                 throw new ServerException("Cannot find file for upload. ");
             }
             try {
-                importZip(parentId, contentItem.getInputStream(), overwrite, false);
+                importZip(parent, contentItem.getInputStream(), overwrite, skipFirstLevel);
             } catch (IOException ioe) {
                 throw new ServerException(ioe.getMessage(), ioe);
             }
             return Response.ok("", MediaType.TEXT_HTML).build();
-        } catch (NotFoundException | ForbiddenException | ConflictException | ServerException e) {
+        } catch (ForbiddenException | ConflictException | ServerException e) {
             HtmlErrorFormatter.sendErrorAsHTML(e);
             // never thrown
             throw e;
         }
     }
+
 
    /* ==================================================================== */
 

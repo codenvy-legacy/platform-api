@@ -180,6 +180,8 @@ public class ProjectService extends Service {
                 // Ignore known error for single project.
                 // In result we won't have them in explorer tree but at least 'bad' projects won't prevent to show 'good' projects.
                 LOG.error(e.getMessage(), e);
+                NotValidProject notValidProject = new NotValidProject(project.getBaseFolder(), projectManager);
+                projectReferences.add(DtoConverter.toReferenceDto2(notValidProject, getServiceContext().getServiceUriBuilder()));
             }
         }
         FolderEntry projectsRoot = projectManager.getProjectsRoot(workspace);
@@ -199,8 +201,8 @@ public class ProjectService extends Service {
     }
 
     @ApiOperation(value = "Gets project by ID of workspace and project's path",
-                  response = ProjectDescriptor.class,
-                  position = 2)
+            response = ProjectDescriptor.class,
+            position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Project with specified path doesn't exist in workspace"),
@@ -220,17 +222,20 @@ public class ProjectService extends Service {
             VirtualFileEntry child = projectsRoot.getChild(path);
             if (child != null && child.isFolder() && child.getParent().isRoot()) {
                 project = new NotValidProject((FolderEntry)child, projectManager);
-//                project = notValidProject;
-//                return DtoConverter.toDescriptorDto2(notValidProject, getServiceContext().getServiceUriBuilder(),
-//                        projectManager.getProjectTypeRegistry());
             } else {
                 throw new NotFoundException(String.format("Project '%s' doesn't exist in workspace '%s'.", path, workspace));
             }
         }
 
-        return DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
-                                             projectManager.getProjectTypeRegistry());
-
+        try {
+            ProjectDescriptor projectDescriptor = DtoConverter.toDescriptorDto2(project, getServiceContext().getServiceUriBuilder(),
+                                                                                projectManager.getProjectTypeRegistry());
+            return projectDescriptor;
+        } catch (InvalidValueException e) {
+            NotValidProject notValidProject = new NotValidProject(project.getBaseFolder(), projectManager);
+            return DtoConverter.toDescriptorDto2(notValidProject, getServiceContext().getServiceUriBuilder(),
+                                                 projectManager.getProjectTypeRegistry());
+        }
     }
 
     @ApiOperation(value = "Creates new project",

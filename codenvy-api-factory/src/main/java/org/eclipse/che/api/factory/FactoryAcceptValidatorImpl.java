@@ -17,7 +17,6 @@ import org.eclipse.che.api.user.server.dao.PreferenceDao;
 import org.eclipse.che.api.user.server.dao.UserDao;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 /**
@@ -39,6 +38,7 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateProjectName(factory);
         }
         validateWorkspace(factory);
+        validateCreator(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
     }

@@ -21,6 +21,7 @@ import org.eclipse.che.api.core.rest.shared.dto.Link;
 import org.eclipse.che.api.factory.dto.Author;
 import org.eclipse.che.api.factory.dto.Factory;
 import org.eclipse.che.api.factory.dto.FactoryV2_0;
+import org.eclipse.che.api.factory.dto.Workspace;
 import org.eclipse.che.api.project.server.ProjectConfig;
 import org.eclipse.che.api.project.server.ProjectJson;
 import org.eclipse.che.api.project.server.DtoConverter;
@@ -78,6 +79,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import static com.google.common.base.Strings.isNullOrEmpty;
 import static com.google.common.base.Strings.nullToEmpty;
 
 /** Service for factory rest api features */
@@ -238,6 +240,7 @@ public class FactoryService extends Service {
         if (legacy) {
             factory = factoryBuilder.convertToLatest(factory);
         }
+        processDefaults(factory);
         if (validate) {
             acceptValidator.validateOnAccept(factory, false);
         }
@@ -292,6 +295,7 @@ public class FactoryService extends Service {
         } catch (UnsupportedEncodingException e) {
             throw new ServerException(e.getLocalizedMessage());
         }
+        processDefaults(factoryUrl);
         if (validate) {
             acceptValidator.validateOnAccept(factoryUrl, true);
         }
@@ -652,5 +656,18 @@ public class FactoryService extends Service {
                                      .withV("2.0"), MediaType.APPLICATION_JSON)
                        .header("Content-Disposition", "attachment; filename=" + path + ".json")
                        .build();
+    }
+
+    private void processDefaults(Factory factory)  {
+        if (factory.getWorkspace() ==  null) {
+            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("temp").withLocation("owner"));
+        } else {
+            if (isNullOrEmpty(factory.getWorkspace().getType())) {
+                factory.getWorkspace().setType("temp");
+            }
+            if (isNullOrEmpty(factory.getWorkspace().getLocation())) {
+                factory.getWorkspace().setLocation("owner");
+            }
+        }
     }
 }

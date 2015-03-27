@@ -660,13 +660,13 @@ public class FactoryService extends Service {
 
     private void processDefaults(Factory factory)  {
         if (factory.getWorkspace() ==  null) {
-            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("temp").withLocation("acceptor"));
+            factory.setWorkspace(DtoFactory.getInstance().createDto(Workspace.class).withType("temp").withLocation("owner"));
         } else {
             if (isNullOrEmpty(factory.getWorkspace().getType())) {
                 factory.getWorkspace().setType("temp");
             }
             if (isNullOrEmpty(factory.getWorkspace().getLocation())) {
-                factory.getWorkspace().setLocation("acceptor");
+                factory.getWorkspace().setLocation("owner");
             }
         }
     }

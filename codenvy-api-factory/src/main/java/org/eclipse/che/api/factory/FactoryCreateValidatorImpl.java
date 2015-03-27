@@ -35,6 +35,7 @@ public class FactoryCreateValidatorImpl extends FactoryBaseValidator implements 
     public void validateOnCreate(Factory factory) throws ApiException {
         validateSource(factory);
         validateProjectName(factory);
+        validateCreator(factory);
         validateWorkspace(factory);
         validateAccountId(factory);
         validateCurrentTimeBeforeSinceUntil(factory);

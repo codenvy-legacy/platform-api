@@ -146,7 +146,7 @@ public class FactoryServiceTest {
                                               .withName("pname"))
                               .withWorkspace(dto.createDto(Workspace.class)
                                                 .withType("temp")
-                                                .withLocation("acceptor"));
+                                                .withLocation("owner"));
 
 
         StringBuilder queryString = new StringBuilder();
@@ -185,7 +185,7 @@ public class FactoryServiceTest {
                                              .withName("pname"));
 
         factory.setId(CORRECT_FACTORY_ID);
-        Factory expected = dto.clone(factory).withWorkspace(dto.createDto(Workspace.class).withType("temp").withLocation("acceptor"));
+        Factory expected = dto.clone(factory).withWorkspace(dto.createDto(Workspace.class).withType("temp").withLocation("owner"));
 
         when(factoryStore.getFactory(CORRECT_FACTORY_ID)).thenReturn(factory);
         when(factoryStore.getFactoryImages(CORRECT_FACTORY_ID, null)).thenReturn(Collections.<FactoryImage>emptySet());
@@ -202,7 +202,7 @@ public class FactoryServiceTest {
 
 
     @Test
-    public void shouldBeAbleToSaveFactory(ITestContext context) throws Exception {
+    public void shouldBeAbleToSaveFactory() throws Exception {
         // given
         Factory factory = dto.createDto(Factory.class)
                              .withV("2.0")

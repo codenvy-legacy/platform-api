@@ -12,8 +12,10 @@ package org.eclipse.che.api.account.server;
 
 
 import org.eclipse.che.api.account.server.dao.Subscription;
+import org.eclipse.che.api.account.shared.dto.UsedAccountResources;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.core.ConflictException;
+import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.ServerException;
 
 /**
@@ -51,7 +53,7 @@ public abstract class SubscriptionService {
      * @throws ServerException
      *         if internal error occurs
      */
-    public abstract void beforeCreateSubscription(Subscription subscription) throws ConflictException, ServerException;
+    public abstract void beforeCreateSubscription(Subscription subscription) throws ConflictException, ServerException, ForbiddenException;
 
     /**
      * Should be invoked after subscription creation
@@ -74,17 +76,6 @@ public abstract class SubscriptionService {
     public abstract void onRemoveSubscription(Subscription subscription) throws ApiException;
 
     /**
-     * Should be invoked to check subscription.
-     * The one of use cases is use this method to check subscription expiration etc
-     *
-     * @param subscription
-     *         subscription that need to be checked
-     * @throws ApiException
-     *         when some error occurs while checking {@code subscription}
-     */
-    public abstract void onCheckSubscription(Subscription subscription) throws ApiException;
-
-    /**
      * Should be invoked after subscription update
      *
      * @param oldSubscription
@@ -95,6 +86,20 @@ public abstract class SubscriptionService {
      *         when some error occurs while processing {@code subscription}
      */
     public abstract void onUpdateSubscription(Subscription oldSubscription, Subscription newSubscription) throws ApiException;
+
+    /**
+     * Should be invoked to check subscriptions.
+     * The one of use cases is use this method to check subscription expiration etc
+     */
+    public abstract void onCheckSubscriptions() throws ApiException;
+
+    /**
+     * Returns used resources, provided by subscription
+     *
+     * @param subscription
+     *         subscription that provides resources
+     */
+    public abstract UsedAccountResources getAccountResources(Subscription subscription) throws ServerException;
 
     /**
      * @return service identifier

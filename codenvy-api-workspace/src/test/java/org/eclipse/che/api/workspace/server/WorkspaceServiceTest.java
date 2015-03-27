@@ -118,24 +118,12 @@ public class WorkspaceServiceTest {
     ResourceLauncher launcher;
     WorkspaceService service;
     User             testUser;
-    String           isOrgAddonEnabledByDefault;
-
     @BeforeMethod
     public void before() throws Exception {
         //set up launcher
-        isOrgAddonEnabledByDefault = "false";
         final ResourceBinderImpl resources = new ResourceBinderImpl();
         resources.addResource(WorkspaceService.class, null);
-        final DependencySupplierImpl dependencies = new DependencySupplierImpl() {
-            @Override
-
-            public Object getComponentByName(String name) {
-                if ("subscription.orgaddon.enabled".equals(name)) {
-                    return isOrgAddonEnabledByDefault;
-                }
-                return super.getComponentByName(name);
-            }
-        };
+        final DependencySupplierImpl dependencies = new DependencySupplierImpl();
         dependencies.addComponent(WorkspaceDao.class, workspaceDao);
         dependencies.addComponent(MemberDao.class, memberDao);
         dependencies.addComponent(UserDao.class, userDao);
@@ -260,40 +248,7 @@ public class WorkspaceServiceTest {
     }
 
     @Test
-    public void shouldBeAbleToCreateMultiWorkspacesIfAccountContainsMultiWsAttribute() throws Exception {
-        //create new account with existed workspace and 'codenvy:multi-ws' attribute equal with 'true'
-        final Account testAccount = createAccount().withAttributes(Collections.singletonMap("codenvy:multi-ws", "true"));
-        when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(singletonList(new Workspace()));
-        //new workspace descriptor
-        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("test_workspace")
-                                                                    .withAccountId(testAccount.getId());
-
-        final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH, newWorkspace, CREATED);
-
-        assertEquals(descriptor.getName(), newWorkspace.getName());
-        assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
-        verify(workspaceDao).create(any(Workspace.class));
-    }
-
-    @Test
-    public void shouldNotBeAbleToCreateMultiWorkspacesIfAccountDoesNotContainMultiWsAttribute() throws Exception {
-        //create new account with existed workspace with empty attributes
-        final Account testAccount = createAccount();
-        when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(singletonList(new Workspace()));
-        //new workspace descriptor
-        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("test_workspace")
-                                                                    .withAccountId(testAccount.getId());
-
-        final String errorJson = doPost(SERVICE_PATH, newWorkspace, FORBIDDEN);
-
-        assertEquals(asError(errorJson).getMessage(), "You don't have access to create more workspaces");
-    }
-
-    @Test
-    public void shouldBeAbleToCreateMultiWorkspacesWithOrgAddon() throws Exception {
-        isOrgAddonEnabledByDefault = "true";
-        //create new account with existed workspace with empty attributes
+    public void shouldBeAbleToCreateMultiWorkspaces() throws Exception {
         final Account testAccount = createAccount();
         when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(singletonList(new Workspace()));
         //new workspace descriptor
@@ -304,26 +259,6 @@ public class WorkspaceServiceTest {
 
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertTrue(descriptor.getAttributes().size() == 1);
-        assertTrue("extra".equals(descriptor.getAttributes().get("codenvy:role")));
-        verify(workspaceDao).create(any(Workspace.class));
-    }
-
-    @Test
-    public void shouldBeAbleToCreateMultiWorkspacesForSystemAdmin() throws Exception {
-        prepareRole("system/admin");
-        //create new account with existed workspace with empty attributes
-        final Account testAccount = createAccount();
-        when(workspaceDao.getByAccount(testAccount.getId())).thenReturn(singletonList(new Workspace()));
-        //new workspace descriptor
-        final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("test_workspace")
-                                                                    .withAccountId(testAccount.getId());
-
-        final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH, newWorkspace, CREATED);
-
-        assertEquals(descriptor.getName(), newWorkspace.getName());
-        assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
-        assertEquals(descriptor.getAttributes().get("codenvy:role"), "extra");
         verify(workspaceDao).create(any(Workspace.class));
     }
 
@@ -341,10 +276,11 @@ public class WorkspaceServiceTest {
     @Test
     public void shouldBeAbleToCreateNewTemporaryWorkspace() throws Exception {
         final NewWorkspace newWorkspace = newDTO(NewWorkspace.class).withName("new_workspace")
-                                                                    .withAccountId("fake_account");
+                                                                    .withAccountId("fake_account_id");
+
+        createAccount();
 
         final WorkspaceDescriptor descriptor = doPost(SERVICE_PATH + "/temp", newWorkspace, CREATED);
-
         assertTrue(descriptor.isTemporary());
         assertEquals(descriptor.getName(), newWorkspace.getName());
         assertEquals(descriptor.getAccountId(), newWorkspace.getAccountId());
@@ -715,57 +651,6 @@ public class WorkspaceServiceTest {
         doDelete(SERVICE_PATH + "/" + testWorkspace.getId(), NO_CONTENT);
 
         verify(workspaceDao).remove(testWorkspace.getId());
-    }
-
-    @Test
-    public void shouldBeAbleToRemoveExtraWorkspace() throws Exception {
-        final Workspace extraWorkspace = createExtraWorkspace();
-        extraWorkspace.getAttributes().put("codenvy:runner_ram", "256");
-
-        when(workspaceDao.getByAccount("test_account_id")).thenReturn(Arrays.asList(extraWorkspace));
-
-        Map<String, String> subscriptionProperties = new HashMap<>();
-        subscriptionProperties.put("Package", "Enterprise");
-        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
-                                                          .withServiceId("Saas")
-                                                          .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
-
-        doDelete(SERVICE_PATH + "/" + extraWorkspace.getId(), NO_CONTENT);
-
-        verify(workspaceDao).remove(extraWorkspace.getId());
-    }
-
-    @Test
-    public void shouldBeAbleToRemovePrimaryWorkspaceWhenAccountHasSaasCommunitySubscription() throws Exception {
-        final Workspace primaryWorkspace = createWorkspace();
-
-        Map<String, String> subscriptionProperties = new HashMap<>();
-        subscriptionProperties.put("Package", "Community");
-        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
-                                                          .withServiceId("Saas")
-                                                          .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions(anyString(), anyString())).thenReturn(Arrays.asList(saasSubscription));
-
-        doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), NO_CONTENT);
-
-        verify(workspaceDao).remove(primaryWorkspace.getId());
-    }
-
-    @Test
-    public void shouldNotBeAbleToRemovePrimaryWorkspaceWhenAccoutHasActiveSaasSubscription() throws Exception {
-        final Workspace primaryWorkspace = createWorkspace();
-
-        Map<String, String> subscriptionProperties = new HashMap<>();
-        subscriptionProperties.put("Package", "Enterprise");
-        Subscription saasSubscription = new Subscription().withAccountId("test_account_id")
-                                                          .withServiceId("Saas")
-                                                          .withProperties(subscriptionProperties);
-        when(accountDao.getSubscriptions("test_account_id", "Saas")).thenReturn(Arrays.asList(saasSubscription));
-
-        final String errorJson = doDelete(SERVICE_PATH + "/" + primaryWorkspace.getId(), CONFLICT);
-
-        assertEquals(asError(errorJson).getMessage(), "You can't delete primary workspace when Saas subscription is active");
     }
 
     @Test

@@ -8,36 +8,30 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.api.account.shared.dto;
+package org.eclipse.che.api.factory.dto;
 
 import org.eclipse.che.dto.shared.DTO;
 
 /**
- * @author Sergii Leschenko
+ * @author Max Shaposhnik
  */
 @DTO
-public interface UpdateResourcesDescriptor {
-    void setWorkspaceId(String workspaceId);
-
-    String getWorkspaceId();
-
-    UpdateResourcesDescriptor withWorkspaceId(String workspaceId);
-
+public interface WorkspaceResources {
     void setRunnerRam(Integer runnerRam);
 
     Integer getRunnerRam();
 
-    UpdateResourcesDescriptor withRunnerRam(Integer runnerRam);
+    WorkspaceResources withRunnerRam(Integer runnerRam);
 
     void setRunnerTimeout(Integer runnerTimeout);
 
     Integer getRunnerTimeout();
 
-    UpdateResourcesDescriptor withRunnerTimeout(Integer runnerTimeout);
+    WorkspaceResources withRunnerTimeout(Integer runnerTimeout);
 
     void setBuilderTimeout(Integer builderTimeout);
 
     Integer getBuilderTimeout();
 
-    UpdateResourcesDescriptor withBuilderTimeout(Integer builderTimeout);
+    WorkspaceResources withBuilderTimeout(Integer builderTimeout);
 }

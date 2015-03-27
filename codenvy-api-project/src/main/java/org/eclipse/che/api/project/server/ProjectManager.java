@@ -68,8 +68,6 @@ public interface ProjectManager {
      *         id of workspace
      * @param name
      *         project's name
-     * @param projectDescription
-     *         project description
      * @return newly created project
      * @throws ConflictException
      *         if operation causes conflict, e.g. name conflict if project with specified name already exists

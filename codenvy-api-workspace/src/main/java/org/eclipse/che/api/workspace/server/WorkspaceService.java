@@ -19,7 +19,6 @@ import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
-import org.eclipse.che.api.account.server.dao.Subscription;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -54,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -99,25 +97,24 @@ public class WorkspaceService extends Service {
     private final UserDao        userDao;
     private final MemberDao      memberDao;
     private final UserProfileDao profileDao;
-    private final AccountDao     accountDao;
-    private final PreferenceDao  preferenceDao;
-    private final boolean        isOrgAddonEnabledByDefault;
+    private final PreferenceDao preferenceDao;
+    private final AccountDao accountDao;
 
     @Inject
     public WorkspaceService(WorkspaceDao workspaceDao,
                             UserDao userDao,
                             MemberDao memberDao,
-                            UserProfileDao profileDao,
                             AccountDao accountDao,
-                            PreferenceDao preferenceDao,
-                            @Named("subscription.orgaddon.enabled") String isOrgAddonEnabledByDefault) {
+                            UserProfileDao profileDao,
+                            PreferenceDao preferenceDao
+                           ) {
+
         this.workspaceDao = workspaceDao;
         this.userDao = userDao;
         this.memberDao = memberDao;
-        this.profileDao = profileDao;
         this.accountDao = accountDao;
+        this.profileDao = profileDao;
         this.preferenceDao = preferenceDao;
-        this.isOrgAddonEnabledByDefault = parseBoolean(isOrgAddonEnabledByDefault);
     }
 
     /**
@@ -181,16 +178,8 @@ public class WorkspaceService extends Service {
             ensureCurrentUserOwnerOf(account);
         }
 
-        final List<Workspace> existedWorkspaces = workspaceDao.getByAccount(newWorkspace.getAccountId());
-        if (!existedWorkspaces.isEmpty()) {
-            if (!context.isUserInRole("system/admin") && !isOrgAddonEnabledByDefault) {
-                final String multiWs = account.getAttributes().get("codenvy:multi-ws");
-                if (!parseBoolean(multiWs)) {
-                    throw new ForbiddenException("You don't have access to create more workspaces");
-                }
-            }
-
-            newWorkspace.getAttributes().put("codenvy:role", "extra");
+        if (account.getAttributes().containsKey(org.eclipse.che.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY)) {
+            newWorkspace.getAttributes().put(org.eclipse.che.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY, "true");
         }
 
         final Workspace workspace = new Workspace().withId(generate(Workspace.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH))
@@ -261,15 +250,23 @@ public class WorkspaceService extends Service {
                                                    .withTemporary(true)
                                                    .withAccountId(newWorkspace.getAccountId())
                                                    .withAttributes(newWorkspace.getAttributes());
-        createTemporaryWorkspace(workspace);
+
         //temporary user should be created if real user does not exist
         final User user;
+        boolean isTemporary = false;
         if (context.getUserPrincipal() == null) {
             user = createTemporaryUser();
+            isTemporary = true;
         } else {
             user = userDao.getById(currentUser().getId());
         }
 
+        if (!isTemporary && !context.isUserInRole("system/admin")) {
+            final Account account = accountDao.getById(newWorkspace.getAccountId());
+            ensureCurrentUserOwnerOf(account);
+        }
+
+        createTemporaryWorkspace(workspace);
         final Member newMember = new Member().withUserId(user.getId())
                                              .withWorkspaceId(workspace.getId())
                                              .withRoles(asList("workspace/developer", "workspace/admin"));
@@ -832,25 +829,7 @@ public class WorkspaceService extends Service {
     public void remove(@ApiParam(value = "Workspace ID")
                        @PathParam("id")
                        String wsId) throws NotFoundException, ServerException, ConflictException {
-        final Workspace removal = workspaceDao.getById(wsId);
-        if (!removal.isTemporary() && !isExtra(removal) && hasPaidSass(removal.getAccountId())) {
-            throw new ConflictException("You can't delete primary workspace when Saas subscription is active");
-        }
         workspaceDao.remove(wsId);
-    }
-
-    private boolean isExtra(Workspace removal) {
-        return "extra".equals(removal.getAttributes().get("codenvy:role"));
-    }
-
-    private boolean hasPaidSass(String accountId) throws NotFoundException, ServerException {
-        final List<Subscription> saas = accountDao.getSubscriptions(accountId, "Saas");
-        //account may have only saas subscription
-        return !saas.isEmpty() && !isCommunity(saas.get(0));
-    }
-
-    private boolean isCommunity(Subscription subscription) {
-        return "Community".equals(subscription.getProperties().get("Package"));
     }
 
     private void createTemporaryWorkspace(Workspace workspace) throws ConflictException, ServerException {

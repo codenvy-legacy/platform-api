@@ -29,5 +29,21 @@ public interface Workspace {
     void setType(String type);
 
     Workspace withType(String type);
+
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "location")
+    String getLocation();
+
+    void setLocation(String location);
+
+    Workspace withLocation(String location);
+
+
+    @FactoryParameter(obligation = OPTIONAL, queryParameterName = "resources")
+    WorkspaceResources getResources();
+
+    void setResources(WorkspaceResources resources);
+
+    Workspace withResources(WorkspaceResources resources);
+
 }
 

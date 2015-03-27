@@ -8,16 +8,25 @@
  * Contributors:
  *   Codenvy, S.A. - initial API and implementation
  *******************************************************************************/
-package org.eclipse.che.api.account.server;
+package org.eclipse.che.api.account.shared.dto;
 
-import org.eclipse.che.api.account.shared.dto.NewSubscriptionAttributes;
-import org.eclipse.che.api.core.ConflictException;
+import org.eclipse.che.dto.shared.DTO;
 
 /**
- * Validates attributes of the subscription.
- *
- * @author Alexander Garagatyi
+ * @author Sergii Kabashniuk
  */
-public interface SubscriptionAttributesValidator {
-    void validate(NewSubscriptionAttributes subscriptionAttributes) throws ConflictException;
+@DTO
+public interface MemoryChargeDetails {
+    String getWorkspaceId();
+
+    void setWorkspaceId(String workspaceId);
+
+    MemoryChargeDetails withWorkspaceId(String workspaceId);
+
+    Double getAmount();
+
+    void setAmount(Double amount);
+
+    MemoryChargeDetails withAmount(Double amount);
+
 }

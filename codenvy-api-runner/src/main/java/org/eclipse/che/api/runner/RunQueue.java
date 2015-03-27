@@ -716,6 +716,9 @@ public class RunQueue {
     }
 
     int getTotalMemory(WorkspaceDescriptor workspace) throws RunnerException {
+        if (workspace.getAttributes().containsKey(org.eclipse.che.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY)) {
+            throw new RunnerException("Run action for this workspace is locked");
+        }
         final String availableMemAttr = workspace.getAttributes().get(Constants.RUNNER_MAX_MEMORY_SIZE);
         return availableMemAttr != null ? Integer.parseInt(availableMemAttr) : defMaxMemorySize;
     }
@@ -1273,9 +1276,8 @@ public class RunQueue {
                         String workspaceId = event.getWorkspace();
                         bm.setChannel(String.format("workspace:resources:%s", workspaceId));
 
-                        final ResourcesDescriptor resourcesDescriptor =
-                                DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
-                                          .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
+                        final ResourcesDescriptor resourcesDescriptor = DtoFactory.getInstance().createDto(ResourcesDescriptor.class)
+                                                                            .withUsedMemory(String.valueOf(getUsedMemory(workspaceId)));
                         bm.setBody(DtoFactory.getInstance().toJson(resourcesDescriptor));
                         WSConnectionContext.sendMessage(bm);
                     } catch (Exception e) {
@@ -1293,7 +1295,8 @@ public class RunQueue {
                 try {
                     final ChannelBroadcastMessage bm = new ChannelBroadcastMessage();
                     final ApplicationProcessDescriptor descriptor = getTask(event.getProcessId()).getDescriptor();
-                    bm.setChannel(String.format("runner:process_started:%s:%s:%s", event.getWorkspace(), event.getProject(), descriptor.getUserId()));
+                    bm.setChannel(String.format("runner:process_started:%s:%s:%s", event.getWorkspace(), event.getProject(),
+                                                descriptor.getUserId()));
                     bm.setBody(DtoFactory.getInstance().toJson(descriptor));
                     WSConnectionContext.sendMessage(bm);
                 } catch (Exception e) {

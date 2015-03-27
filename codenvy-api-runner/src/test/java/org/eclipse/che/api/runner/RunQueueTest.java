@@ -41,7 +41,6 @@ import org.eclipse.che.api.workspace.shared.dto.WorkspaceDescriptor;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.user.User;
 import org.eclipse.che.dto.server.DtoFactory;
-
 import org.mockito.ArgumentCaptor;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
@@ -262,7 +261,7 @@ public class RunQueueTest {
     }
 
     @Test(expectedExceptions = {RunnerException.class},
-          expectedExceptionsMessageRegExp = "Runner environment 'system:/java/web/jboss7' is not available for workspace 'my_ws' on infra 'community'.")
+            expectedExceptionsMessageRegExp = "Runner environment 'system:/java/web/jboss7' is not available for workspace 'my_ws' on infra 'community'.")
     public void testRunWhenReadRunnerConfigurationFromProject_RunnerIsNotAvailable() throws Exception {
         registerDefaultRunnerServer(); // doesn't have what we need
         ServiceContext serviceContext = newServiceContext();
@@ -379,7 +378,8 @@ public class RunQueueTest {
         ItemReference recipe = dto(ItemReference.class).withName("Dockerfile").withType("file");
         String recipeUrl = String.format("http://localhost:8080/api/project/%s/.codenvy/runners/environments/%s", wsId,
                                          envName);
-        recipe.getLinks().add(dto(Link.class).withRel(org.eclipse.che.api.project.server.Constants.LINK_REL_GET_CONTENT).withHref(recipeUrl));
+        recipe.getLinks()
+              .add(dto(Link.class).withRel(org.eclipse.che.api.project.server.Constants.LINK_REL_GET_CONTENT).withHref(recipeUrl));
         doReturn(Arrays.asList(recipe)).when(runQueue).getProjectRunnerRecipes(eq(project), eq(envName));
 
         runQueue.run(wsId, pPath, serviceContext, runOptions);
@@ -567,7 +567,7 @@ public class RunQueueTest {
     }
 
     @Test(expectedExceptions = {RunnerException.class},
-          expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 256M required.")
+            expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 256M required.")
     public void testErrorWhenNotEnoughMemoryAssignedToWorkspace() throws Exception {
         RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
         RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
@@ -591,7 +591,32 @@ public class RunQueueTest {
     }
 
     @Test(expectedExceptions = {RunnerException.class},
-          expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 129M required.")
+            expectedExceptionsMessageRegExp = "Run action for this workspace is locked")
+    public void testErrorWhenRunIsBlockedForWorkspace() throws Exception {
+        RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
+        RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
+        // Free memory should be more than 256.
+        doReturn(dto(RunnerState.class).withServerState(dto(ServerState.class).withFreeMemory(512))).when(runner).getRemoteRunnerState();
+
+        ServiceContext serviceContext = newServiceContext();
+        project.withRunners(dto(RunnersDescriptor.class).withDefault("system:/java/web/tomcat7"));
+
+        doReturn(project).when(runQueue).getProjectDescriptor(wsId, pPath, serviceContext);
+        // limit memory
+        workspace.getAttributes().put(Constants.RUNNER_MAX_MEMORY_SIZE, "1024");
+        workspace.getAttributes().put(org.eclipse.che.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY, "true");
+        doReturn(workspace).when(runQueue).getWorkspaceDescriptor(wsId, serviceContext);
+
+        try {
+            runQueue.run(wsId, pPath, serviceContext, null);
+        } catch (RunnerException e) {
+            verify(runQueue, never()).checkMemory(eq(wsId), anyInt(), anyInt());
+            throw e;
+        }
+    }
+
+    @Test(expectedExceptions = {RunnerException.class},
+            expectedExceptionsMessageRegExp = "Not enough resources to start application. Available memory 128M but 129M required.")
     public void testErrorWhenNotEnoughMemoryToRunNewApplication() throws Exception {
         RemoteRunnerServer runnerServer = registerDefaultRunnerServer();
         RemoteRunner runner = runnerServer.getRemoteRunner("java/web");
@@ -690,7 +715,7 @@ public class RunQueueTest {
             for (Iterator<RunnerEvent.EventType> iterator = list.iterator(); iterator.hasNext(); ) {
                 RunnerEvent.EventType eventType = iterator.next();
                 if (eventType.equals(event.getType())) {
-                   iterator.remove();
+                    iterator.remove();
                 }
             }
         }

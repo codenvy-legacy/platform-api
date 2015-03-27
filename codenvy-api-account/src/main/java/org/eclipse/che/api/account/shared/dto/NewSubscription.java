@@ -22,6 +22,9 @@ import com.wordnik.swagger.annotations.ApiModelProperty;
  */
 @DTO
 public interface NewSubscription {
+    /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
+     * that allow better validate data that was sent
+    */
 
     @ApiModelProperty(value = "Account ID")
     String getAccountId();
@@ -37,9 +40,17 @@ public interface NewSubscription {
 
     NewSubscription withPlanId(String id);
 
-    NewSubscriptionAttributes getSubscriptionAttributes();
+    @ApiModelProperty(value = "Length of the trial")
+    Integer getTrialDuration();
 
-    void setSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
+    void setTrialDuration(Integer trialDuration);
 
-    NewSubscription withSubscriptionAttributes(NewSubscriptionAttributes subscriptionAttributes);
+    NewSubscription withTrialDuration(Integer trialDuration);
+
+    @ApiModelProperty(value = "Is payment system used")
+    Boolean getUsePaymentSystem();
+
+    void setUsePaymentSystem(Boolean usePaymentSystem);
+
+    NewSubscription withUsePaymentSystem(Boolean usePaymentSystem);
 }

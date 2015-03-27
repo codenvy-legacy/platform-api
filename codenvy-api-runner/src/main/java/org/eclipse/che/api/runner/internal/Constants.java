@@ -33,7 +33,7 @@ public class Constants {
 
     // config properties
     /**
-     * Default sie of memory in megabytes available for one workspace if workspace doesn't has own setting, see {@link
+     * Default size of memory in megabytes available for one workspace if workspace doesn't has own setting, see {@link
      * #RUNNER_MAX_MEMORY_SIZE}
      */
     public static final String RUNNER_WS_MAX_MEMORY_SIZE          = "runner.workspace.max_memsize";

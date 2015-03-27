@@ -111,16 +111,7 @@ public interface AccountDao {
     void addSubscription(Subscription subscription) throws NotFoundException, ConflictException, ServerException;
 
     /**
-     * Remove subscription related to existing account
-     *
-     * @param subscriptionId
-     *         subscription identifier for removal
-     */
-    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException;
-
-
-    /**
-     * Get subscription from persistent layer, if it doesn't exist {@code null} will be returned
+     * Get subscription from persistent layer
      *
      * @param subscriptionId
      *         subscription identifier
@@ -131,16 +122,24 @@ public interface AccountDao {
     Subscription getSubscriptionById(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
-     * Gets list of existing in persistent layer subscriptions related to given account.
-     * Returns subscriptions with given serviceId only if serviceId is not null.
+     * Gets list of active subscriptions related to given account.
+     *
+     * @param accountId
+     *         account id
+     * @return list of subscriptions, or empty list if no subscriptions found
+     */
+    List<Subscription> getActiveSubscriptions(String accountId) throws NotFoundException, ServerException;
+
+    /**
+     * Gets active subscription with given service related to given account.
      *
      * @param accountId
      *         account id
      * @param serviceId
-     *         return subscription with provided service identifier
-     * @return list of subscriptions, or empty list if no subscriptions found
+     *         service id
+     * @return subscription or {@code null} if no subscription found
      */
-    List<Subscription> getSubscriptions(String accountId, String serviceId) throws NotFoundException, ServerException;
+    Subscription getActiveSubscription(String accountId, String serviceId) throws ServerException, NotFoundException;
 
     /**
      * Update existing subscription.
@@ -149,6 +148,14 @@ public interface AccountDao {
      *         new subscription
      */
     void updateSubscription(Subscription subscription) throws NotFoundException, ServerException;
+
+    /**
+     * Remove subscription related to existing account
+     *
+     * @param subscriptionId
+     *         subscription identifier for removal
+     */
+    void removeSubscription(String subscriptionId) throws NotFoundException, ServerException;
 
     /**
      * Gets list of existing in persistent layer members related to given account
@@ -168,52 +175,12 @@ public interface AccountDao {
      */
     List<Member> getByMember(String userId) throws NotFoundException, ServerException;
 
-    /**
-     * Retrieve all existing subscriptions.
-     * <p>Use carefully because this operation can use a lot of resources
-     *
-     * @return {@link List} of all subscriptions
-     * @throws ServerException
-     */
-    List<Subscription> getSubscriptions() throws ServerException;
+    SubscriptionQueryBuilder getSubscriptionQueryBuilder();
 
     /**
-     * Add subscription attributes of certain subscription
+     * Get all accounts which are locked after RAM runner resources was exceeded.
      *
-     * @param subscriptionId
-     *         subscription identifier of billing properties
-     * @param subscriptionAttributes
-     *         attributes that should be saved
-     * @throws NotFoundException
-     *         if subscription with given id is not found
-     * @throws ForbiddenException
-     *         if subscription attributes is invalid
-     * @throws ServerException
+     * @return all locked accounts
      */
-    void saveSubscriptionAttributes(String subscriptionId, SubscriptionAttributes subscriptionAttributes)
-            throws ServerException, NotFoundException,
-                   ForbiddenException;
-
-    /**
-     * Get subscription attributes of certain subscription
-     *
-     * @param subscriptionId
-     *         subscription identifier
-     * @return subscription attributes of subscription
-     * @throws NotFoundException
-     *         if subscription attributes with given id are not found
-     * @throws ServerException
-     */
-    SubscriptionAttributes getSubscriptionAttributes(String subscriptionId) throws ServerException, NotFoundException;
-
-    /**
-     * Remove subscription attributes of certain subscription
-     *
-     * @param subscriptionId
-     *         subscription identifier
-     * @throws NotFoundException
-     *         if subscription attributes is not found
-     * @throws ServerException
-     */
-    void removeSubscriptionAttributes(String subscriptionId) throws ServerException, NotFoundException;
+    List<Account> getAccountsWithLockedResources() throws ServerException, ForbiddenException;
 }

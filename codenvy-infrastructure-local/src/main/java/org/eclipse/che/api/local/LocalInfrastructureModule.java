@@ -10,31 +10,28 @@
  *******************************************************************************/
 package org.eclipse.che.api.local;
 
+import com.google.inject.AbstractModule;
+import com.google.inject.Provides;
+
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
 import org.eclipse.che.api.account.server.dao.Subscription;
-import org.eclipse.che.api.account.server.dao.SubscriptionAttributes;
-
 import org.eclipse.che.api.auth.AuthenticationDao;
 import org.eclipse.che.api.factory.FactoryStore;
 import org.eclipse.che.api.user.server.TokenValidator;
-import org.eclipse.che.api.user.server.dao.User;
-import org.eclipse.che.api.workspace.server.dao.Workspace;
-
 import org.eclipse.che.api.user.server.dao.PreferenceDao;
+import org.eclipse.che.api.user.server.dao.User;
 import org.eclipse.che.api.user.server.dao.UserDao;
 import org.eclipse.che.api.user.server.dao.UserProfileDao;
 import org.eclipse.che.api.workspace.server.dao.Member;
 import org.eclipse.che.api.workspace.server.dao.MemberDao;
+import org.eclipse.che.api.workspace.server.dao.Workspace;
 import org.eclipse.che.api.workspace.server.dao.WorkspaceDao;
 import org.eclipse.che.inject.DynaModule;
-import com.google.inject.AbstractModule;
-import com.google.inject.Provides;
 
 import javax.inject.Named;
 import java.util.Collections;
 import java.util.HashSet;
-import java.util.Map;
 import java.util.Set;
 
 @DynaModule
@@ -78,12 +75,6 @@ public class LocalInfrastructureModule extends AbstractModule {
     @Named("codenvy.local.infrastructure.account.subscriptions")
     Set<Subscription> subscriptions() {
         return Collections.emptySet();
-    }
-
-    @Provides
-    @Named("codenvy.local.infrastructure.account.subscriptionAttributes")
-    Map<String, SubscriptionAttributes> subscriptionAttributes() {
-        return Collections.emptyMap();
     }
 
     // AccountDao ~~~

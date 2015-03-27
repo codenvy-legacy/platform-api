@@ -17,7 +17,6 @@ import org.eclipse.che.api.user.server.dao.PreferenceDao;
 import org.eclipse.che.api.user.server.dao.UserDao;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 
 /**
@@ -28,9 +27,8 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
     @Inject
     public FactoryAcceptValidatorImpl(AccountDao accountDao,
                                       UserDao userDao,
-                                      PreferenceDao preferenceDao,
-                                      @Named("subscription.orgaddon.enabled") boolean onPremises) {
-        super(accountDao,userDao, preferenceDao, onPremises);
+                                      PreferenceDao preferenceDao) {
+        super(accountDao,userDao, preferenceDao);
     }
 
     @Override
@@ -40,7 +38,7 @@ public class FactoryAcceptValidatorImpl extends FactoryBaseValidator implements 
             validateProjectName(factory);
         }
         validateWorkspace(factory);
-        validateTrackedFactoryAndParams(factory);
+        validateCreator(factory);
         validateCurrentTimeBetweenSinceUntil(factory);
         validateProjectActions(factory);
     }

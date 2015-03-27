@@ -10,7 +10,7 @@
  *******************************************************************************/
 package org.eclipse.che.api.builder;
 
-import static com.google.common.base.MoreObjects.firstNonNull;
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
 
 import org.eclipse.che.api.builder.dto.BaseBuilderRequest;
 import org.eclipse.che.api.builder.dto.BuildOptions;
@@ -39,15 +39,12 @@ import org.eclipse.che.api.project.shared.dto.ProjectDescriptor;
 import org.eclipse.che.api.workspace.server.WorkspaceService;
 import org.eclipse.che.api.workspace.shared.dto.WorkspaceDescriptor;
 import org.eclipse.che.commons.env.EnvironmentContext;
-//import org.eclipse.che.commons.lang.CollectionUtils;
 import org.eclipse.che.commons.lang.cache.Cache;
 import org.eclipse.che.commons.lang.cache.SLRUCache;
 import org.eclipse.che.commons.lang.cache.SynchronizedCache;
 import org.eclipse.che.commons.lang.concurrent.ThreadLocalPropagateContext;
 import org.eclipse.che.commons.user.User;
 import org.eclipse.che.dto.server.DtoFactory;
-import com.google.common.util.concurrent.ThreadFactoryBuilder;
-
 import org.everrest.core.impl.provider.json.JsonUtils;
 import org.everrest.websockets.WSConnectionContext;
 import org.everrest.websockets.message.ChannelBroadcastMessage;
@@ -82,6 +79,10 @@ import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+
+import static com.google.common.base.MoreObjects.firstNonNull;
+
+//import org.eclipse.che.commons.lang.CollectionUtils;
 
 /**
  * Accepts all build request and redirects them to the slave-builders. If there is no any available slave-builder at the moment it stores
@@ -295,12 +296,17 @@ public class BuildQueue {
     public BuildQueueTask scheduleBuild(String wsId, String project, ServiceContext serviceContext, BuildOptions buildOptions)
             throws BuilderException {
         checkStarted();
+        final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
+        if (workspace.getAttributes().containsKey(org.eclipse.che.api.account.server.Constants.RESOURCES_LOCKED_PROPERTY)) {
+            throw new BuilderException("Build action for this workspace is locked");
+        }
+
         final ProjectDescriptor projectDescription = getProjectDescription(wsId, project, serviceContext);
         final User user = EnvironmentContext.getCurrent().getUser();
         final BuildRequest request = (BuildRequest)DtoFactory.getInstance().createDto(BuildRequest.class)
                                                              .withWorkspace(wsId)
                                                              .withProject(project)
-                                                             .withUserName(user == null ? "" : user.getName());
+                                                             .withUserId(user == null ? "" : user.getId());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -337,7 +343,6 @@ public class BuildQueue {
             }
         }
         if (callable == null) {
-            final WorkspaceDescriptor workspace = getWorkspaceDescriptor(wsId, serviceContext);
             request.setTimeout(getBuildTimeout(workspace));
             callable = createTaskFor(request);
         }
@@ -384,7 +389,7 @@ public class BuildQueue {
                                                                        .withType(type)
                                                                        .withWorkspace(wsId)
                                                                        .withProject(project)
-                                                                       .withUserName(user == null ? "" : user.getName());
+                                                                       .withUserId(user == null ? "" : user.getName());
         if (buildOptions != null) {
             request.setBuilder(buildOptions.getBuilderName());
             request.setOptions(buildOptions.getOptions());
@@ -550,7 +555,7 @@ public class BuildQueue {
     /**
      * Return tasks of this queue.
      */
-    protected List<BuildQueueTask> getTasks() {
+    public List<BuildQueueTask> getTasks() {
         return new ArrayList<>(tasks.values());
     }
 
@@ -911,9 +916,9 @@ public class BuildQueue {
         @Override
         public void onEvent(BuilderEvent event) {
             if (event.getType() == BuilderEvent.EventType.BEGIN
-                    || event.getType() == BuilderEvent.EventType.DONE
-                    || event.getType() == BuilderEvent.EventType.BUILD_TASK_ADDED_IN_QUEUE
-                    || event.getType() == BuilderEvent.EventType.BUILD_TASK_QUEUE_TIME_EXCEEDED) {
+                || event.getType() == BuilderEvent.EventType.DONE
+                || event.getType() == BuilderEvent.EventType.BUILD_TASK_ADDED_IN_QUEUE
+                || event.getType() == BuilderEvent.EventType.BUILD_TASK_QUEUE_TIME_EXCEEDED) {
                 try {
                     final long taskId = event.getTaskId();
                     final BaseBuilderRequest request = getTask(taskId).getRequest();
@@ -931,18 +936,19 @@ public class BuildQueue {
                             timeout = request.getTimeout() * 1000; // to ms
                         }
                         final String projectTypeId = request.getProjectDescriptor().getType();
-                        final String user = request.getUserName();
+                        final String user = request.getUserId();
 
                         switch (event.getType()) {
                             case BEGIN:
-                                LOG.info("EVENT#build-queue-waiting-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
-                                         time,
-                                         workspace,
-                                         user,
-                                         project,
-                                         projectTypeId,
-                                         analyticsID,
-                                         waitingTime);
+                                LOG.info(
+                                        "EVENT#build-queue-waiting-finished# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}#",
+                                        time,
+                                        workspace,
+                                        user,
+                                        project,
+                                        projectTypeId,
+                                        analyticsID,
+                                        waitingTime);
                                 LOG.info("EVENT#build-started# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# TIMEOUT#{}#",
                                          time,
                                          workspace,
@@ -986,14 +992,15 @@ public class BuildQueue {
                                          analyticsID);
                                 break;
                             case BUILD_TASK_QUEUE_TIME_EXCEEDED:
-                                LOG.info("EVENT#build-queue-terminated# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
-                                         time,
-                                         workspace,
-                                         user,
-                                         project,
-                                         projectTypeId,
-                                         analyticsID,
-                                         waitingTime);
+                                LOG.info(
+                                        "EVENT#build-queue-terminated# TIME#{}# WS#{}# USER#{}# PROJECT#{}# TYPE#{}# ID#{}# WAITING-TIME#{}",
+                                        time,
+                                        workspace,
+                                        user,
+                                        project,
+                                        projectTypeId,
+                                        analyticsID,
+                                        waitingTime);
                                 break;
                         }
                     }

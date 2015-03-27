@@ -35,7 +35,6 @@ import com.wordnik.swagger.annotations.ApiParam;
 import com.wordnik.swagger.annotations.ApiResponse;
 import com.wordnik.swagger.annotations.ApiResponses;
 
-
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
 import javax.ws.rs.Consumes;
@@ -118,9 +117,9 @@ public class UserService extends Service {
      * @see #remove(String)
      */
     @ApiOperation(value = "Create a new user",
-            notes = "Create a new user in the system",
-            response = UserDescriptor.class,
-            position = 1)
+                  notes = "Create a new user in the system",
+                  response = UserDescriptor.class,
+                  position = 1)
     @ApiResponses({@ApiResponse(code = 201, message = "Created"),
                    @ApiResponse(code = 401, message = "Missed token parameter"),
                    @ApiResponse(code = 409, message = "Invalid token"),
@@ -167,8 +166,8 @@ public class UserService extends Service {
      *         when some error occurred while retrieving current user
      */
     @ApiOperation(value = "Get current user",
-            notes = "Get user currently logged in the system",
-            response = UserDescriptor.class,
+                  notes = "Get user currently logged in the system",
+                  response = UserDescriptor.class,
                   position = 2)
     @ApiResponses({@ApiResponse(code = 200, message = "OK"),
                    @ApiResponse(code = 404, message = "Not Found"),

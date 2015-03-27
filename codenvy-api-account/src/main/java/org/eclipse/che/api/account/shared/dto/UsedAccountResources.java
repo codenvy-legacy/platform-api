@@ -10,34 +10,22 @@
  *******************************************************************************/
 package org.eclipse.che.api.account.shared.dto;
 
+
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import org.eclipse.che.dto.shared.DTO;
+
+import java.util.List;
 
 /**
  * @author Sergii Leschenko
  */
 @DTO
-public interface UpdateResourcesDescriptor {
-    void setWorkspaceId(String workspaceId);
+public interface UsedAccountResources {
+    @ApiModelProperty(value = "Consumed resources during current billing period grouped by workspaces")
+    List<WorkspaceResources> getUsed();
 
-    String getWorkspaceId();
+    void setUsed(List<WorkspaceResources> used);
 
-    UpdateResourcesDescriptor withWorkspaceId(String workspaceId);
-
-    void setRunnerRam(Integer runnerRam);
-
-    Integer getRunnerRam();
-
-    UpdateResourcesDescriptor withRunnerRam(Integer runnerRam);
-
-    void setRunnerTimeout(Integer runnerTimeout);
-
-    Integer getRunnerTimeout();
-
-    UpdateResourcesDescriptor withRunnerTimeout(Integer runnerTimeout);
-
-    void setBuilderTimeout(Integer builderTimeout);
-
-    Integer getBuilderTimeout();
-
-    UpdateResourcesDescriptor withBuilderTimeout(Integer builderTimeout);
+    UsedAccountResources withUsed(List<WorkspaceResources> used);
 }

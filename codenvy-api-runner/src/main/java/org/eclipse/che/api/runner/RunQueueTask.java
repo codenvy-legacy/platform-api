@@ -39,7 +39,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
  *
  * @author andrew00x
  */
-public final class RunQueueTask implements Cancellable {
+public class RunQueueTask implements Cancellable {
     private final Long                             id;
     private final RunRequest                       request;
     private final Future<RemoteRunnerProcess>      future;

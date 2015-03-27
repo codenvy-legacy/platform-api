@@ -10,26 +10,24 @@
  *******************************************************************************/
 package org.eclipse.che.api.account.shared.dto;
 
+import com.wordnik.swagger.annotations.ApiModelProperty;
+
 import org.eclipse.che.dto.shared.DTO;
 
+import java.util.List;
+
 /**
- * @author Alexander Garagatyi
+ * @author Sergii Leschenko
  */
 @DTO
-public interface CycleTypeDescriptor {
-    /* use object instead of primitive to avoid setting the default value on REST framework serialization/deserialization
-     * that allow better validate data that was sent
-     */
+public interface SubscriptionResourcesUsed extends UsedAccountResources {
+    @ApiModelProperty(value = "Reference of subscription that provides resources")
+    SubscriptionReference getSubscriptionReference();
 
-    Integer getId();
+    void setSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    void setId(Integer id);
+    SubscriptionResourcesUsed withSubscriptionReference(SubscriptionReference subscriptionReference);
 
-    CycleTypeDescriptor withId(Integer id);
-
-    String getDescription();
-
-    void setDescription(String description);
-
-    CycleTypeDescriptor withDescription(String description);
+    @Override
+    SubscriptionResourcesUsed withUsed(List<WorkspaceResources> used);
 }

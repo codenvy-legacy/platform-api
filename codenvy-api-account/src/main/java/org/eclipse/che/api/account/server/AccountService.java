@@ -10,30 +10,32 @@
  *******************************************************************************/
 package org.eclipse.che.api.account.server;
 
+import com.wordnik.swagger.annotations.Api;
+import com.wordnik.swagger.annotations.ApiOperation;
+import com.wordnik.swagger.annotations.ApiParam;
+import com.wordnik.swagger.annotations.ApiResponse;
+import com.wordnik.swagger.annotations.ApiResponses;
+
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
-import org.eclipse.che.api.account.server.dao.Billing;
 import org.eclipse.che.api.account.server.dao.Member;
 import org.eclipse.che.api.account.server.dao.PlanDao;
 import org.eclipse.che.api.account.server.dao.Subscription;
-import org.eclipse.che.api.account.server.dao.SubscriptionAttributes;
 import org.eclipse.che.api.account.shared.dto.AccountDescriptor;
 import org.eclipse.che.api.account.shared.dto.AccountReference;
 import org.eclipse.che.api.account.shared.dto.AccountUpdate;
-import org.eclipse.che.api.account.shared.dto.BillingDescriptor;
-import org.eclipse.che.api.account.shared.dto.CycleTypeDescriptor;
 import org.eclipse.che.api.account.shared.dto.MemberDescriptor;
 import org.eclipse.che.api.account.shared.dto.NewAccount;
-import org.eclipse.che.api.account.shared.dto.NewBilling;
 import org.eclipse.che.api.account.shared.dto.NewMembership;
 import org.eclipse.che.api.account.shared.dto.NewSubscription;
-import org.eclipse.che.api.account.shared.dto.NewSubscriptionAttributes;
 import org.eclipse.che.api.account.shared.dto.NewSubscriptionTemplate;
 import org.eclipse.che.api.account.shared.dto.Plan;
-import org.eclipse.che.api.account.shared.dto.SubscriptionAttributesDescriptor;
 import org.eclipse.che.api.account.shared.dto.SubscriptionDescriptor;
+import org.eclipse.che.api.account.shared.dto.SubscriptionReference;
+import org.eclipse.che.api.account.shared.dto.SubscriptionResourcesUsed;
+import org.eclipse.che.api.account.shared.dto.SubscriptionState;
 import org.eclipse.che.api.account.shared.dto.UpdateResourcesDescriptor;
-
+import org.eclipse.che.api.account.shared.dto.UsedAccountResources;
 import org.eclipse.che.api.core.ApiException;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
@@ -43,17 +45,12 @@ import org.eclipse.che.api.core.rest.Service;
 import org.eclipse.che.api.core.rest.annotations.GenerateLink;
 import org.eclipse.che.api.core.rest.annotations.Required;
 import org.eclipse.che.api.core.rest.shared.dto.Link;
+import org.eclipse.che.api.core.util.LinksHelper;
 import org.eclipse.che.api.user.server.dao.User;
 import org.eclipse.che.api.user.server.dao.UserDao;
 import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.NameGenerator;
 import org.eclipse.che.dto.server.DtoFactory;
-import com.wordnik.swagger.annotations.Api;
-import com.wordnik.swagger.annotations.ApiOperation;
-import com.wordnik.swagger.annotations.ApiParam;
-import com.wordnik.swagger.annotations.ApiResponse;
-import com.wordnik.swagger.annotations.ApiResponses;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -74,16 +71,18 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.SecurityContext;
 import javax.ws.rs.core.UriBuilder;
 import java.security.Principal;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
-import static org.eclipse.che.api.core.util.LinksHelper.createLink;
-import static org.eclipse.che.commons.lang.Size.parseSizeToMegabytes;
 import static java.lang.String.format;
 import static java.util.Collections.singletonList;
 
@@ -94,33 +93,27 @@ import static java.util.Collections.singletonList;
  * @author Alex Garagatyi
  */
 @Api(value = "/account",
-     description = "Account manager")
+        description = "Account manager")
 @Path("/account")
 public class AccountService extends Service {
     private static final Logger LOG = LoggerFactory.getLogger(AccountService.class);
-    private final AccountDao                      accountDao;
-    private final UserDao                         userDao;
-    private final SubscriptionServiceRegistry     registry;
-    private final PaymentService                  paymentService;
-    private final PlanDao                         planDao;
-    private final ResourcesManager                resourcesManager;
-    private final SubscriptionAttributesValidator subscriptionAttributesValidator;
+    private final AccountDao                  accountDao;
+    private final UserDao                     userDao;
+    private final SubscriptionServiceRegistry registry;
+    private final PlanDao                     planDao;
+    private final ResourcesManager            resourcesManager;
 
     @Inject
     public AccountService(AccountDao accountDao,
                           UserDao userDao,
                           SubscriptionServiceRegistry registry,
-                          PaymentService paymentService,
                           PlanDao planDao,
-                          ResourcesManager resourcesManager,
-                          SubscriptionAttributesValidator subscriptionAttributesValidator) {
+                          ResourcesManager resourcesManager) {
         this.accountDao = accountDao;
         this.userDao = userDao;
         this.registry = registry;
-        this.paymentService = paymentService;
         this.planDao = planDao;
         this.resourcesManager = resourcesManager;
-        this.subscriptionAttributesValidator = subscriptionAttributesValidator;
     }
 
     /**
@@ -210,10 +203,10 @@ public class AccountService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get current user memberships",
-                  notes = "This API call returns a JSON with all user membership in a single or multiple accounts",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 2)
+            notes = "This API call returns a JSON with all user membership in a single or multiple accounts",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 2)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -248,10 +241,10 @@ public class AccountService extends Service {
      * @see MemberDescriptor
      */
     @ApiOperation(value = "Get memberships of a specific user",
-                  notes = "ID of a user should be specified as a query parameter. JSON with membership details is returned. For this API call system/admin or system/manager role is required",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 3)
+            notes = "ID of a user should be specified as a query parameter. JSON with membership details is returned. For this API call system/admin or system/manager role is required",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 3)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -292,8 +285,8 @@ public class AccountService extends Service {
      *         when some error occurred while getting/updating account
      */
     @ApiOperation(value = "Delete account attribute",
-                  notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
-                  position = 4)
+            notes = "Remove attribute from an account. Attribute name is used as a quary parameter. For this API request account/owner, system/admin or system/manager role is required",
+            position = 4)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -326,9 +319,9 @@ public class AccountService extends Service {
      * @see #getByName(String, SecurityContext)
      */
     @ApiOperation(value = "Get account by ID",
-                  notes = "Get account information by its ID. JSON with account details is returned. This API call requires account/owner, system/admin or system/manager role.",
-                  response = AccountDescriptor.class,
-                  position = 5)
+            notes = "Get account information by its ID. JSON with account details is returned. This API call requires account/owner, system/admin or system/manager role.",
+            response = AccountDescriptor.class,
+            position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -360,9 +353,9 @@ public class AccountService extends Service {
      * @see #getById(String, SecurityContext)
      */
     @ApiOperation(value = "Get account by name",
-                  notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
-                  response = AccountDescriptor.class,
-                  position = 5)
+            notes = "Get account information by its name. JSON with account details is returned. This API call requires system/admin or system/manager role.",
+            response = AccountDescriptor.class,
+            position = 5)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -402,9 +395,9 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Add a new member to account",
-                  notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
-                  response = MemberDescriptor.class,
-                  position = 6)
+            notes = "Add a new user to an account. This user will have account/member role. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            position = 6)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Not Found"),
@@ -455,10 +448,10 @@ public class AccountService extends Service {
      * @see #removeMember(String, String)
      */
     @ApiOperation(value = "Get account members",
-                  notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
-                  response = MemberDescriptor.class,
-                  responseContainer = "List",
-                  position = 7)
+            notes = "Get all members for a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            response = MemberDescriptor.class,
+            responseContainer = "List",
+            position = 7)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -496,8 +489,8 @@ public class AccountService extends Service {
      * @see #getMembers(String, SecurityContext)
      */
     @ApiOperation(value = "Remove user from account",
-                  notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
-                  position = 8)
+            notes = "Remove user from a specific account. This API call requires account/owner, system/admin or system/manager role.",
+            position = 8)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -548,9 +541,9 @@ public class AccountService extends Service {
      * @see AccountDescriptor
      */
     @ApiOperation(value = "Update account",
-                  notes = "Update account. This API call requires account/owner role.",
-                  response = AccountDescriptor.class,
-                  position = 9)
+            notes = "Update account. This API call requires account/owner role.",
+            response = AccountDescriptor.class,
+            position = 9)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -603,10 +596,10 @@ public class AccountService extends Service {
      * @see SubscriptionDescriptor
      */
     @ApiOperation(value = "Get account subscriptions",
-                  notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
-                  response = SubscriptionDescriptor.class,
-                  responseContainer = "List",
-                  position = 10)
+            notes = "Get information on account subscriptions. This API call requires account/owner, account/member, system/admin or system/manager role.",
+            response = SubscriptionDescriptor.class,
+            responseContainer = "List",
+            position = 10)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 404, message = "Account ID not found"),
@@ -621,8 +614,15 @@ public class AccountService extends Service {
                                                          @QueryParam("service") String serviceId,
                                                          @Context SecurityContext securityContext) throws NotFoundException,
                                                                                                           ServerException {
-        final List<Subscription> subscriptions =
-                accountDao.getSubscriptions(accountId, serviceId != null && serviceId.isEmpty() ? null : serviceId);
+        final List<Subscription> subscriptions = new ArrayList<>();
+        if (serviceId == null || serviceId.isEmpty()) {
+            subscriptions.addAll(accountDao.getActiveSubscriptions(accountId));
+        } else {
+            final Subscription activeSubscription = accountDao.getActiveSubscription(accountId, serviceId);
+            if (activeSubscription != null) {
+                subscriptions.add(activeSubscription);
+            }
+        }
         final List<SubscriptionDescriptor> result = new ArrayList<>(subscriptions.size());
         for (Subscription subscription : subscriptions) {
             result.add(toDescriptor(subscription, securityContext, null));
@@ -645,9 +645,9 @@ public class AccountService extends Service {
      * @see #removeSubscription(String, SecurityContext)
      */
     @ApiOperation(value = "Get subscription details",
-                  notes = "Get information on a particular subscription by its unique ID.",
-                  response = SubscriptionDescriptor.class,
-                  position = 11)
+            notes = "Get information on a particular subscription by its unique ID.",
+            response = SubscriptionDescriptor.class,
+            position = 11)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "User not authorized to call this method"),
@@ -674,219 +674,6 @@ public class AccountService extends Service {
     }
 
     /**
-     * <p>Creates new subscription. Returns {@link SubscriptionDescriptor}
-     * when subscription has been created successfully.
-     * <p>Each new subscription should contain plan id and account id </p>
-     *
-     * @param newSubscription
-     *         new subscription
-     * @return descriptor of created subscription
-     * @throws ConflictException
-     *         when new subscription is {@code null}
-     *         or new subscription plan identifier is {@code null}
-     *         or new subscription account identifier is {@code null}
-     * @throws NotFoundException
-     *         if plan with certain identifier is not found
-     * @throws org.eclipse.che.api.core.ApiException
-     * @see SubscriptionDescriptor
-     * @see #getSubscriptionById(String, SecurityContext)
-     * @see #removeSubscription(String, SecurityContext)
-     */
-    @ApiOperation(value = "Add new subscription",
-                  notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
-                  response = SubscriptionDescriptor.class,
-                  position = 12)
-    @ApiResponses(value = {
-            @ApiResponse(code = 201, message = "CREATED"),
-            @ApiResponse(code = 403, message = "Access denied"),
-            @ApiResponse(code = 404, message = "Invalid subscription parameter"),
-            @ApiResponse(code = 409, message = "Unknown ServiceID is used or payment token is invalid"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @POST
-    @Path("/subscriptions")
-    @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    @Produces(MediaType.APPLICATION_JSON)
-    @Consumes(MediaType.APPLICATION_JSON)
-    public Response addSubscription(@ApiParam(value = "Subscription details", required = true)
-                                    @Required NewSubscription newSubscription,
-                                    @Context SecurityContext securityContext)
-            throws ApiException {
-        requiredNotNull(newSubscription, "New subscription");
-        requiredNotNull(newSubscription.getAccountId(), "Account identifier");
-        requiredNotNull(newSubscription.getPlanId(), "Plan identifier");
-        //check user has access to add subscription
-        final Set<String> roles = new HashSet<>();
-        if (securityContext.isUserInRole("user")) {
-            roles.addAll(resolveRolesForSpecificAccount(newSubscription.getAccountId()));
-            if (!roles.contains("account/owner")) {
-                throw new ForbiddenException("Access denied");
-            }
-        }
-
-        final Plan plan = planDao.getPlanById(newSubscription.getPlanId());
-        //check service exists
-        final SubscriptionService service = registry.get(plan.getServiceId());
-        if (null == service) {
-            throw new ConflictException("Unknown serviceId is used");
-        }
-        //create new subscription
-        final Subscription subscription = new Subscription().withAccountId(newSubscription.getAccountId())
-                                                            .withServiceId(plan.getServiceId())
-                                                            .withPlanId(plan.getId())
-                                                            .withProperties(plan.getProperties());
-        subscription.setId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH));
-
-        NewSubscriptionAttributes newSubscriptionAttributes = newSubscription.getSubscriptionAttributes();
-        subscriptionAttributesValidator.validate(newSubscriptionAttributes);
-        service.beforeCreateSubscription(subscription);
-
-        if ("false".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem()) &&
-            !securityContext.isUserInRole("system/admin") &&
-            !securityContext.isUserInRole("system/manager")) {
-            throw new ConflictException("Given value of billing attribute usePaymentSystem is not allowed");
-        }
-        if (plan.getSalesOnly() && !securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
-            throw new ConflictException("User not authorized to add this subscription, please contact support");
-        }
-
-        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#", subscription.getId(),
-                 EnvironmentContext.getCurrent().getUser().getId(), subscription.getAccountId(), subscription.getPlanId());
-
-        try {
-            if (plan.isPaid() && "true".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem())) {
-                newSubscriptionAttributes = paymentService.addSubscription(subscription, newSubscription.getSubscriptionAttributes());
-            }
-        } catch (Exception e) {
-            LOG.error(e.getLocalizedMessage(), e);
-            throw e;
-        }
-        try {
-            accountDao.addSubscription(subscription);
-            accountDao.saveSubscriptionAttributes(subscription.getId(), toSubscriptionAttributes(newSubscriptionAttributes));
-        } catch (Exception e) {
-            LOG.error(e.getLocalizedMessage(), e);
-            if (plan.isPaid() && "true".equals(newSubscriptionAttributes.getBilling().getUsePaymentSystem())) {
-                paymentService.removeSubscription(subscription.getId());
-            }
-            throw e;
-        }
-
-        service.afterCreateSubscription(subscription);
-
-        LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
-
-        return Response.status(Response.Status.CREATED)
-                       .entity(toDescriptor(subscription, securityContext, roles))
-                       .build();
-    }
-
-    /**
-     * Removes subscription by id
-     *
-     * @param subscriptionId
-     *         id of the subscription to remove
-     * @throws NotFoundException
-     *         if subscription with such id is not found
-     * @throws ForbiddenException
-     *         if user hasn't permissions
-     * @throws ServerException
-     *         if internal server error occurs
-     * @throws org.eclipse.che.api.core.ApiException
-     * @see #addSubscription(NewSubscription, SecurityContext)
-     * @see #getSubscriptions(String, String, SecurityContext)
-     */
-    @ApiOperation(value = "Remove subscription",
-                  notes = "Remove subscription from account. Roles: account/owner, system/admin.",
-                  position = 13)
-    @ApiResponses(value = {
-            @ApiResponse(code = 204, message = "OK"),
-            @ApiResponse(code = 403, message = "Access denied"),
-            @ApiResponse(code = 404, message = "Invalid subscription ID"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @DELETE
-    @Path("/subscriptions/{subscriptionId}")
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
-                                   @PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
-            throws ApiException {
-        final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
-        if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
-            throw new ForbiddenException("Access denied");
-        }
-        final SubscriptionAttributes attributes = accountDao.getSubscriptionAttributes(subscriptionId);
-
-        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId(),
-                 toRemove.getAccountId());
-
-        if ("true".equals(attributes.getBilling().getUsePaymentSystem())) {
-            try {
-                paymentService.removeSubscription(subscriptionId);
-            } catch (NotFoundException ignored) {
-                LOG.error(ignored.getLocalizedMessage(), ignored);
-            }
-        }
-        accountDao.removeSubscription(subscriptionId);
-        accountDao.removeSubscriptionAttributes(subscriptionId);
-        final SubscriptionService service = registry.get(toRemove.getServiceId());
-        service.onRemoveSubscription(toRemove);
-    }
-
-    @ApiOperation(value = "Remove account",
-                  notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
-                  position = 14)
-    @ApiResponses(value = {
-            @ApiResponse(code = 204, message = "OK"),
-            @ApiResponse(code = 403, message = "Access denied"),
-            @ApiResponse(code = 404, message = "Invalid account ID"),
-            @ApiResponse(code = 409, message = "Cannot delete account with associated workspaces"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @DELETE
-    @Path("/{id}")
-    @RolesAllowed("system/admin")
-    public void remove(@ApiParam(value = "Account ID", required = true)
-                       @PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
-        accountDao.remove(id);
-    }
-
-    /**
-     * Returns billing properties of certain subscription
-     *
-     * @param subscriptionId
-     *         identifier of the subscription
-     * @return billing properties
-     * @throws NotFoundException
-     *         if subscription doesn't exist or billing properties are missing
-     * @throws ForbiddenException
-     *         if user is not allowed to call this method
-     * @throws ServerException
-     */
-    @ApiOperation(value = "Get subscription attributes",
-                  notes = "Get attributes of a specified subscription by its ID. Roles: account/owner, system/admin.",
-                  response = SubscriptionAttributesDescriptor.class,
-                  position = 15)
-    @ApiResponses(value = {
-            @ApiResponse(code = 200, message = "OK"),
-            @ApiResponse(code = 403, message = "Access denied"),
-            @ApiResponse(code = 404, message = "Invalid susbscription ID"),
-            @ApiResponse(code = 500, message = "Internal Server Error")})
-    @GET
-    @Path("/subscriptions/{subscriptionId}/attributes")
-    @Produces(MediaType.APPLICATION_JSON)
-    @RolesAllowed({"user", "system/admin", "system/manager"})
-    public SubscriptionAttributesDescriptor getSubscriptionAttributes(@ApiParam(value = "Subscription ID")
-                                                                      @PathParam("subscriptionId") String subscriptionId,
-                                                                      @Context SecurityContext securityContext)
-            throws ServerException, NotFoundException, ForbiddenException {
-        final Subscription subscription = accountDao.getSubscriptionById(subscriptionId);
-        if (securityContext.isUserInRole("user") &&
-            !resolveRolesForSpecificAccount(subscription.getAccountId()).contains("account/owner")) {
-            throw new ForbiddenException("Access denied");
-        }
-        return toDescriptor(accountDao.getSubscriptionAttributes(subscriptionId));
-    }
-
-    /**
      * Validates addition of the subscription
      *
      * @param subscriptionTemplate
@@ -899,9 +686,9 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Validate new subscription",
-                  notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
-                  response = NewSubscriptionTemplate.class,
-                  position = 16)
+            notes = "This method can be used prior to adding a new subscription to an account to make sure such a subscription can be added.",
+            response = NewSubscriptionTemplate.class,
+            position = 16)
     @ApiResponses(value = {
             @ApiResponse(code = 200, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -925,6 +712,13 @@ public class AccountService extends Service {
             throw new ForbiddenException("Access denied");
         }
         final Plan plan = planDao.getPlanById(subscriptionTemplate.getPlanId());
+
+        // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
+        if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 &&
+            !subscriptionTemplate.getTrialDuration().equals(plan.getTrialDuration()) && securityContext.isUserInRole("user")) {
+            throw new ConflictException("Trial duration " + subscriptionTemplate.getTrialDuration() + " is not allowed");
+        }
+
         final SubscriptionService service = registry.get(plan.getServiceId());
         //create new subscription
         final Subscription subscription = new Subscription().withAccountId(subscriptionTemplate.getAccountId())
@@ -933,9 +727,228 @@ public class AccountService extends Service {
                                                             .withProperties(plan.getProperties());
         service.beforeCreateSubscription(subscription);
 
-        return DtoFactory.getInstance().createDto(NewSubscriptionTemplate.class)
-                         .withPlanId(subscriptionTemplate.getPlanId())
-                         .withAccountId(subscriptionTemplate.getAccountId());
+        // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
+        if (subscriptionTemplate.getTrialDuration() != null && subscriptionTemplate.getTrialDuration() != 0 &&
+            securityContext.isUserInRole("user")) {
+            try {
+                List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
+                                                             .getTrialQuery(subscription.getServiceId(), subscription.getAccountId())
+                                                             .execute();
+
+                if (!subscriptions.isEmpty()) {
+                    throw new ForbiddenException("Can't add new trial. Please, contact support");
+                }
+            } catch (ServerException e) {
+                throw new ServerException("Can't add subscription. Please, contact support");
+            }
+        }
+
+        return subscriptionTemplate;
+    }
+
+    /**
+     * <p>Creates new subscription. Returns {@link SubscriptionDescriptor}
+     * when subscription has been created successfully.
+     * <p>Each new subscription should contain plan id and account id </p>
+     *
+     * @param newSubscription
+     *         new subscription
+     * @return descriptor of created subscription
+     * @throws ConflictException
+     *         when new subscription is {@code null}
+     *         or new subscription plan identifier is {@code null}
+     *         or new subscription account identifier is {@code null}
+     * @throws NotFoundException
+     *         if plan with certain identifier is not found
+     * @throws org.eclipse.che.api.core.ApiException
+     * @see SubscriptionDescriptor
+     * @see #getSubscriptionById(String, SecurityContext)
+     * @see #removeSubscription(String, SecurityContext)
+     */
+    @ApiOperation(value = "Add new subscription",
+            notes = "Add a new subscription to an account. JSON with subscription details is sent. Roles: account/owner, system/admin.",
+            response = SubscriptionDescriptor.class,
+            position = 12)
+    @ApiResponses(value = {
+            @ApiResponse(code = 201, message = "CREATED"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid subscription parameter"),
+            @ApiResponse(code = 409, message = "Unknown ServiceID is used or payment token is invalid"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @POST
+    @Path("/subscriptions")
+    @GenerateLink(rel = Constants.LINK_REL_ADD_SUBSCRIPTION)
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    @Produces(MediaType.APPLICATION_JSON)
+    @Consumes(MediaType.APPLICATION_JSON)
+    public Response addSubscription(@ApiParam(value = "Subscription details", required = true)
+                                    @Required NewSubscription newSubscription,
+                                    @Context SecurityContext securityContext)
+            throws ApiException {
+        requiredNotNull(newSubscription, "New subscription");
+        requiredNotNull(newSubscription.getAccountId(), "Account identifier");
+        requiredNotNull(newSubscription.getPlanId(), "Plan identifier");
+        requiredNotNull(newSubscription.getUsePaymentSystem(), "Use payment system");
+
+        //check user has access to add subscription
+        final Set<String> roles = new HashSet<>();
+        if (securityContext.isUserInRole("user")) {
+            roles.addAll(resolveRolesForSpecificAccount(newSubscription.getAccountId()));
+            if (!roles.contains("account/owner")) {
+                throw new ForbiddenException("Access denied");
+            }
+        }
+
+        final Plan plan = planDao.getPlanById(newSubscription.getPlanId());
+
+        // check service exists
+        final SubscriptionService service = registry.get(plan.getServiceId());
+        if (null == service) {
+            throw new ConflictException("Unknown serviceId is used");
+        }
+
+        //Not admin has additional restrictions
+        if (!securityContext.isUserInRole("system/admin") && !securityContext.isUserInRole("system/manager")) {
+            // check that subscription is allowed for not admin
+            if (plan.getSalesOnly()) {
+                throw new ForbiddenException("User not authorized to add this subscription, please contact support");
+            }
+
+            // only admins are allowed to disable payment on subscription addition
+            if (!newSubscription.getUsePaymentSystem().equals(plan.isPaid())) {
+                throw new ConflictException("Given value of attribute usePaymentSystem is not allowed");
+            }
+
+            // check trial
+            if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
+                // allow regular user use subscription without trial or with trial which duration equal to duration from the plan
+                if (!newSubscription.getTrialDuration().equals(plan.getTrialDuration())) {
+                    throw new ConflictException("User not authorized to add this subscription, please contact support");
+                }
+
+                // check that user hasn't got trial before, omit for privileged user (e.g. system/admin)
+                try {
+                    List<Subscription> subscriptions = accountDao.getSubscriptionQueryBuilder()
+                                                                 .getTrialQuery(plan.getServiceId(), newSubscription.getAccountId())
+                                                                 .execute();
+
+                    if (!subscriptions.isEmpty()) {
+                        throw new ForbiddenException("Can't add new trial. Please, contact support");
+                    }
+                } catch (ServerException e) {
+                    throw new ServerException("Can't add subscription. Please, contact support");
+                }
+            }
+        }
+
+        // disable payment if subscription is free
+        if (!plan.isPaid()) {
+            newSubscription.setUsePaymentSystem(false);
+        }
+
+        //create new subscription
+        Subscription subscription = new Subscription()
+                .withId(NameGenerator.generate(Subscription.class.getSimpleName().toLowerCase(), Constants.ID_LENGTH))
+                .withAccountId(newSubscription.getAccountId())
+                .withUsePaymentSystem(newSubscription.getUsePaymentSystem())
+                .withServiceId(plan.getServiceId())
+                .withPlanId(plan.getId())
+                .withProperties(plan.getProperties())
+                .withDescription(plan.getDescription())
+                .withBillingCycleType(plan.getBillingCycleType())
+                .withBillingCycle(plan.getBillingCycle())
+                .withBillingContractTerm(plan.getBillingContractTerm())
+                .withState(SubscriptionState.ACTIVE);
+
+        if (newSubscription.getTrialDuration() != null && newSubscription.getTrialDuration() != 0) {
+            Calendar calendar = Calendar.getInstance();
+            subscription.setTrialStartDate(calendar.getTime());
+            calendar.add(Calendar.DATE, newSubscription.getTrialDuration());
+            subscription.setTrialEndDate(calendar.getTime());
+        }
+
+        service.beforeCreateSubscription(subscription);
+
+        LOG.info("Add subscription# id#{}# userId#{}# accountId#{}# planId#{}#",
+                 subscription.getId(),
+                 EnvironmentContext.getCurrent().getUser().getId(),
+                 subscription.getAccountId(),
+                 subscription.getPlanId());
+
+        accountDao.addSubscription(subscription);
+
+        service.afterCreateSubscription(subscription);
+
+        LOG.info("Added subscription. Subscription ID #{}# Account ID #{}#", subscription.getId(), subscription.getAccountId());
+
+        return Response.status(Response.Status.CREATED)
+                       .entity(toDescriptor(subscription, securityContext, roles))
+                       .build();
+    }
+
+    /**
+     * Removes subscription by id. Actually makes it inactive.
+     *
+     * @param subscriptionId
+     *         id of the subscription to remove
+     * @throws NotFoundException
+     *         if subscription with such id is not found
+     * @throws ForbiddenException
+     *         if user hasn't permissions
+     * @throws ServerException
+     *         if internal server error occurs
+     * @throws org.eclipse.che.api.core.ApiException
+     * @see #addSubscription(NewSubscription, SecurityContext)
+     * @see #getSubscriptions(String, String, SecurityContext)
+     */
+    @ApiOperation(value = "Remove subscription",
+            notes = "Remove subscription from account. Roles: account/owner, system/admin.",
+            position = 13)
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid subscription ID"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @DELETE
+    @Path("/subscriptions/{subscriptionId}")
+    @RolesAllowed({"user", "system/admin", "system/manager"})
+    public void removeSubscription(@ApiParam(value = "Subscription ID", required = true)
+                                   @PathParam("subscriptionId") String subscriptionId, @Context SecurityContext securityContext)
+            throws ApiException {
+        final Subscription toRemove = accountDao.getSubscriptionById(subscriptionId);
+        if (securityContext.isUserInRole("user") && !resolveRolesForSpecificAccount(toRemove.getAccountId()).contains("account/owner")) {
+            throw new ForbiddenException("Access denied");
+        }
+        if (SubscriptionState.INACTIVE == toRemove.getState()) {
+            throw new ForbiddenException("Subscription is inactive already " + subscriptionId);
+        }
+
+        LOG.info("Remove subscription# id#{}# userId#{}# accountId#{}#", subscriptionId, EnvironmentContext.getCurrent().getUser().getId(),
+                 toRemove.getAccountId());
+
+        toRemove.setState(SubscriptionState.INACTIVE);
+        accountDao.updateSubscription(toRemove);
+        final SubscriptionService service = registry.get(toRemove.getServiceId());
+        service.onRemoveSubscription(toRemove);
+
+    }
+
+
+    @ApiOperation(value = "Remove account",
+            notes = "Remove subscription from account. JSON with subscription details is sent. Can be performed only by system/admin.",
+            position = 16)
+    @ApiResponses(value = {
+            @ApiResponse(code = 204, message = "OK"),
+            @ApiResponse(code = 403, message = "Access denied"),
+            @ApiResponse(code = 404, message = "Invalid account ID"),
+            @ApiResponse(code = 409, message = "Cannot delete account with associated workspaces"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @DELETE
+    @Path("/{id}")
+    @RolesAllowed("system/admin")
+    public void remove(@ApiParam(value = "Account ID", required = true)
+                       @PathParam("id") String id) throws NotFoundException, ServerException, ConflictException {
+        accountDao.remove(id);
     }
 
     /**
@@ -955,8 +968,8 @@ public class AccountService extends Service {
      * @throws ServerException
      */
     @ApiOperation(value = "Redistributes resources",
-                  notes = "Redistributes resources between workspaces. Roles: account/owner, system/admin.",
-                  position = 17)
+            notes = "Redistributes resources between workspaces. Roles: account/owner, system/manager, system/admin.",
+            position = 17)
     @ApiResponses(value = {
             @ApiResponse(code = 204, message = "OK"),
             @ApiResponse(code = 403, message = "Access denied"),
@@ -971,33 +984,58 @@ public class AccountService extends Service {
                                       @PathParam("id") String id,
                                       @ApiParam(value = "Resources description", required = true)
                                       @Required
-                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors,
-                                      @Context SecurityContext securityContext) throws ForbiddenException,
-                                                                                       ConflictException,
-                                                                                       NotFoundException,
-                                                                                       ServerException {
-        if (securityContext.isUserInRole("system/admin")) {
-            //redistributing resources without limitation of RAM
-            resourcesManager.redistributeResources(id, updateResourcesDescriptors);
-            return;
+                                      List<UpdateResourcesDescriptor> updateResourcesDescriptors) throws ForbiddenException,
+                                                                                                         ConflictException,
+                                                                                                         NotFoundException,
+                                                                                                         ServerException {
+        resourcesManager.redistributeResources(id, updateResourcesDescriptors);
+    }
+
+    /**
+     * Returns used resources, provided by subscriptions
+     *
+     * @param accountId
+     *         account id
+     */
+    @ApiOperation(value = "Get used resources, provided by subscriptions",
+            notes = "Returns used resources, provided by subscriptions. Roles: account/owner, account/member, system/manager, system/admin.",
+            position = 17)
+    @ApiResponses(value = {
+            @ApiResponse(code = 200, message = "OK"),
+            @ApiResponse(code = 404, message = "Not found"),
+            @ApiResponse(code = 500, message = "Internal Server Error")})
+    @GET
+    @Path("/{id}/resources")
+    @RolesAllowed({"account/owner", "account/member", "system/manager", "system/admin"})
+    @Produces(MediaType.APPLICATION_JSON)
+    public List<SubscriptionResourcesUsed> getResources(@ApiParam(value = "Account ID", required = true)
+                                                        @PathParam("id") String accountId,
+                                                        @QueryParam("serviceId") String serviceId)
+            throws ServerException, NotFoundException, ConflictException {
+        Set<SubscriptionService> subscriptionServices = new HashSet<>();
+        if (serviceId == null) {
+            subscriptionServices.addAll(registry.getAll());
+        } else {
+            final SubscriptionService subscriptionService = registry.get(serviceId);
+            if (subscriptionService == null) {
+                throw new ConflictException("Unknown serviceId is used");
+            }
+            subscriptionServices.add(subscriptionService);
         }
 
-        //getting allowed RAM
-        final List<Subscription> saasSubscriptions = accountDao.getSubscriptions(id, "Saas");
-        if (saasSubscriptions.isEmpty()) {
-            throw new ConflictException("Account hasn't Saas subscription");
+        List<SubscriptionResourcesUsed> result = new ArrayList<>();
+        for (SubscriptionService subscriptionService : subscriptionServices) {
+            Subscription activeSubscription = accountDao.getActiveSubscription(accountId, subscriptionService.getServiceId());
+            if (activeSubscription != null) {
+                //For now account can have only one subscription for each service
+                UsedAccountResources usedAccountResources = subscriptionService.getAccountResources(activeSubscription);
+                result.add(DtoFactory.getInstance().createDto(SubscriptionResourcesUsed.class)
+                                     .withUsed(usedAccountResources.getUsed())
+                                     .withSubscriptionReference(toReference(activeSubscription)));
+            }
         }
-        if (saasSubscriptions.size() > 1) {
-            throw new ConflictException("Account has more than 1 Saas subscription");
-        }
-        final Subscription saas = saasSubscriptions.get(0);
 
-        if ("Community".equals(saas.getProperties().get("Package"))) {
-            throw new ConflictException("Users who have community subscription can't distribute resources");
-        }
-        final int allowedRAM = (int)parseSizeToMegabytes(saas.getProperties().get("RAM"));
-
-        resourcesManager.redistributeResources(id, allowedRAM, updateResourcesDescriptors);
+        return result;
     }
 
     /**
@@ -1030,7 +1068,7 @@ public class AccountService extends Service {
     private AccountDescriptor toDescriptor(Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
         final List<Link> links = new LinkedList<>();
-        links.add(createLink(HttpMethod.GET,
+        links.add(LinksHelper.createLink(HttpMethod.GET,
                                          uriBuilder.clone()
                                                    .path(getClass(), "getMemberships")
                                                    .build()
@@ -1038,7 +1076,7 @@ public class AccountService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          Constants.LINK_REL_GET_ACCOUNTS));
-        links.add(createLink(HttpMethod.GET,
+        links.add(LinksHelper.createLink(HttpMethod.GET,
                                          uriBuilder.clone()
                                                    .path(getClass(), "getSubscriptions")
                                                    .build(account.getId())
@@ -1046,7 +1084,7 @@ public class AccountService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          Constants.LINK_REL_GET_SUBSCRIPTIONS));
-        links.add(createLink(HttpMethod.GET,
+        links.add(LinksHelper.createLink(HttpMethod.GET,
                                          uriBuilder.clone()
                                                    .path(getClass(), "getMembers")
                                                    .build(account.getId())
@@ -1054,7 +1092,7 @@ public class AccountService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          Constants.LINK_REL_GET_MEMBERS));
-        links.add(createLink(HttpMethod.GET,
+        links.add(LinksHelper.createLink(HttpMethod.GET,
                                          uriBuilder.clone()
                                                    .path(getClass(), "getById")
                                                    .build(account.getId())
@@ -1062,8 +1100,16 @@ public class AccountService extends Service {
                                          null,
                                          MediaType.APPLICATION_JSON,
                                          Constants.LINK_REL_GET_ACCOUNT_BY_ID));
+        links.add(LinksHelper.createLink(HttpMethod.GET,
+                                         uriBuilder.clone()
+                                                   .path(getClass(), "getResources")
+                                                   .build(account.getId())
+                                                   .toString(),
+                                         null,
+                                         MediaType.APPLICATION_JSON,
+                                         Constants.LINK_REL_GET_ACCOUNT_RESOURCES));
         if (securityContext.isUserInRole("system/admin") || securityContext.isUserInRole("system/manager")) {
-            links.add(createLink(HttpMethod.GET,
+            links.add(LinksHelper.createLink(HttpMethod.GET,
                                              uriBuilder.clone()
                                                        .path(getClass(), "getByName")
                                                        .queryParam("name", account.getName())
@@ -1074,7 +1120,7 @@ public class AccountService extends Service {
                                              Constants.LINK_REL_GET_ACCOUNT_BY_NAME));
         }
         if (securityContext.isUserInRole("system/admin")) {
-            links.add(createLink(HttpMethod.DELETE,
+            links.add(LinksHelper.createLink(HttpMethod.DELETE,
                                              uriBuilder.clone().path(getClass(), "remove")
                                                        .build(account.getId())
                                                        .toString(),
@@ -1082,6 +1128,15 @@ public class AccountService extends Service {
                                              null,
                                              Constants.LINK_REL_REMOVE_ACCOUNT));
         }
+
+        if (!securityContext.isUserInRole("account/owner") &&
+            !securityContext.isUserInRole("account/member") &&
+            !securityContext.isUserInRole("system/admin") &&
+            !securityContext.isUserInRole("system/manager")) {
+            account.getAttributes().clear();
+        }
+        account.getAttributes().remove("codenvy:creditCardToken");
+        account.getAttributes().remove("codenvy:billing.date");
         return DtoFactory.getInstance().createDto(AccountDescriptor.class)
                          .withId(account.getId())
                          .withName(account.getName())
@@ -1094,7 +1149,7 @@ public class AccountService extends Service {
      */
     private MemberDescriptor toDescriptor(Member member, Account account, SecurityContext securityContext) {
         final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-        final Link removeMember = createLink(HttpMethod.DELETE,
+        final Link removeMember = LinksHelper.createLink(HttpMethod.DELETE,
                                                          uriBuilder.clone()
                                                                    .path(getClass(), "removeMember")
                                                                    .build(account.getId(), member.getUserId())
@@ -1102,7 +1157,7 @@ public class AccountService extends Service {
                                                          null,
                                                          null,
                                                          Constants.LINK_REL_REMOVE_MEMBER);
-        final Link allMembers = createLink(HttpMethod.GET,
+        final Link allMembers = LinksHelper.createLink(HttpMethod.GET,
                                                        uriBuilder.clone()
                                                                  .path(getClass(), "getMembers")
                                                                  .build(account.getId())
@@ -1116,7 +1171,7 @@ public class AccountService extends Service {
         if (member.getRoles().contains("account/owner") ||
             securityContext.isUserInRole("system/admin") ||
             securityContext.isUserInRole("system/manager")) {
-            accountRef.setLinks(singletonList(createLink(HttpMethod.GET,
+            accountRef.setLinks(singletonList(LinksHelper.createLink(HttpMethod.GET,
                                                                      uriBuilder.clone()
                                                                                .path(getClass(), "getById")
                                                                                .build(account.getId())
@@ -1158,11 +1213,12 @@ public class AccountService extends Service {
      * @param resolvedRoles
      *         resolved roles. Do not use if id of the account presents in REST path.
      */
-    private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set<String> resolvedRoles) {
+    private SubscriptionDescriptor toDescriptor(Subscription subscription, SecurityContext securityContext, Set resolvedRoles) {
         List<Link> links = new ArrayList<>(0);
+        // community subscriptions should not use urls
         if (!"sas-community".equals(subscription.getPlanId())) {
             final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
-            links.add(createLink(HttpMethod.GET,
+            links.add(LinksHelper.createLink(HttpMethod.GET,
                                              uriBuilder.clone()
                                                        .path(getClass(), "getSubscriptionById")
                                                        .build(subscription.getId())
@@ -1170,10 +1226,12 @@ public class AccountService extends Service {
                                              null,
                                              MediaType.APPLICATION_JSON,
                                              Constants.LINK_REL_GET_SUBSCRIPTION));
-            if (securityContext.isUserInRole("account/owner") || securityContext.isUserInRole("system/admin") ||
-                securityContext.isUserInRole("system/manager") ||
-                (securityContext.isUserInRole("user") && resolvedRoles != null && resolvedRoles.contains("account/owner"))) {
-                links.add(createLink(HttpMethod.DELETE,
+            boolean isUserPrivileged = (resolvedRoles != null && resolvedRoles.contains("account/owner")) ||
+                                       securityContext.isUserInRole("account/owner") ||
+                                       securityContext.isUserInRole("system/admin") ||
+                                       securityContext.isUserInRole("system/manager");
+            if (SubscriptionState.ACTIVE.equals(subscription.getState()) && isUserPrivileged) {
+                links.add(LinksHelper.createLink(HttpMethod.DELETE,
                                                  uriBuilder.clone()
                                                            .path(getClass(), "removeSubscription")
                                                            .build(subscription.getId())
@@ -1181,67 +1239,90 @@ public class AccountService extends Service {
                                                  null,
                                                  null,
                                                  Constants.LINK_REL_REMOVE_SUBSCRIPTION));
-                links.add(createLink(HttpMethod.GET,
-                                                 uriBuilder.clone()
-                                                           .path(getClass(), "getSubscriptionAttributes")
-                                                           .build(subscription.getId())
-                                                           .toString(),
-                                                 null,
-                                                 MediaType.APPLICATION_JSON,
-                                                 Constants.LINK_REL_GET_SUBSCRIPTION_ATTRIBUTES));
             }
         }
+
+        // Do not send with REST properties that starts from 'codenvy:'
+        LinkedHashMap<String, String> filteredProperties = new LinkedHashMap<>();
+        for (Map.Entry<String, String> property : subscription.getProperties().entrySet()) {
+            if (!property.getKey().startsWith("codenvy:") || securityContext.isUserInRole("system/admin") ||
+                securityContext.isUserInRole("system/manager")) {
+                filteredProperties.put(property.getKey(), property.getValue());
+            }
+        }
+
+        SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy");
+        dateFormat.setLenient(false);
+
         return DtoFactory.getInstance().createDto(SubscriptionDescriptor.class)
                          .withId(subscription.getId())
                          .withAccountId(subscription.getAccountId())
                          .withServiceId(subscription.getServiceId())
-                         .withProperties(subscription.getProperties())
+                         .withProperties(filteredProperties)
+                         .withPlanId(subscription.getPlanId())
+                         .withState(subscription.getState())
+                         .withDescription(subscription.getDescription())
+                         .withStartDate(null == subscription.getStartDate() ? null : dateFormat.format(subscription.getStartDate()))
+                         .withEndDate(null == subscription.getEndDate() ? null : dateFormat.format(subscription.getEndDate()))
+                         .withTrialStartDate(
+                                 null == subscription.getTrialStartDate() ? null : dateFormat.format(subscription.getTrialStartDate()))
+                         .withTrialEndDate(
+                                 null == subscription.getTrialEndDate() ? null : dateFormat.format(subscription.getTrialEndDate()))
+                         .withUsePaymentSystem(subscription.getUsePaymentSystem())
+                         .withBillingStartDate(
+                                 null == subscription.getBillingStartDate() ? null : dateFormat.format(subscription.getBillingStartDate()))
+                         .withBillingEndDate(
+                                 null == subscription.getBillingEndDate() ? null : dateFormat.format(subscription.getBillingEndDate()))
+                         .withNextBillingDate(
+                                 null == subscription.getNextBillingDate() ? null : dateFormat.format(subscription.getNextBillingDate()))
+                         .withBillingCycle(subscription.getBillingCycle())
+                         .withBillingCycleType(subscription.getBillingCycleType())
+                         .withBillingContractTerm(subscription.getBillingContractTerm())
+                         .withLinks(links);
+    }
+
+    /**
+     * Create {@link SubscriptionReference} from {@link Subscription}.
+     *
+     * @param subscription
+     *         subscription that should be converted to {@link SubscriptionReference}
+     */
+    private SubscriptionReference toReference(Subscription subscription) {
+        List<Link> links = new ArrayList<>(0);
+        // community subscriptions should not use urls
+        if (!"sas-community".equals(subscription.getPlanId())) {
+            final UriBuilder uriBuilder = getServiceContext().getServiceUriBuilder();
+            links.add(LinksHelper.createLink(HttpMethod.GET,
+                                             uriBuilder.clone()
+                                                       .path(getClass(), "getSubscriptionById")
+                                                       .build(subscription.getId())
+                                                       .toString(),
+                                             null,
+                                             MediaType.APPLICATION_JSON,
+                                             Constants.LINK_REL_GET_SUBSCRIPTION));
+        }
+
+        return DtoFactory.getInstance().createDto(SubscriptionReference.class)
+                         .withSubscriptionId(subscription.getId())
+                         .withServiceId(subscription.getServiceId())
+                         .withDescription(subscription.getDescription())
                          .withPlanId(subscription.getPlanId())
                          .withLinks(links);
     }
 
-    private SubscriptionAttributesDescriptor toDescriptor(SubscriptionAttributes subscriptionAttributes) {
-        final Billing billing = subscriptionAttributes.getBilling();
-        BillingDescriptor billingDescriptor =
-                DtoFactory.getInstance().createDto(BillingDescriptor.class).withContractTerm(billing.getContractTerm())
-                          .withUsePaymentSystem(billing.getUsePaymentSystem())
-                          .withStartDate(billing.getStartDate())
-                          .withEndDate(billing.getEndDate())
-                          .withCycle(billing.getCycle())
-                          .withCycleTypeDescriptor(DtoFactory.getInstance().createDto(CycleTypeDescriptor.class).withId(
-                                  billing.getCycleType()));
-        switch (billing.getCycleType()) {
-            case 1:
-                billingDescriptor.getCycleTypeDescriptor().withDescription("Auto-renew");
-                break;
-            case 2:
-                billingDescriptor.getCycleTypeDescriptor().withDescription("One-time");
-                break;
-            case 3:
-                billingDescriptor.getCycleTypeDescriptor().withDescription("No-renewal");
-                break;
-            default:
-                LOG.error("Unknown billing cycle type {} is used", billing.getCycleType());
+    // TODO remove it after testing!
+    @GET
+    @Path("/subscriptions/test")
+    @RolesAllowed({"user"})
+    public void test() {
+        LOG.info("Subscription scheduler test is started");
+        try {
+            for (SubscriptionService subscriptionService : registry.getAll()) {
+                subscriptionService.onCheckSubscriptions();
+            }
+        } catch (Exception e) {
+            LOG.error(e.getLocalizedMessage(), e);
         }
-
-        return DtoFactory.getInstance().createDto(SubscriptionAttributesDescriptor.class).withCustom(subscriptionAttributes.getCustom())
-                         .withTrialDuration(subscriptionAttributes.getTrialDuration())
-                         .withDescription(subscriptionAttributes.getDescription()).withStartDate(subscriptionAttributes.getStartDate())
-                         .withEndDate(subscriptionAttributes.getEndDate()).withBillingDescriptor(billingDescriptor);
-    }
-
-    private SubscriptionAttributes toSubscriptionAttributes(NewSubscriptionAttributes newSubscriptionAttributes) {
-        NewBilling newBilling = newSubscriptionAttributes.getBilling();
-        return new SubscriptionAttributes().withDescription(newSubscriptionAttributes.getDescription())
-                                           .withEndDate(newSubscriptionAttributes.getEndDate())
-                                           .withStartDate(newSubscriptionAttributes.getStartDate())
-                                           .withTrialDuration(newSubscriptionAttributes.getTrialDuration())
-                                           .withCustom(newSubscriptionAttributes.getCustom())
-                                           .withBilling(new Billing().withCycleType(newBilling.getCycleType())
-                                                                     .withCycle(newBilling.getCycle())
-                                                                     .withStartDate(newBilling.getStartDate())
-                                                                     .withEndDate(newBilling.getEndDate())
-                                                                     .withContractTerm(newBilling.getContractTerm())
-                                                                     .withUsePaymentSystem(newBilling.getUsePaymentSystem()));
+        LOG.info("Subscription scheduler test is finished");
     }
 }

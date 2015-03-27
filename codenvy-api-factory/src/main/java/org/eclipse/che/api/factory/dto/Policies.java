@@ -56,10 +56,13 @@ public interface Policies {
     /**
      * Restrict access for factories only to authenticated users
      */
+    @Deprecated
     @FactoryParameter(obligation = OPTIONAL, queryParameterName = "requireAuthentication")
     Boolean getRequireAuthentication();
 
+    @Deprecated
     void setRequireAuthentication(Boolean requireAuthentication);
 
+    @Deprecated
     Policies withRequireAuthentication(Boolean requireAuthentication);
 }

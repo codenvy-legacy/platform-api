@@ -23,12 +23,10 @@ import org.eclipse.che.api.vfs.shared.dto.ReplacementSet;
 import org.eclipse.che.commons.lang.URLEncodedUtils;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.eclipse.che.dto.shared.DTO;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
@@ -49,13 +47,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import static com.google.common.base.Strings.emptyToNull;
 import static org.eclipse.che.api.core.factory.FactoryParameter.FactoryFormat;
 import static org.eclipse.che.api.core.factory.FactoryParameter.FactoryFormat.ENCODED;
 import static org.eclipse.che.api.core.factory.FactoryParameter.FactoryFormat.NONENCODED;
 import static org.eclipse.che.api.core.factory.FactoryParameter.Obligation;
 import static org.eclipse.che.api.core.factory.FactoryParameter.Version;
-import static com.google.common.base.Strings.emptyToNull;
-import static java.lang.String.format;
 
 /**
  * Tool to easy convert Factory object to nonencoded version or
@@ -79,13 +76,10 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
     }
 
     private final SourceProjectParametersValidator sourceProjectParametersValidator;
-    private final boolean                          onPremises;
 
     @Inject
-    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator,
-                          @Named("subscription.orgaddon.enabled") boolean onPremises) {
+    public FactoryBuilder(SourceProjectParametersValidator sourceProjectParametersValidator) {
         this.sourceProjectParametersValidator = sourceProjectParametersValidator;
-        this.onPremises = onPremises;
     }
 
     /**
@@ -288,11 +282,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     // check that field satisfies format rules
                     if (!FactoryFormat.BOTH.equals(factoryParameter.format()) && !factoryParameter.format().equals(sourceFormat)) {
                         throw new ConflictException(String.format(FactoryConstants.PARAMETRIZED_ENCODED_ONLY_PARAMETER_MESSAGE, fullName));
-                    }
-
-                    // check tracked-only fields
-                    if (null == accountId && factoryParameter.trackedOnly() && !onPremises) {
-                        throw new ConflictException(String.format(FactoryConstants.PARAMETRIZED_INVALID_TRACKED_PARAMETER_MESSAGE, fullName));
                     }
 
                     // use recursion if parameter is DTO object

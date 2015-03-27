@@ -295,7 +295,7 @@ public abstract class Runner {
                         public void cancel() throws Exception {
                             process.getLogger()
                                    .writeLine(
-                                           "[ERROR] Your run has been shutdown due to timeout. Upgrade your account to get an always on runner.");
+                                           "[ERROR] Your run has been shutdown due to timeout.");
                             process.internalStop(true);
                         }
                     });

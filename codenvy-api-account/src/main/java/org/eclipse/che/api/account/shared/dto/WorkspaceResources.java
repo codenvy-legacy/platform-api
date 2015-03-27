@@ -16,28 +16,16 @@ import org.eclipse.che.dto.shared.DTO;
  * @author Sergii Leschenko
  */
 @DTO
-public interface UpdateResourcesDescriptor {
-    void setWorkspaceId(String workspaceId);
-
+public interface WorkspaceResources {
     String getWorkspaceId();
 
-    UpdateResourcesDescriptor withWorkspaceId(String workspaceId);
+    void setWorkspaceId(String workspaceId);
 
-    void setRunnerRam(Integer runnerRam);
+    WorkspaceResources withWorkspaceId(String workspaceId);
 
-    Integer getRunnerRam();
+    Double getMemory();
 
-    UpdateResourcesDescriptor withRunnerRam(Integer runnerRam);
+    void setMemory(Double memory);
 
-    void setRunnerTimeout(Integer runnerTimeout);
-
-    Integer getRunnerTimeout();
-
-    UpdateResourcesDescriptor withRunnerTimeout(Integer runnerTimeout);
-
-    void setBuilderTimeout(Integer builderTimeout);
-
-    Integer getBuilderTimeout();
-
-    UpdateResourcesDescriptor withBuilderTimeout(Integer builderTimeout);
+    WorkspaceResources withMemory(Double memory);
 }

@@ -47,8 +47,9 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
 
     @BeforeMethod
     public void setUp() throws Exception {
-        acceptValidator = new FactoryAcceptValidatorImpl(accountDao, userDao, preferenceDao, false);
-        createValidator = new FactoryCreateValidatorImpl(accountDao, userDao, preferenceDao, false);
+
+        acceptValidator = new FactoryAcceptValidatorImpl(accountDao, userDao, preferenceDao);
+        createValidator = new FactoryCreateValidatorImpl(accountDao, userDao, preferenceDao);
     }
 
     @Test
@@ -56,10 +57,10 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         FactoryCreateValidatorImpl spy = spy(createValidator);
         doNothing().when(spy).validateSource(any(Factory.class));
         doNothing().when(spy).validateAccountId(any(Factory.class));
-        doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
+        doNothing().when(spy).validateWorkspace(any(Factory.class));
         doNothing().when(spy).validateWorkspace(any(Factory.class));
 
         //main invoke
@@ -67,11 +68,11 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
 
         verify(spy).validateSource(any(Factory.class));
         verify(spy).validateAccountId(any(Factory.class));
-        verify(spy).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy).validateProjectName(any(Factory.class));
         verify(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         verify(spy).validateOnCreate(any(Factory.class));
         verify(spy).validateProjectActions(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
@@ -80,7 +81,6 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
     public void testOnAcceptNonEncoded() throws ApiException {
         FactoryAcceptValidatorImpl spy = spy(acceptValidator);
         doNothing().when(spy).validateSource(any(Factory.class));
-        doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateProjectName(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
@@ -90,19 +90,18 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         spy.validateOnAccept(factoryUrl, false);
 
         verify(spy).validateSource(any(Factory.class));
-        verify(spy).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy).validateProjectName(any(Factory.class));
         verify(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         verify(spy).validateOnAccept(any(Factory.class), eq(false));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 
     @Test
     public void testOnAcceptEncoded() throws ApiException {
         FactoryAcceptValidatorImpl spy = spy(acceptValidator);
-        doNothing().when(spy).validateTrackedFactoryAndParams(any(Factory.class));
         doNothing().when(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
         doNothing().when(spy).validateWorkspace(any(Factory.class));
@@ -110,11 +109,11 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         //main invoke
         spy.validateOnAccept(factoryUrl, true);
 
-        verify(spy).validateTrackedFactoryAndParams(any(Factory.class));
         verify(spy).validateCurrentTimeBetweenSinceUntil(any(Factory.class));
         verify(spy).validateOnAccept(any(Factory.class), eq(true));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 

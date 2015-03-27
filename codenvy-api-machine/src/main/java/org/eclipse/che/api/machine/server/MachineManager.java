@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.machine.server;
 
+import com.google.common.util.concurrent.ThreadFactoryBuilder;
+
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -26,12 +28,8 @@ import org.eclipse.che.api.machine.shared.Command;
 import org.eclipse.che.api.machine.shared.MachineState;
 import org.eclipse.che.api.machine.shared.ProjectBinding;
 import org.eclipse.che.api.machine.shared.Recipe;
-
-import org.eclipse.che.commons.env.EnvironmentContext;
 import org.eclipse.che.commons.lang.IoUtil;
 import org.eclipse.che.commons.lang.NameGenerator;
-import org.eclipse.che.commons.lang.NamedThreadFactory;
-import org.eclipse.che.commons.lang.ZipUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -40,7 +38,6 @@ import javax.annotation.PreDestroy;
 import javax.inject.Inject;
 import javax.inject.Named;
 import javax.inject.Singleton;
-import javax.ws.rs.core.UriBuilder;
 import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
@@ -53,7 +50,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.Callable;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -68,33 +64,29 @@ import java.util.concurrent.TimeUnit;
 public class MachineManager {
     private static final Logger LOG = LoggerFactory.getLogger(MachineManager.class);
 
-    private final SnapshotStorage                                  snapshotStorage;
-    private final File                                             machineLogsDir;
-    private final Map<String, ImageProvider>                       imageProviders;
-    private final Map<String, MachineImpl>                         machines;
-    private final ExecutorService                                  executor;
-    private final String                                           apiEndPoint;
-    private final ConcurrentHashMap<String, SynchronizeTask>       syncTasks;
-//    private final SynchronizeTaskFactory                           synchronizeTaskFactory;
+    private final SnapshotStorage            snapshotStorage;
+    private final File                       machineLogsDir;
+    private final Map<String, ImageProvider> imageProviders;
+    private final ExecutorService            executor;
+    private final MachineSlave               machineSlave;
+    private final Machines                   machines;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
-                          @Named("machine.logs_dir") File machineLogsDir,
-                          @Named("api.endpoint") String apiEndPoint) {
-//                          SynchronizeTaskFactory synchronizeTaskFactory) {
+                          Machines machines,
+                          MachineSlave machineSlave,
+                          @Named("machine.logs.location") String machineLogsDir) {
         this.snapshotStorage = snapshotStorage;
-        this.machineLogsDir = machineLogsDir;
-//        this.synchronizeTaskFactory = synchronizeTaskFactory;
+        this.machineLogsDir = new File(machineLogsDir);
+        this.machineSlave = machineSlave;
         this.imageProviders = new HashMap<>();
-        this.apiEndPoint = apiEndPoint;
+        this.machines = machines;
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
         }
-        machines = new ConcurrentHashMap<>();
         // fixme replace with guice style impl
-        executor = Executors.newCachedThreadPool(new NamedThreadFactory("MachineManager-", true));
-        syncTasks = new ConcurrentHashMap<>();
+        executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("MachineManager-").setDaemon(true).build());
     }
 
     @PostConstruct
@@ -120,7 +112,7 @@ public class MachineManager {
             executor.shutdownNow();
         }
 
-        for (MachineImpl machine : machines.values()) {
+        for (MachineImpl machine : machines.getAll()) {
             try {
                 destroy(machine);
             } catch (Exception e) {
@@ -184,7 +176,7 @@ public class MachineManager {
             final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
             final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), workspaceId, owner, machineLogger);
             machine.setState(MachineState.CREATING);
-            machines.put(machine.getId(), machine);
+            machines.put(machine);
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -241,7 +233,7 @@ public class MachineManager {
         final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
         final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), snapshot.getWorkspaceId(), owner, machineLogger);
         machine.setState(MachineState.CREATING);
-        machines.put(machine.getId(), machine);
+        machines.put(machine);
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -293,114 +285,51 @@ public class MachineManager {
         throw new NotFoundException(String.format("Logs for machine '%s' are not available", machineId));
     }
 
-    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, ServerException, ConflictException {
-        // 1. Check project is not bound yet
-        // 2. Send copy project request to runner
-        // 3. Start sync process (on API, on runner)
+    public void bindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException, ForbiddenException {
+        // TODO check that user has write permissions to bind project with synchronization
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
-                throw new ConflictException(String.format("Project %s is already bound to machine %s", project.getPath(), machineId));
+                throw new ForbiddenException(String.format("Project %s is already bound to machine %s", project.getPath(), machineId));
             }
         }
 
-//        copyProjectOnRunner(machine, project);
-
-        machine.getProjects().add(project);
-
-//        String syncKey = machineId + "/" + project.getPath();
-//        final SynchronizeTask serverSyncTask = synchronizeTaskFactory.create(machine.getWorkspaceId(),
-//                                                                             project,
-//                                                                             machine.getInstance().getHostProjectsFolder().toString());
-//        syncTasks.put(syncKey, serverSyncTask);
-//        executor.submit(serverSyncTask);
-
-//        startSyncOnRunner(machineId, project, fullPathOnRunner);
-    }
-
-    private void copyProjectOnRunner(MachineImpl machine, ProjectBinding project) throws NotFoundException, MachineException {
-        final File projectsFolder = machine.getInstance().getHostProjectsFolder();
-        final File fullPath;
         try {
-            fullPath = Files.createDirectories(new File(projectsFolder, project.getPath()).toPath()).toFile();
-            copyProjectSource(fullPath, machine.getWorkspaceId(), project.getPath());
-        } catch (IOException e) {
-            IoUtil.deleteRecursive(new File(projectsFolder, project.getPath()));
-            LOG.warn(e.getLocalizedMessage(), e);
-            throw new MachineException("Project binding failed. " + e.getLocalizedMessage());
+            machineSlave.copyProjectToMachine(machineId, project);
+
+            machine.getProjects().add(project);
+
+            machineSlave.startSynchronization(machineId, project);
+        } catch (ServerException | NotFoundException e) {
+            try {
+                machine.getMachineLogsOutput().writeLine("[ERROR] " + e.getLocalizedMessage());
+            } catch (IOException ignored) {
+            }
         }
     }
 
-//    private void startSyncOnRunner(String machineId, ProjectBinding project, String fullPath) throws NotFoundException {
-//        final MachineImpl machine = getMachine(machineId);
-//        final String watchPath = fullPath;
-//        final RunnerSynchronizeTask runnerSyncTask = runnerSynchronizeTaskFactory.create(watchPath, machine.getWorkspaceId(), project);
-//        runnerSyncTasks.putIfAbsent(watchPath, runnerSyncTask);
-//        executor.submit(runnerSyncTask);
-//    }
-
     public void unbindProject(String machineId, ProjectBinding project) throws NotFoundException, MachineException {
-        // 1. Check project is already bound
-        // 2. Stop sync process (on API, on runner)
-        // 3. Send remove project request to runner
-
         final MachineImpl machine = getMachine(machineId);
         for (ProjectBinding projectBinding : machine.getProjects()) {
             if (projectBinding.getPath().equals(project.getPath())) {
 
-//                final SynchronizeTask synchronizeTask = syncTasks.get(machineId + "/" + project.getPath());
-//                if (synchronizeTask != null) {
-//                    try {
-//                        synchronizeTask.cancel();
-//                    } catch (Exception e) {
-//                        LOG.error(e.getLocalizedMessage(), e);
-//                    }
-//                }
-//                stopSyncOnRunner(machineId, project);
+                try {
+                    machineSlave.stopSynchronization(machineId, project);
+                } catch (ServerException | NotFoundException e) {
+                    LOG.error(e.getLocalizedMessage(), e);
+                }
 
-//                removeProjectOnRunner(machineId, project);
+                try {
+                    machineSlave.removeProjectFromMachine(machineId, project);
+                } catch (ServerException e) {
+                    LOG.error(e.getLocalizedMessage(), e);
+                }
 
                 machine.getProjects().remove(project);
                 return;
             }
         }
         throw new NotFoundException(String.format("Binding of project %s in machine %s not found", project.getPath(), machineId));
-    }
-
-    //    private void stopSyncOnRunner(String machineId, ProjectBinding project) throws NotFoundException {
-//        final MachineImpl machine = getMachine(machineId);
-//        final File fullPath = new File(machine.getInstance().getHostProjectsFolder(), project.getPath());
-//        RunnerSynchronizeTask syncTask = runnerSyncTasks.get(machineId + "/" + project.getPath());
-//        if (syncTask != null) {
-//            try {
-//                syncTask.cancel();
-//            } catch (Exception e) {
-//                LOG.error(e.getLocalizedMessage(), e);
-//            }
-//        }
-    private void copyProjectSource(java.io.File destinationDir, String workspaceId, String path) throws IOException {
-        final UriBuilder zipBallUriBuilder = UriBuilder.fromUri(apiEndPoint)
-                                                       .path("project")
-                                                       .path(workspaceId)
-                                                       .path("export")
-                                                       .path(path);
-
-        if (EnvironmentContext.getCurrent().getUser() != null && EnvironmentContext.getCurrent().getUser().getToken() != null) {
-            zipBallUriBuilder.queryParam("token", EnvironmentContext.getCurrent().getUser().getToken());
-        }
-        final File zipBall = IoUtil.downloadFile(null, "projectZip", null, zipBallUriBuilder.build().toURL());
-        ZipUtils.unzip(zipBall, destinationDir);
-    }
-
-    private void removeProjectOnRunner(String machineId, ProjectBinding project) throws NotFoundException {
-        final MachineImpl machine = getMachine(machineId);
-        final File fullPath = new File(machine.getInstance().getHostProjectsFolder(), project.getPath());
-        if (IoUtil.deleteRecursive(fullPath)) {
-            try {
-                machine.getMachineLogsOutput().writeLine("[ERROR] Error occurred on removing of binding");
-            } catch (IOException ignored) {
-            }
-        }
     }
 
     public List<ProjectBinding> getProjects(String machineId) throws NotFoundException, MachineException {
@@ -416,7 +345,7 @@ public class MachineManager {
     }
 
     public List<MachineImpl> getMachines() throws ServerException {
-        return new ArrayList<>(machines.values());
+        return machines.getAll();
     }
 
     /**
@@ -432,7 +361,7 @@ public class MachineManager {
      */
     public List<MachineImpl> getMachines(String owner, String workspaceId, ProjectBinding project) {
         final List<MachineImpl> result = new LinkedList<>();
-        for (MachineImpl machine : machines.values()) {
+        for (MachineImpl machine : machines.getAll()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
                 machine.getWorkspaceId().equals(workspaceId)) {
                 if (project != null) {
@@ -517,7 +446,7 @@ public class MachineManager {
             throw new MachineException(
                     String.format("Unable remove image from snapshot '%s', unsupported image type '%s'", snapshotId, imageType));
         }
-        imageProvider.removeSnapshot(snapshot.getImageKey());
+        imageProvider.removeImage(snapshot.getImageKey());
 
         snapshotStorage.removeSnapshot(snapshotId);
     }

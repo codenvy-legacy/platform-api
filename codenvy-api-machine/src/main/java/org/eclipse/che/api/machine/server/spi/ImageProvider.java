@@ -73,5 +73,5 @@ public interface ImageProvider {
      */
     Image createImage(ImageKey imageKey, LineConsumer creationLogsOutput) throws NotFoundException, InvalidImageException, MachineException;
 
-    void removeSnapshot(ImageKey imageKey) throws MachineException;
+    void removeImage(ImageKey imageKey) throws MachineException;
 }

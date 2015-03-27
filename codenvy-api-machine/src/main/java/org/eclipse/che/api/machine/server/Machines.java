@@ -10,16 +10,17 @@
  *******************************************************************************/
 package org.eclipse.che.api.machine.server;
 
-import com.google.inject.assistedinject.Assisted;
-
-import org.eclipse.che.api.core.ServerException;
-import org.eclipse.che.api.machine.shared.ProjectBinding;
+import java.util.List;
 
 /**
  * @author Alexander Garagatyi
  */
-public interface SynchronizeTaskFactory {
-    SynchronizeTask create(@Assisted("workspaceId") String workspaceId,
-                           ProjectBinding projectBinding,
-                           @Assisted("machineProjectFolder") String machineProjectFolder) throws ServerException;
+public interface Machines {
+    List<MachineImpl> getAll();
+
+    void put(MachineImpl machine);
+
+    void remove(String machineId);
+
+    MachineImpl get(String id);
 }

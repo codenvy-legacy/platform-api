@@ -10,7 +10,6 @@
  *******************************************************************************/
 package org.eclipse.che.api.machine.server;
 
-import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
 import org.eclipse.che.api.core.ServerException;
@@ -243,7 +242,7 @@ public class MachineService {
     @RolesAllowed("user")
     public void bindProject(@PathParam("machineId") String machineId,
                             @PathParam("path") String path)
-            throws NotFoundException, ServerException, ForbiddenException, ConflictException {
+            throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.bindProject(machineId, new ProjectBindingImpl().withPath(path));
@@ -310,8 +309,7 @@ public class MachineService {
         return lineConsumer;
     }
 
-    private MachineDescriptor toDescriptor(MachineImpl machine)
-            throws ServerException {
+    private MachineDescriptor toDescriptor(MachineImpl machine) throws ServerException {
         final List<ProjectBindingDescriptor> projectDescriptors = new ArrayList<>();
         for (ProjectBinding project : machine.getProjects()) {
             projectDescriptors.add(dtoFactory.createDto(ProjectBindingDescriptor.class)

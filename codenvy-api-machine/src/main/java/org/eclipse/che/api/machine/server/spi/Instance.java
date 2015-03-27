@@ -49,4 +49,6 @@ public interface Instance {
     ImageKey saveToImage(String owner) throws MachineException;
 
     void destroy() throws MachineException;
+
+    String getLocationAddress();
 }

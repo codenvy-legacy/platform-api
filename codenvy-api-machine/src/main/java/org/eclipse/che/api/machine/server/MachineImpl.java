@@ -19,6 +19,7 @@ import org.eclipse.che.api.machine.shared.Machine;
 import org.eclipse.che.api.machine.shared.MachineState;
 import org.eclipse.che.api.machine.shared.ProjectBinding;
 
+import java.io.File;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Set;
@@ -102,14 +103,6 @@ public class MachineImpl implements Machine {
         return processes;
     }
 
-//    Set<ProjectBinding> getProjectBindings() {
-//        return projectBindings;
-//    }
-//
-//    public String getWorkspaceId() {
-//        return workspaceId;
-//    }
-
     LineConsumer getMachineLogsOutput() {
         return machineLogsOutput;
     }
@@ -124,5 +117,13 @@ public class MachineImpl implements Machine {
 
     synchronized void setInstance(Instance instance) {
         this.instance = instance;
+    }
+
+    public String getLocationAddress() {
+        return instance.getLocationAddress();
+    }
+
+    public File getHostProjectsFolder() {
+        return instance.getHostProjectsFolder();
     }
 }

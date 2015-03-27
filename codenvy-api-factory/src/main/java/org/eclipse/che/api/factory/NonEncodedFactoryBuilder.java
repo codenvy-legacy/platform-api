@@ -39,6 +39,7 @@ import java.util.Map;
  *
  * @author Sergii Kabashniuk
  */
+@Deprecated
 public abstract class NonEncodedFactoryBuilder {
 
     /**

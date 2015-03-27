@@ -21,7 +21,6 @@ import org.eclipse.che.api.factory.dto.Factory;
 import org.eclipse.che.api.factory.dto.FactoryV2_0;
 import org.eclipse.che.api.factory.dto.FactoryV2_1;
 import org.eclipse.che.api.project.shared.dto.ImportSourceDescriptor;
-import org.eclipse.che.api.vfs.shared.dto.ReplacementSet;
 import org.eclipse.che.dto.server.DtoFactory;
 import org.eclipse.che.dto.shared.DTO;
 import org.slf4j.Logger;
@@ -32,31 +31,27 @@ import javax.inject.Singleton;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Reader;
-import java.io.UnsupportedEncodingException;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
-import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-import static com.google.common.base.Strings.emptyToNull;
 import static org.eclipse.che.api.core.factory.FactoryParameter.Obligation;
 import static org.eclipse.che.api.core.factory.FactoryParameter.Version;
 
 /**
- * Tool to easy convert Factory object to nonencoded version or
- * to json version and vise versa.
+ * Tool to easy convert Factory object to json and vise versa.
  * Also it provides factory parameters compatibility.
  *
  * @author Sergii Kabashniuk
  * @author Alexander Garagatyi
  */
 @Singleton
-public class FactoryBuilder extends NonEncodedFactoryBuilder {
+public class FactoryBuilder  {
     private static final Logger LOG = LoggerFactory.getLogger(FactoryService.class);
 
     /** List contains all possible implementation of factory legacy converters. */
@@ -136,24 +131,19 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
             throw new ConflictException(FactoryConstants.INVALID_VERSION_MESSAGE);
         }
 
-        String accountId;
 
         Class usedFactoryVersionMethodProvider;
         switch (v) {
             case V2_0:
                 usedFactoryVersionMethodProvider = FactoryV2_0.class;
-                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             case V2_1:
                 usedFactoryVersionMethodProvider = FactoryV2_1.class;
-                accountId = factory.getCreator() != null ? factory.getCreator().getAccountId() : null;
                 break;
             default:
                 throw new ConflictException(FactoryConstants.INVALID_VERSION_MESSAGE);
         }
-        accountId = emptyToNull(accountId);
-
-        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, accountId, "");
+        validateCompatibility(factory, Factory.class, usedFactoryVersionMethodProvider, v, "");
     }
 
     /**
@@ -187,8 +177,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
      *         - class that provides allowed methods
      * @param version
      *         - version of factory
-     * @param accountId
-     *         - account id of a factory
      * @param parentName
      *         - parent parameter queryParameterName
      * @throws org.eclipse.che.api.core.ApiException
@@ -197,7 +185,6 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                Class methodsProvider,
                                Class allowedMethodsProvider,
                                Version version,
-                               String accountId,
                                String parentName) throws ApiException {
         // get all methods recursively
         for (Method method : methodsProvider.getMethods()) {
@@ -244,8 +231,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                     // use recursion if parameter is DTO object
                     if (method.getReturnType().isAnnotationPresent(DTO.class)) {
                         // validate inner objects such Git ot ProjectAttributes
-                        validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version,
-                                              accountId, fullName);
+                        validateCompatibility(parameterValue, method.getReturnType(), method.getReturnType(), version,fullName);
                     } else if (Map.class.isAssignableFrom(method.getReturnType())) {
                         Type tp = ((ParameterizedType)method.getGenericReturnType()).getActualTypeArguments()[1];
 
@@ -266,7 +252,7 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                                 Map<Object, Object> map = (Map)parameterValue;
                                 for (Map.Entry<Object, Object> entry : map.entrySet()) {
                                     validateCompatibility(entry.getValue(), secMapParamClass, secMapParamClass, version,
-                                                          accountId, fullName + "." + entry.getKey());
+                                                          fullName + "." + entry.getKey());
                                 }
                             } else {
                                 throw new RuntimeException("This type of fields is not supported by factory.");
@@ -276,20 +262,5 @@ public class FactoryBuilder extends NonEncodedFactoryBuilder {
                 }
             }
         }
-    }
-
-
-    @Override
-    protected String encode(String value) {
-        try {
-            return URLEncoder.encode(value, "UTF-8");
-        } catch (UnsupportedEncodingException e) {
-            return value;
-        }
-    }
-
-    @Override
-    protected String toJson(List<ReplacementSet> dto) {
-        return DtoFactory.getInstance().toJson(dto);
     }
 }

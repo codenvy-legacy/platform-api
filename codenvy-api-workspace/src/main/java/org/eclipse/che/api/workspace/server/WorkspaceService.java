@@ -19,7 +19,6 @@ import com.wordnik.swagger.annotations.ApiResponses;
 
 import org.eclipse.che.api.account.server.dao.Account;
 import org.eclipse.che.api.account.server.dao.AccountDao;
-import org.eclipse.che.api.account.server.dao.Subscription;
 import org.eclipse.che.api.core.ConflictException;
 import org.eclipse.che.api.core.ForbiddenException;
 import org.eclipse.che.api.core.NotFoundException;
@@ -54,7 +53,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.annotation.security.RolesAllowed;
 import javax.inject.Inject;
-import javax.inject.Named;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -252,15 +250,23 @@ public class WorkspaceService extends Service {
                                                    .withTemporary(true)
                                                    .withAccountId(newWorkspace.getAccountId())
                                                    .withAttributes(newWorkspace.getAttributes());
-        createTemporaryWorkspace(workspace);
+
         //temporary user should be created if real user does not exist
         final User user;
+        boolean isTemporary = false;
         if (context.getUserPrincipal() == null) {
             user = createTemporaryUser();
+            isTemporary = true;
         } else {
             user = userDao.getById(currentUser().getId());
         }
 
+        if (!isTemporary && !context.isUserInRole("system/admin")) {
+            final Account account = accountDao.getById(newWorkspace.getAccountId());
+            ensureCurrentUserOwnerOf(account);
+        }
+
+        createTemporaryWorkspace(workspace);
         final Member newMember = new Member().withUserId(user.getId())
                                              .withWorkspaceId(workspace.getId())
                                              .withRoles(asList("workspace/developer", "workspace/admin"));

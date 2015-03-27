@@ -61,6 +61,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         doNothing().when(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         doNothing().when(spy).validateProjectActions(any(Factory.class));
         doNothing().when(spy).validateWorkspace(any(Factory.class));
+        doNothing().when(spy).validateWorkspace(any(Factory.class));
 
         //main invoke
         spy.validateOnCreate(factoryUrl);
@@ -71,6 +72,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateCurrentTimeBeforeSinceUntil(any(Factory.class));
         verify(spy).validateOnCreate(any(Factory.class));
         verify(spy).validateProjectActions(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
@@ -93,6 +95,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateOnAccept(any(Factory.class), eq(false));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 
@@ -110,6 +113,7 @@ public class FactoryCreateAndAcceptValidatorsImplsTest {
         verify(spy).validateOnAccept(any(Factory.class), eq(true));
         verify(spy).validateProjectActions(any(Factory.class));
         verify(spy).validateWorkspace(any(Factory.class));
+        verify(spy).validateCreator(any(Factory.class));
         verifyNoMoreInteractions(spy);
     }
 

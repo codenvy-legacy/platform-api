@@ -152,33 +152,28 @@ public class FactoryBaseValidatorTest {
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=named' requires 'policies.requireAuthentication=true'.")
-    public void shouldNotValidateIfWorkspaceTypeEqualsTrueButRequireAuthenticationAbsent() throws ApiException {
+            expectedExceptionsMessageRegExp = "workspace.type have only two possible values - named or temp")
+    public void shouldNotValidateIfWorkspaceTypeIsInvalid() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType("named"));
+                                           .withType("wrongg"));
 
         validator.validateWorkspace(factory);
     }
 
     @Test(expectedExceptions = ApiException.class,
-            expectedExceptionsMessageRegExp = "This factory was improperly configured. The parameter 'workspace.type=named' requires 'policies.requireAuthentication=true'.")
-    public void shouldNotValidateIfWorkspaceTypeEqualsTrueButRequireAuthenticationEqualsFalse() throws ApiException {
+            expectedExceptionsMessageRegExp = "workspace.location have only two possible values - owner or acceptor")
+    public void shouldNotValidateIfWorkspaceLocationIsInvalid() throws ApiException {
         factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType("named"))
-                         .withPolicies(dto.createDto(Policies.class)
-                                          .withRequireAuthentication(false));
+                                           .withLocation("wrongg"));
 
         validator.validateWorkspace(factory);
     }
 
-    @Test
-    public void shouldValidateIfWorkspaceNamedEqualsTrueButRequireAuthenticationEqualsTrue() throws ApiException {
-        factory = factory.withWorkspace(dto.createDto(Workspace.class)
-                                           .withType("named"))
-                         .withPolicies(dto.createDto(Policies.class)
-                                          .withRequireAuthentication(true));
-
-        validator.validateWorkspace(factory);
+    @Test(expectedExceptions = ApiException.class,
+            expectedExceptionsMessageRegExp = "current workspace location requires factory creator accountId to be set")
+    public void shouldNotValidateIfWorkspaceLocationOwnerButNotAuthor() throws ApiException {
+        factory = factory.withWorkspace(dto.createDto(Workspace.class).withLocation("owner")).withCreator(null);
+        validator.validateCreator(factory);
     }
 
     @Test

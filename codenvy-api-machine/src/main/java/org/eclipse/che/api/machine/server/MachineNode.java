@@ -17,7 +17,7 @@ import org.eclipse.che.api.machine.shared.ProjectBinding;
 /**
  * @author Alexander Garagatyi
  */
-public interface MachineSlave {
+public interface MachineNode {
     void copyProjectToMachine(String machineId, ProjectBinding project) throws ServerException, NotFoundException;
 
     void removeProjectFromMachine(String machineId, ProjectBinding project) throws ServerException, NotFoundException;

@@ -10,6 +10,8 @@
  *******************************************************************************/
 package org.eclipse.che.api.machine.server;
 
+import org.eclipse.che.api.core.NotFoundException;
+
 import javax.inject.Singleton;
 import java.util.ArrayList;
 import java.util.List;
@@ -20,30 +22,32 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author Alexander Garagatyi
  */
 @Singleton
-public class MachinesInMemoryImpl implements Machines {
+public class MachineRegistry {
     private final Map<String, MachineImpl> machines;
 
-    public MachinesInMemoryImpl() {
+    public MachineRegistry() {
         machines = new ConcurrentHashMap<>();
     }
 
-    @Override
     public List<MachineImpl> getAll() {
         return new ArrayList<>(machines.values());
     }
 
-    @Override
     public void put(MachineImpl machine) {
         machines.put(machine.getId(), machine);
     }
 
-    @Override
-    public void remove(String machineId) {
-        machines.remove(machineId);
+    public void remove(String machineId) throws NotFoundException {
+        if (machines.containsKey(machineId)) {
+            machines.remove(machineId);
+        }
+        throw new NotFoundException("Machine " + machineId + " is not found");
     }
 
-    @Override
-    public MachineImpl get(String id) {
-        return machines.get(id);
+    public MachineImpl get(String machineId) throws NotFoundException {
+        if (machines.containsKey(machineId)) {
+            return machines.get(machineId);
+        }
+        throw new NotFoundException("Machine " + machineId + " is not found");
     }
 }

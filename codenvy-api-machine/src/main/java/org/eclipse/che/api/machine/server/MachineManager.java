@@ -68,20 +68,20 @@ public class MachineManager {
     private final File                       machineLogsDir;
     private final Map<String, ImageProvider> imageProviders;
     private final ExecutorService            executor;
-    private final MachineSlave               machineSlave;
-    private final Machines                   machines;
+    private final MachineNode                machineNode;
+    private final MachineRegistry            machineRegistry;
 
     @Inject
     public MachineManager(SnapshotStorage snapshotStorage,
                           Set<ImageProvider> imageProviders,
-                          Machines machines,
-                          MachineSlave machineSlave,
+                          MachineRegistry machineRegistry,
+                          MachineNode machineNode,
                           @Named("machine.logs.location") String machineLogsDir) {
         this.snapshotStorage = snapshotStorage;
         this.machineLogsDir = new File(machineLogsDir);
-        this.machineSlave = machineSlave;
+        this.machineNode = machineNode;
         this.imageProviders = new HashMap<>();
-        this.machines = machines;
+        this.machineRegistry = machineRegistry;
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
         }
@@ -112,7 +112,7 @@ public class MachineManager {
             executor.shutdownNow();
         }
 
-        for (MachineImpl machine : machines.getAll()) {
+        for (MachineImpl machine : machineRegistry.getAll()) {
             try {
                 destroy(machine);
             } catch (Exception e) {
@@ -176,7 +176,7 @@ public class MachineManager {
             final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
             final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), workspaceId, owner, machineLogger);
             machine.setState(MachineState.CREATING);
-            machines.put(machine);
+            machineRegistry.put(machine);
             executor.execute(new Runnable() {
                 @Override
                 public void run() {
@@ -186,12 +186,12 @@ public class MachineManager {
                         machine.setInstance(instance);
                         machine.setState(MachineState.RUNNING);
                     } catch (Exception error) {
-                        machines.remove(machine.getId());
-                        LOG.error(error.getMessage());
                         try {
+                            machineRegistry.remove(machine.getId());
+                            LOG.error(error.getMessage());
                             machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
                             machineLogger.close();
-                        } catch (IOException e) {
+                        } catch (IOException | NotFoundException e) {
                             LOG.error(e.getMessage());
                         }
                     }
@@ -233,7 +233,7 @@ public class MachineManager {
         final CompositeLineConsumer machineLogger = new CompositeLineConsumer(machineLogsOutput, getMachineFileLogger(machineId));
         final MachineImpl machine = new MachineImpl(machineId, imageProvider.getType(), snapshot.getWorkspaceId(), owner, machineLogger);
         machine.setState(MachineState.CREATING);
-        machines.put(machine);
+        machineRegistry.put(machine);
         executor.execute(new Runnable() {
             @Override
             public void run() {
@@ -243,12 +243,12 @@ public class MachineManager {
                     machine.setInstance(instance);
                     machine.setState(MachineState.RUNNING);
                 } catch (Exception error) {
-                    machines.remove(machine.getId());
-                    LOG.error(error.getMessage());
                     try {
+                        machineRegistry.remove(machine.getId());
+                        LOG.error(error.getMessage());
                         machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
                         machineLogger.close();
-                    } catch (IOException e) {
+                    } catch (IOException | NotFoundException e) {
                         LOG.error(e.getMessage());
                     }
                 }
@@ -295,16 +295,17 @@ public class MachineManager {
         }
 
         try {
-            machineSlave.copyProjectToMachine(machineId, project);
+            machineNode.copyProjectToMachine(machineId, project);
 
             machine.getProjects().add(project);
 
-            machineSlave.startSynchronization(machineId, project);
+            machineNode.startSynchronization(machineId, project);
         } catch (ServerException | NotFoundException e) {
             try {
                 machine.getMachineLogsOutput().writeLine("[ERROR] " + e.getLocalizedMessage());
             } catch (IOException ignored) {
             }
+            throw new MachineException(e.getLocalizedMessage(), e);
         }
     }
 
@@ -314,15 +315,23 @@ public class MachineManager {
             if (projectBinding.getPath().equals(project.getPath())) {
 
                 try {
-                    machineSlave.stopSynchronization(machineId, project);
+                    machineNode.stopSynchronization(machineId, project);
                 } catch (ServerException | NotFoundException e) {
                     LOG.error(e.getLocalizedMessage(), e);
+                    try {
+                        machine.getMachineLogsOutput().writeLine("[ERROR] " + e.getLocalizedMessage());
+                    } catch (IOException ignored) {
+                    }
                 }
 
                 try {
-                    machineSlave.removeProjectFromMachine(machineId, project);
+                    machineNode.removeProjectFromMachine(machineId, project);
                 } catch (ServerException e) {
                     LOG.error(e.getLocalizedMessage(), e);
+                    try {
+                        machine.getMachineLogsOutput().writeLine("[ERROR] " + e.getLocalizedMessage());
+                    } catch (IOException ignored) {
+                    }
                 }
 
                 machine.getProjects().remove(project);
@@ -337,15 +346,15 @@ public class MachineManager {
     }
 
     public MachineImpl getMachine(String machineId) throws NotFoundException {
-        final MachineImpl machine = machines.get(machineId);
+        final MachineImpl machine = machineRegistry.get(machineId);
         if (machine == null) {
             throw new NotFoundException(String.format("Machine '%s' does not exist", machineId));
         }
         return machine;
     }
 
-    public List<MachineImpl> getMachines() throws ServerException {
-        return machines.getAll();
+    public List<MachineImpl> getMachineRegistry() throws ServerException {
+        return machineRegistry.getAll();
     }
 
     /**
@@ -361,7 +370,7 @@ public class MachineManager {
      */
     public List<MachineImpl> getMachines(String owner, String workspaceId, ProjectBinding project) {
         final List<MachineImpl> result = new LinkedList<>();
-        for (MachineImpl machine : machines.getAll()) {
+        for (MachineImpl machine : machineRegistry.getAll()) {
             if (owner != null && owner.equals(machine.getOwner()) &&
                 machine.getWorkspaceId().equals(workspaceId)) {
                 if (project != null) {
@@ -521,8 +530,8 @@ public class MachineManager {
             public void run() {
                 try {
                     destroy(machine);
-                    machines.remove(machine.getId());
-                } catch (MachineException error) {
+                    machineRegistry.remove(machine.getId());
+                } catch (MachineException | NotFoundException error) {
                     LOG.warn(error.getMessage(), error);
                     try {
                         machine.getMachineLogsOutput().writeLine(String.format("[ERROR] %s", error.getMessage()));

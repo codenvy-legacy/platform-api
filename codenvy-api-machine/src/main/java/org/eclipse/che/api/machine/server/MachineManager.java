@@ -85,8 +85,7 @@ public class MachineManager {
         for (ImageProvider provider : imageProviders) {
             this.imageProviders.put(provider.getType(), provider);
         }
-        // fixme replace with guice style impl
-        executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("MachineManager-").setDaemon(true).build());
+        executor = Executors.newCachedThreadPool(new ThreadFactoryBuilder().setNameFormat("MachineManager-%d").setDaemon(true).build());
     }
 
     @PostConstruct
@@ -353,7 +352,7 @@ public class MachineManager {
         return machine;
     }
 
-    public List<MachineImpl> getMachineRegistry() throws ServerException {
+    public List<MachineImpl> getMachines() throws ServerException {
         return machineRegistry.getAll();
     }
 
@@ -531,13 +530,8 @@ public class MachineManager {
                 try {
                     destroy(machine);
                     machineRegistry.remove(machine.getId());
-                } catch (MachineException | NotFoundException error) {
-                    LOG.warn(error.getMessage(), error);
-                    try {
-                        machine.getMachineLogsOutput().writeLine(String.format("[ERROR] %s", error.getMessage()));
-                    } catch (IOException e) {
-                        LOG.warn(e.getMessage());
-                    }
+                } catch (MachineException | NotFoundException e) {
+                    LOG.error(e.getMessage(), e);
                 }
             }
         });

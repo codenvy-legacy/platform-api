@@ -40,8 +40,9 @@ public class MachineRegistry {
     public void remove(String machineId) throws NotFoundException {
         if (machines.containsKey(machineId)) {
             machines.remove(machineId);
+        } else {
+            throw new NotFoundException("Machine " + machineId + " is not found");
         }
-        throw new NotFoundException("Machine " + machineId + " is not found");
     }
 
     public MachineImpl get(String machineId) throws NotFoundException {

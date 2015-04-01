@@ -186,8 +186,8 @@ public class MachineManager {
                         machine.setState(MachineState.RUNNING);
                     } catch (Exception error) {
                         try {
+                            LOG.error(error.getMessage(), error);
                             machineRegistry.remove(machine.getId());
-                            LOG.error(error.getMessage());
                             machineLogger.writeLine(String.format("[ERROR] %s", error.getMessage()));
                             machineLogger.close();
                         } catch (IOException | NotFoundException e) {

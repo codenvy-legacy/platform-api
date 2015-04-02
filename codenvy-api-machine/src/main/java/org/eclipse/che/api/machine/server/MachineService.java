@@ -69,6 +69,7 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromRecipe(final CreateMachineFromRecipe createMachineRequest)
             throws ServerException, ForbiddenException, NotFoundException {
+        requiredNotNull(createMachineRequest, "Machine description");
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Machine type");
         requiredNotNull(createMachineRequest.getWorkspaceId(), "Workspace id");
         requiredNotNull(createMachineRequest.getRecipeDescriptor(), "Recipe descriptor");
@@ -96,6 +97,7 @@ public class MachineService {
     @RolesAllowed("user")
     public MachineDescriptor createMachineFromSnapshot(CreateMachineFromSnapshot createMachineRequest)
             throws ForbiddenException, NotFoundException, ServerException {
+        requiredNotNull(createMachineRequest, "Snapshot description");
         requiredNotNull(createMachineRequest.getSnapshotId(), "Snapshot id");
         final Snapshot snapshot = machineManager.getSnapshot(createMachineRequest.getSnapshotId());
         checkCurrentUserPermissionsForSnapshot(snapshot);
@@ -149,7 +151,8 @@ public class MachineService {
     @DELETE
     @Produces(MediaType.APPLICATION_JSON)
     @RolesAllowed("user")
-    public void destroyMachine(@PathParam("machineId") String machineId) throws NotFoundException, ServerException, ForbiddenException {
+    public void destroyMachine(@PathParam("machineId") String machineId)
+            throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.destroy(machineId);
@@ -191,7 +194,8 @@ public class MachineService {
     @Path("/snapshot/{snapshotId}")
     @DELETE
     @RolesAllowed("user")
-    public void removeSnapshot(@PathParam("snapshotId") String snapshotId) throws ForbiddenException, NotFoundException, ServerException {
+    public void removeSnapshot(@PathParam("snapshotId") String snapshotId)
+            throws ForbiddenException, NotFoundException, ServerException {
         checkCurrentUserPermissionsForSnapshot(machineManager.getSnapshot(snapshotId));
 
         machineManager.removeSnapshot(snapshotId);
@@ -203,6 +207,7 @@ public class MachineService {
     @RolesAllowed("user")
     public ProcessDescriptor executeCommandInMachine(@PathParam("machineId") String machineId, final CommandDescriptor command)
             throws NotFoundException, ServerException, ForbiddenException {
+        requiredNotNull(command, "Command description");
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         final LineConsumer lineConsumer = getLineConsumer(command.getOutputChannel());
@@ -252,7 +257,8 @@ public class MachineService {
     @DELETE
     @RolesAllowed("user")
     public void unbindProject(@PathParam("machineId") String machineId,
-                              @PathParam("path") String path) throws NotFoundException, ServerException, ForbiddenException {
+                              @PathParam("path") String path)
+            throws NotFoundException, ServerException, ForbiddenException {
         checkCurrentUserPermissionsForMachine(machineManager.getMachine(machineId).getOwner());
 
         machineManager.unbindProject(machineId, new ProjectBindingImpl().withPath(path));

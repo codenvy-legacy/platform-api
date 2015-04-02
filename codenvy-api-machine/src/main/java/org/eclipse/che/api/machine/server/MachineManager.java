@@ -257,7 +257,7 @@ public class MachineManager {
     }
 
     private String generateMachineId() {
-        return NameGenerator.generate("machine-", 16);
+        return NameGenerator.generate("machine", 16);
     }
 
     private FileLineConsumer getMachineFileLogger(String machineId) throws MachineException {
@@ -424,7 +424,7 @@ public class MachineManager {
     }
 
     private String generateSnapshotId() {
-        return NameGenerator.generate("snapshot-", 16);
+        return NameGenerator.generate("snapshot", 16);
     }
 
     public Snapshot getSnapshot(String snapshotId) throws NotFoundException, ServerException {
